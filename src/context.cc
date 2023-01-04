@@ -12,13 +12,18 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
-
 #include "context.h"
 
-int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept {
-    RenderContext context {};
-    context.init();
-    context.cleanup();
-    return 0;
+void RenderContext::init() noexcept {
+    glfwInit();
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
+    GLFWwindow *window = glfwCreateWindow(1000, 1000, "trace", NULL, NULL);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+}
+
+void RenderContext::cleanup() noexcept {
+    glfwDestroyWindow(window);
+    glfwTerminate();
 }

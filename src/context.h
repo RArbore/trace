@@ -12,13 +12,12 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 
-#include "context.h"
+struct RenderContext {
+    GLFWwindow *window;
 
-int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept {
-    RenderContext context {};
-    context.init();
-    context.cleanup();
-    return 0;
-}
+    void init() noexcept;
+    void cleanup() noexcept;
+};
