@@ -16,13 +16,16 @@ LDLIBS := -lvulkan -lglfw
 exe: trace
 	./trace
 
-trace: obj/main.o obj/context.o
+trace: obj/main.o obj/context.o obj/device.o
 	$(LD) $(LDFLAGS) $^ -o trace $(LDLIBS)
 
 obj/main.o: src/main.cc src/context.h src/util.h
 	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
 
 obj/context.o: src/context.cc src/context.h src/util.h
+	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
+
+obj/device.o: src/device.cc src/context.h src/util.h
 	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
 
 clean:
