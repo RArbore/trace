@@ -21,9 +21,7 @@ static auto glfw_framebuffer_resize_callback(GLFWwindow* window, int width, int 
 }
 
 static auto glfw_key_callback(GLFWwindow* window, int key, __attribute__((unused)) int scancode, int action, __attribute__((unused)) int mods) noexcept -> void {
-    if (key < 0 || key > GLFW_KEY_LAST) {
-	PANIC("Pressed unknown key.");
-    }
+    ASSERT(key >= 0 && key < GLFW_KEY_LAST, "Pressed unknown key.");
     RenderContext *context = (RenderContext*) glfwGetWindowUserPointer(window);
     context->pressed_keys[key] = action != GLFW_RELEASE;
 }
@@ -43,6 +41,7 @@ auto RenderContext::init() noexcept -> void {
 
     create_instance();
     create_surface();
+    create_physical_device();
 }
 
 auto RenderContext::render() noexcept -> void {

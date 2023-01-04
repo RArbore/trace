@@ -15,10 +15,19 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
+#include <cstring>
+#include <vector>
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #include "util.h"
+
+struct SwapchainSupport {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> present_modes;
+};
 
 struct RenderContext {
     GLFWwindow *window;
@@ -41,7 +50,12 @@ struct RenderContext {
 
     auto cleanup_instance() noexcept -> void;
     auto cleanup_surface() noexcept -> void;
-    auto cleanup_physical_device() noexcept -> void;
+
+    auto physical_check_queue_family(VkPhysicalDevice physical_device, uint32_t* queue_family, VkQueueFlagBits bits) noexcept -> int32_t;
+    auto physical_check_extensions(VkPhysicalDevice physical_device) noexcept -> int32_t;
+    auto physical_check_swapchain_support(VkPhysicalDevice physical_device) noexcept -> SwapchainSupport;
+    auto physical_check_features_support(VkPhysicalDevice physical_device) noexcept -> int32_t;
+    auto physical_score(const VkPhysicalDevice physical) noexcept -> int32_t;
 };
 
 #endif
