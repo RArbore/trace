@@ -12,10 +12,31 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifndef UTIL_H
+#define UTIL_H
+
 #include <iostream>
+
+#include <vulkan/vulkan.h>
 
 #define PANIC(str)				\
     {						\
 	fprintf(stderr, "PANIC: " str);		\
 	exit(-1);				\
     }
+
+template<typename T>
+inline auto assert_impl(T, const char*) noexcept -> void;
+
+template<>
+inline auto assert_impl(VkResult result, const char *msg) noexcept -> void {
+    if (result != VK_SUCCESS) {
+	fprintf(stderr, "PANIC: %s", msg);
+	exit(-1);
+    }
+}
+
+#define ASSERT(res, msg)			\
+    assert_impl(res, msg);
+
+#endif

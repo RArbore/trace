@@ -14,9 +14,12 @@
 
 #include "context.h"
 
-int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept {
+auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> int {
     RenderContext context {};
     context.init();
+    while (context.active) {
+	context.render();
+    }
     context.cleanup();
     return 0;
 }

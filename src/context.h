@@ -12,6 +12,9 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifndef CONTEXT_H
+#define CONTEXT_H
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -20,9 +23,25 @@
 struct RenderContext {
     GLFWwindow *window;
     int width, height;
+    bool active = true;
+
+    VkInstance instance;
+    VkSurfaceKHR surface;
+    VkPhysicalDevice physical_device;
 
     bool pressed_keys[GLFW_KEY_LAST + 1];
 
-    void init() noexcept;
-    void cleanup() noexcept;
+    auto init() noexcept -> void;
+    auto render() noexcept -> void;
+    auto cleanup() noexcept -> void;
+
+    auto create_instance() noexcept -> void;
+    auto create_surface() noexcept -> void;
+    auto create_physical_device() noexcept -> void;
+
+    auto cleanup_instance() noexcept -> void;
+    auto cleanup_surface() noexcept -> void;
+    auto cleanup_physical_device() noexcept -> void;
 };
+
+#endif

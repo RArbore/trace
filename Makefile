@@ -1,6 +1,6 @@
 RELEASE ?= 0
 ifeq ($(RELEASE), 1)
-	CPPFLAGS := -c -Ofast -flto
+	CPPFLAGS := -c -Ofast -flto -DRELEASE
 	LDFLAGS := -fuse-ld=mold -flto
 else
 	CPPFLAGS := -c -g
@@ -19,10 +19,10 @@ exe: trace
 trace: obj/main.o obj/context.o
 	$(LD) $(LDFLAGS) $^ -o trace $(LDLIBS)
 
-obj/main.o: src/main.cc src/context.h
+obj/main.o: src/main.cc src/context.h src/util.h
 	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
 
-obj/context.o: src/context.cc src/context.h
+obj/context.o: src/context.cc src/context.h src/util.h
 	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
 
 clean:
