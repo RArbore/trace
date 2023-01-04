@@ -12,17 +12,10 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include <iostream>
 
-#include "util.h"
-
-struct RenderContext {
-    GLFWwindow *window;
-    int width, height;
-
-    bool pressed_keys[GLFW_KEY_LAST + 1];
-
-    void init() noexcept;
-    void cleanup() noexcept;
-};
+#define PANIC(str)				\
+    {						\
+	fprintf(stderr, "PANIC: " str);		\
+	exit(-1);				\
+    }

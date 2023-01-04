@@ -12,8 +12,6 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
-
 #include "context.h"
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept {
