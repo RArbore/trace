@@ -16,7 +16,7 @@ LDLIBS := -lvulkan -lglfw
 exe: trace
 	./trace
 
-trace: obj/main.o obj/context.o obj/device.o obj/swapchain.o
+trace: obj/main.o obj/context.o obj/device.o obj/swapchain.o obj/alloc.o
 	$(LD) $(LDFLAGS) $^ -o trace $(LDLIBS)
 
 obj/main.o: src/main.cc src/context.h src/util.h
@@ -29,6 +29,9 @@ obj/device.o: src/device.cc src/context.h src/util.h
 	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
 
 obj/swapchain.o: src/swapchain.cc src/context.h src/util.h
+	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
+
+obj/alloc.o: src/alloc.cc src/context.h src/util.h
 	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
 
 clean:

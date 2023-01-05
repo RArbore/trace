@@ -44,6 +44,8 @@ struct RenderContext {
     VkQueue queue;
     VkSwapchainKHR swapchain;
 
+    VmaAllocator allocator;
+
     bool pressed_keys[GLFW_KEY_LAST + 1];
 
     auto init() noexcept -> void;
@@ -54,11 +56,13 @@ struct RenderContext {
     auto create_surface() noexcept -> void;
     auto create_physical_device() noexcept -> void;
     auto create_device() noexcept -> void;
+    auto create_allocator() noexcept -> void;
     auto create_swapchain() noexcept -> void;
 
     auto cleanup_instance() noexcept -> void;
     auto cleanup_surface() noexcept -> void;
     auto cleanup_device() noexcept -> void;
+    auto cleanup_allocator() noexcept -> void;
     auto cleanup_swapchain() noexcept -> void;
 
     auto physical_check_queue_family(VkPhysicalDevice physical_device, uint32_t* queue_family, VkQueueFlagBits bits) noexcept -> int32_t;
