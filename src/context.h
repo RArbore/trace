@@ -43,7 +43,12 @@ struct RenderContext {
     VkPhysicalDevice physical_device;
     VkDevice device;
     VkQueue queue;
+
     VkSwapchainKHR swapchain;
+    VkFormat swapchain_format;
+    VkExtent2D swapchain_extent;
+    std::vector<VkImage> swapchain_images;
+    std::vector<VkImageView> swapchain_image_views;
 
     VmaAllocator allocator;
 
@@ -78,7 +83,7 @@ struct RenderContext {
     auto cleanup_buffer(Buffer buffer) noexcept -> void;
     auto create_image(VkImageCreateFlags flags, VkFormat format, VkExtent3D extent, uint32_t mipLevels, uint32_t arrayLevels, VkImageUsageFlagBits usage) noexcept -> Image;
     auto cleanup_image(Image image) noexcept -> void;
-    auto create_image_view(Image image, VkImageViewType type, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
+    auto create_image_view(VkImage image, VkImageViewType type, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
     auto cleanup_image_view(VkImageView view) noexcept -> void;
 };
 

@@ -20,7 +20,7 @@ auto RenderContext::create_swapchain() noexcept -> void {
 
     const auto [surface_format, present_mode, swap_extent] = choose_swapchain_options(support);
 
-    const uint32_t image_count =
+    uint32_t image_count =
 	support.capabilities.maxImageCount > 0 && support.capabilities.minImageCount >= support.capabilities.maxImageCount ?
 	support.capabilities.maxImageCount :
 	support.capabilities.minImageCount + 1;
@@ -42,6 +42,31 @@ auto RenderContext::create_swapchain() noexcept -> void {
     create_info.oldSwapchain = VK_NULL_HANDLE;
 
     ASSERT(vkCreateSwapchainKHR(device, &create_info, NULL, &swapchain), "Couldn't create swapchain.");
+
+    vkGetSwapchainImagesKHR(device, swapchain, &image_count, NULL);
+    swapchain_images.resize(image_count);
+    vkGetSwapchainImagesKHR(device, swapchain, &image_count, &swapchain_images[0]);
+    swapchain_format = surface_format.format;
+    swapchain_extent = swap_extent;
+
+    VkImageViewCreateInfo image_view_create_info {};
+    image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    image_view_create_info.format = swapchain_format;
+    image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    image_view_create_info.subresourceRange.baseMipLevel = 0;
+    image_view_create_info.subresourceRange.levelCount = 1;
+    image_view_create_info.subresourceRange.baseArrayLayer = 0;
+    image_view_create_info.subresourceRange.layerCount = 1;
+    swapchain_image_views.resize(image_count);
+    for (uint32_t image_index = 0; image_index < image_count; ++image_index) {
+	image_view_create_info.image = swapchain_images[image_index];
+	ASSERT(vkCreateImageView(device, &image_view_create_info, NULL, &swapchain_image_views[image_index]), "Couldn't create swapchain image view.");
+    }
 }
 
 auto RenderContext::choose_swapchain_options(const SwapchainSupport &support) noexcept -> std::tuple<VkSurfaceFormatKHR, VkPresentModeKHR, VkExtent2D> {
@@ -86,5 +111,8 @@ auto RenderContext::choose_swapchain_options(const SwapchainSupport &support) no
 }
 
 auto RenderContext::cleanup_swapchain() noexcept -> void {
+    for (auto view : swapchain_image_views) {
+	vkDestroyImageView(device, view, NULL);
+    }
     vkDestroySwapchainKHR(device, swapchain, NULL);
 }

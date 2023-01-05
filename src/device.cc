@@ -14,9 +14,11 @@
 
 #include "context.h"
 
+#ifndef RELEASE
 static const char* validation_layers[] = {
     "VK_LAYER_KHRONOS_validation"
 };
+#endif
 
 static const char* device_extensions[] = {
     "VK_KHR_swapchain",

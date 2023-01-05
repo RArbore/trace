@@ -75,10 +75,10 @@ auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkEx
     return {image, allocation};
 }
 
-auto RenderContext::create_image_view(Image image, VkImageViewType type, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView {
+auto RenderContext::create_image_view(VkImage image, VkImageViewType type, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView {
     VkImageViewCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    create_info.image = image.image;
+    create_info.image = image;
     create_info.viewType = type;
     create_info.format = format;
     create_info.subresourceRange = subresource_range;

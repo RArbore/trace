@@ -1,17 +1,19 @@
-RELEASE ?= 0
-ifeq ($(RELEASE), 1)
-	CPPFLAGS := -c -Ofast -flto -DRELEASE
-	LDFLAGS := -fuse-ld=mold -flto
-else
-	CPPFLAGS := -c -g
-	LDFLAGS := -fuse-ld=mold
-endif
-
 CXX := g++
 LD := g++
 RM := rm -f
 WFLAGS := -Wall -Wextra -Wshadow -Wconversion -Wpedantic -Werror
 LDLIBS := -lvulkan -lglfw
+
+RELEASE ?= 0
+ifeq ($(RELEASE), 1)
+	CPPFLAGS := -Ofast -flto -DRELEASE
+	LDFLAGS := -flto
+else
+	CPPFLAGS := -g
+endif
+
+CPPFLAGS := $(CPPFLAGS) -c -fno-rtti
+LDFLAGS := $(LDFLAGS) -fuse-ld=mold
 
 SRCS := $(shell find src -name "*.cc")
 HEADERS := $(shell find src -name "*.h")
