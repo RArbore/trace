@@ -210,10 +210,49 @@ auto RenderContext::create_physical_device() noexcept -> void {
     printf("INFO: Using device \"%s\"\n", device_properties.deviceName);
 }
 
+auto RenderContext::create_device() noexcept -> void {
+    uint32_t queue_family;
+    ASSERT(physical_check_queue_family(physical_device, &queue_family, (VkQueueFlagBits) (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)), "Could not find queue family.");
+
+    float queue_priority = 1.0f;
+
+    VkDeviceQueueCreateInfo queue_create_info {};
+    queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queue_create_info.queueFamilyIndex = queue_family;
+    queue_create_info.queueCount = 1;
+    queue_create_info.pQueuePriorities = &queue_priority;
+
+    VkPhysicalDeviceDescriptorIndexingFeatures indexing_features {};
+    indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+    indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
+    indexing_features.runtimeDescriptorArray = VK_TRUE;
+
+    VkPhysicalDeviceFeatures2 device_features {};
+    device_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    device_features.pNext = &indexing_features;
+
+    vkGetPhysicalDeviceFeatures2(physical_device, &device_features);
+
+    VkDeviceCreateInfo device_create_info {};
+    device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    device_create_info.queueCreateInfoCount = 1;
+    device_create_info.pQueueCreateInfos = &queue_create_info;
+    device_create_info.pNext = &device_features;
+    device_create_info.enabledExtensionCount = sizeof(device_extensions) / sizeof(device_extensions[0]);
+    device_create_info.ppEnabledExtensionNames = device_extensions;
+
+    ASSERT(vkCreateDevice(physical_device, &device_create_info, NULL, &device), "Couldn't create logical device.");
+    vkGetDeviceQueue(device, queue_family, 0, &queue);
+}
+
 auto RenderContext::cleanup_instance() noexcept -> void {
     vkDestroyInstance(instance, NULL);
 }
 
 auto RenderContext::cleanup_surface() noexcept -> void {
     vkDestroySurfaceKHR(instance, surface, NULL);
+}
+
+auto RenderContext::cleanup_device() noexcept -> void {
+    vkDestroyDevice(device, NULL);
 }

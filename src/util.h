@@ -38,6 +38,14 @@ inline auto assert_impl(bool result, const char *msg) noexcept -> void {
     }
 }
 
+template<>
+inline auto assert_impl(int32_t result, const char *msg) noexcept -> void {
+    if (result == -1) {
+	fprintf(stderr, "PANIC: %s\n", msg);
+	exit(-1);
+    }
+}
+
 #define ASSERT(res, msg)			\
     assert_impl(res, msg);
 

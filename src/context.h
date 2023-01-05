@@ -37,6 +37,8 @@ struct RenderContext {
     VkInstance instance;
     VkSurfaceKHR surface;
     VkPhysicalDevice physical_device;
+    VkDevice device;
+    VkQueue queue;
 
     bool pressed_keys[GLFW_KEY_LAST + 1];
 
@@ -47,9 +49,11 @@ struct RenderContext {
     auto create_instance() noexcept -> void;
     auto create_surface() noexcept -> void;
     auto create_physical_device() noexcept -> void;
+    auto create_device() noexcept -> void;
 
     auto cleanup_instance() noexcept -> void;
     auto cleanup_surface() noexcept -> void;
+    auto cleanup_device() noexcept -> void;
 
     auto physical_check_queue_family(VkPhysicalDevice physical_device, uint32_t* queue_family, VkQueueFlagBits bits) noexcept -> int32_t;
     auto physical_check_extensions(VkPhysicalDevice physical_device) noexcept -> int32_t;

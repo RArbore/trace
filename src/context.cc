@@ -42,6 +42,7 @@ auto RenderContext::init() noexcept -> void {
     create_instance();
     create_surface();
     create_physical_device();
+    create_device();
 }
 
 auto RenderContext::render() noexcept -> void {
@@ -52,6 +53,7 @@ auto RenderContext::render() noexcept -> void {
 }
 
 auto RenderContext::cleanup() noexcept -> void {
+    cleanup_device();
     cleanup_surface();
     cleanup_instance();
     glfwDestroyWindow(window);
