@@ -104,15 +104,15 @@ auto RenderContext::physical_check_extensions(VkPhysicalDevice physical) noexcep
     }
 }
 
-auto RenderContext::physical_check_swapchain_support(VkPhysicalDevice physical_device) noexcept -> SwapchainSupport {
+auto RenderContext::physical_check_swapchain_support(VkPhysicalDevice specific_physical_device) noexcept -> SwapchainSupport {
     uint32_t num_formats, num_present_modes;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &num_formats, NULL);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &num_present_modes, NULL);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(specific_physical_device, surface, &num_formats, NULL);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(specific_physical_device, surface, &num_present_modes, NULL);
 
     SwapchainSupport ss { {}, std::vector<VkSurfaceFormatKHR>(num_formats), std::vector<VkPresentModeKHR>(num_present_modes) };
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &ss.capabilities);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &num_formats, &ss.formats[0]);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &num_present_modes, &ss.present_modes[0]);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(specific_physical_device, surface, &ss.capabilities);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(specific_physical_device, surface, &num_formats, &ss.formats[0]);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(specific_physical_device, surface, &num_present_modes, &ss.present_modes[0]);
 
     return ss;
 }

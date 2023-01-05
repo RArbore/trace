@@ -17,9 +17,12 @@
 
 #include <cstring>
 #include <vector>
+#include <tuple>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+
+#include <vk_mem_alloc.h>
 
 #include "util.h"
 
@@ -31,14 +34,15 @@ struct SwapchainSupport {
 
 struct RenderContext {
     GLFWwindow *window;
-    int width, height;
-    bool active = true;
+    int width = 1000, height = 1000;
+    bool active = true, resized = false;
 
     VkInstance instance;
     VkSurfaceKHR surface;
     VkPhysicalDevice physical_device;
     VkDevice device;
     VkQueue queue;
+    VkSwapchainKHR swapchain;
 
     bool pressed_keys[GLFW_KEY_LAST + 1];
 
@@ -50,16 +54,20 @@ struct RenderContext {
     auto create_surface() noexcept -> void;
     auto create_physical_device() noexcept -> void;
     auto create_device() noexcept -> void;
+    auto create_swapchain() noexcept -> void;
 
     auto cleanup_instance() noexcept -> void;
     auto cleanup_surface() noexcept -> void;
     auto cleanup_device() noexcept -> void;
+    auto cleanup_swapchain() noexcept -> void;
 
     auto physical_check_queue_family(VkPhysicalDevice physical_device, uint32_t* queue_family, VkQueueFlagBits bits) noexcept -> int32_t;
     auto physical_check_extensions(VkPhysicalDevice physical_device) noexcept -> int32_t;
     auto physical_check_swapchain_support(VkPhysicalDevice physical_device) noexcept -> SwapchainSupport;
     auto physical_check_features_support(VkPhysicalDevice physical_device) noexcept -> int32_t;
     auto physical_score(const VkPhysicalDevice physical) noexcept -> int32_t;
+
+    auto choose_swapchain_options(const SwapchainSupport &support) noexcept -> std::tuple<VkSurfaceFormatKHR, VkPresentModeKHR, VkExtent2D>;
 };
 
 #endif

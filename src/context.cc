@@ -18,6 +18,7 @@ static auto glfw_framebuffer_resize_callback(GLFWwindow* window, int width, int 
     RenderContext *context = (RenderContext*) glfwGetWindowUserPointer(window);
     context->width = width;
     context->height = height;
+    context->resized = true;
 }
 
 static auto glfw_key_callback(GLFWwindow* window, int key, __attribute__((unused)) int scancode, int action, __attribute__((unused)) int mods) noexcept -> void {
@@ -31,8 +32,6 @@ auto RenderContext::init() noexcept -> void {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    width = 1000;
-    height = 1000;
     window = glfwCreateWindow(width, height, "trace", NULL, NULL);
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, glfw_framebuffer_resize_callback);
@@ -43,6 +42,7 @@ auto RenderContext::init() noexcept -> void {
     create_surface();
     create_physical_device();
     create_device();
+    create_swapchain();
 }
 
 auto RenderContext::render() noexcept -> void {
@@ -50,9 +50,13 @@ auto RenderContext::render() noexcept -> void {
     if (pressed_keys[GLFW_KEY_ESCAPE] || glfwWindowShouldClose(window)) {
 	active = false;
     }
+    resized = false;
 }
 
 auto RenderContext::cleanup() noexcept -> void {
+    vkDeviceWaitIdle(device);
+
+    cleanup_swapchain();
     cleanup_device();
     cleanup_surface();
     cleanup_instance();
