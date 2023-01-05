@@ -82,7 +82,7 @@ auto RenderContext::choose_swapchain_options(const SwapchainSupport &support) no
 	swap_extent.height = swap_extent.height > support.capabilities.maxImageExtent.height ? support.capabilities.maxImageExtent.height : swap_extent.height;
     }
 
-    return std::make_tuple(surface_format, present_mode, swap_extent);
+    return {surface_format, present_mode, swap_extent};
 }
 
 auto RenderContext::cleanup_swapchain() noexcept -> void {

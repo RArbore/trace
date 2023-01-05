@@ -24,6 +24,7 @@
 
 #include <vk_mem_alloc.h>
 
+#include "alloc.h"
 #include "util.h"
 
 struct SwapchainSupport {
@@ -72,6 +73,13 @@ struct RenderContext {
     auto physical_score(const VkPhysicalDevice physical) noexcept -> int32_t;
 
     auto choose_swapchain_options(const SwapchainSupport &support) noexcept -> std::tuple<VkSurfaceFormatKHR, VkPresentModeKHR, VkExtent2D>;
+
+    auto create_buffer(VkDeviceSize size, VkBufferUsageFlags usage) noexcept -> Buffer;
+    auto cleanup_buffer(Buffer buffer) noexcept -> void;
+    auto create_image(VkImageCreateFlags flags, VkFormat format, VkExtent3D extent, uint32_t mipLevels, uint32_t arrayLevels, VkImageUsageFlagBits usage) noexcept -> Image;
+    auto cleanup_image(Image image) noexcept -> void;
+    auto create_image_view(Image image, VkImageViewType type, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
+    auto cleanup_image_view(VkImageView view) noexcept -> void;
 };
 
 #endif

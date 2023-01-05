@@ -13,25 +13,17 @@ RM := rm -f
 WFLAGS := -Wall -Wextra -Wshadow -Wconversion -Wpedantic -Werror
 LDLIBS := -lvulkan -lglfw
 
+SRCS := $(shell find src -name "*.cc")
+HEADERS := $(shell find src -name "*.h")
+OBJS := $(subst src/, obj/, $(patsubst %.cc, %.o, $(SRCS)))
+
 exe: trace
 	./trace
 
-trace: obj/main.o obj/context.o obj/device.o obj/swapchain.o obj/alloc.o
+trace: $(OBJS)
 	$(LD) $(LDFLAGS) $^ -o trace $(LDLIBS)
 
-obj/main.o: src/main.cc src/context.h src/util.h
-	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
-
-obj/context.o: src/context.cc src/context.h src/util.h
-	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
-
-obj/device.o: src/device.cc src/context.h src/util.h
-	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
-
-obj/swapchain.o: src/swapchain.cc src/context.h src/util.h
-	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
-
-obj/alloc.o: src/alloc.cc src/context.h src/util.h
+$(OBJS): obj/%.o: src/%.cc $(HEADERS)
 	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
 
 clean:
