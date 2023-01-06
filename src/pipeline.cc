@@ -72,9 +72,7 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     VkPipelineVertexInputStateCreateInfo vertex_input_create_info {};
     vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertex_input_create_info.vertexBindingDescriptionCount = 0;
-    vertex_input_create_info.pVertexBindingDescriptions = NULL;
     vertex_input_create_info.vertexAttributeDescriptionCount = 0;
-    vertex_input_create_info.pVertexAttributeDescriptions = NULL;
 
     VkPipelineInputAssemblyStateCreateInfo input_assembly_create_info {};
     input_assembly_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -115,9 +113,61 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     VkPipelineLayoutCreateInfo pipeline_layout_create_info {};
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipeline_layout_create_info.setLayoutCount = 0;
+    pipeline_layout_create_info.pushConstantRangeCount = 0;
     ASSERT(vkCreatePipelineLayout(device, &pipeline_layout_create_info, NULL, &raster_pipeline_layout), "Unable to create raster pipeline layout.");
+
+    VkAttachmentDescription color_attachment {};
+    color_attachment.format = swapchain_format;
+    color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference color_attachment_reference {};
+    color_attachment_reference.attachment = 0;
+    color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass {};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &color_attachment_reference;
+
+    VkAttachmentDescription attachments[] = {color_attachment};
+    VkSubpassDescription subpasses[] = {subpass};
+    
+    VkRenderPassCreateInfo render_pass_create_info {};
+    render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    render_pass_create_info.attachmentCount = 1;
+    render_pass_create_info.pAttachments = attachments;
+    render_pass_create_info.subpassCount = 1;
+    render_pass_create_info.pSubpasses = subpasses;
+
+    ASSERT(vkCreateRenderPass(device, &render_pass_create_info, NULL, &raster_render_pass), "Unable to create raster render pass.");
+
+    VkGraphicsPipelineCreateInfo raster_pipeline_create_info {};
+    raster_pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    raster_pipeline_create_info.stageCount = 2;
+    raster_pipeline_create_info.pStages = shader_stage_create_infos;
+    raster_pipeline_create_info.pVertexInputState = &vertex_input_create_info;
+    raster_pipeline_create_info.pInputAssemblyState = &input_assembly_create_info;
+    raster_pipeline_create_info.pViewportState = &viewport_state_create_info;
+    raster_pipeline_create_info.pRasterizationState = &rasterization_state_create_info;
+    raster_pipeline_create_info.pColorBlendState = &color_blending_state_create_info;
+    raster_pipeline_create_info.pDynamicState = &pipeline_dynamic_state_create_info;
+    raster_pipeline_create_info.layout = raster_pipeline_layout;
+    raster_pipeline_create_info.renderPass = raster_render_pass;
+    raster_pipeline_create_info.subpass = 0;
+    raster_pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
+
+    ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &raster_pipeline_create_info, NULL, &raster_pipeline), "Unable to create raster pipeline.");
 }
 
 auto RenderContext::cleanup_raster_pipeline() noexcept -> void {
+    vkDestroyPipeline(device, raster_pipeline, NULL);
+    vkDestroyRenderPass(device, raster_render_pass, NULL);
     vkDestroyPipelineLayout(device, raster_pipeline_layout, NULL);
 }

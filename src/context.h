@@ -53,6 +53,8 @@ struct RenderContext {
 
     std::unordered_map<std::string, VkShaderModule> shader_modules;
     VkPipelineLayout raster_pipeline_layout;
+    VkRenderPass raster_render_pass;
+    VkPipeline raster_pipeline;
 
     VmaAllocator allocator;
 
