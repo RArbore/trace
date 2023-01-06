@@ -51,7 +51,7 @@ struct RenderContext {
     std::vector<VkImage> swapchain_images;
     std::vector<VkImageView> swapchain_image_views;
 
-    std::unordered_map<std::string, std::string> shader_spirvs;
+    std::unordered_map<std::string, VkShaderModule> shader_modules;
 
     VmaAllocator allocator;
 
