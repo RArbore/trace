@@ -52,6 +52,7 @@ struct RenderContext {
     std::vector<VkImageView> swapchain_image_views;
 
     std::unordered_map<std::string, VkShaderModule> shader_modules;
+    VkPipelineLayout raster_pipeline_layout;
 
     VmaAllocator allocator;
 
@@ -68,6 +69,7 @@ struct RenderContext {
     auto create_allocator() noexcept -> void;
     auto create_swapchain() noexcept -> void;
     auto create_shaders() noexcept -> void;
+    auto create_raster_pipeline() noexcept -> void;
 
     auto cleanup_instance() noexcept -> void;
     auto cleanup_surface() noexcept -> void;
@@ -75,6 +77,7 @@ struct RenderContext {
     auto cleanup_allocator() noexcept -> void;
     auto cleanup_swapchain() noexcept -> void;
     auto cleanup_shaders() noexcept -> void;
+    auto cleanup_raster_pipeline() noexcept -> void;
 
     auto physical_check_queue_family(VkPhysicalDevice physical_device, uint32_t* queue_family, VkQueueFlagBits bits) noexcept -> int32_t;
     auto physical_check_extensions(VkPhysicalDevice physical_device) noexcept -> int32_t;
