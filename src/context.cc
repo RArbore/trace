@@ -46,6 +46,8 @@ auto RenderContext::init() noexcept -> void {
     create_shaders();
     create_raster_pipeline();
     create_framebuffers();
+    create_command_pool();
+    create_command_buffers();
 }
 
 auto RenderContext::render() noexcept -> void {
@@ -59,6 +61,7 @@ auto RenderContext::render() noexcept -> void {
 auto RenderContext::cleanup() noexcept -> void {
     vkDeviceWaitIdle(device);
 
+    cleanup_command_pool();
     cleanup_framebuffers();
     cleanup_raster_pipeline();
     cleanup_shaders();

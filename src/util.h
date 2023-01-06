@@ -46,6 +46,14 @@ inline auto assert_impl(int32_t result, const char *msg, const char* file, uint3
     }
 }
 
+template<>
+inline auto assert_impl(uint32_t result, const char *msg, const char* file, uint32_t line) noexcept -> void {
+    if (result == 0xFFFFFFFF) {
+	fprintf(stderr, "PANIC: %s\nOccurred in %s at line %u.\n", msg, file, line);
+	exit(-1);
+    }
+}
+
 #define ASSERT(res, msg)			\
     assert_impl(res, msg, __FILE__, __LINE__);
 

@@ -58,6 +58,9 @@ struct RenderContext {
     VkRenderPass raster_render_pass;
     VkPipeline raster_pipeline;
 
+    VkCommandPool command_pool;
+    VkCommandBuffer raster_command_buffer;
+
     VmaAllocator allocator;
 
     std::array<bool, GLFW_KEY_LAST + 1> pressed_keys;
@@ -75,6 +78,8 @@ struct RenderContext {
     auto create_shaders() noexcept -> void;
     auto create_raster_pipeline() noexcept -> void;
     auto create_framebuffers() noexcept -> void;
+    auto create_command_pool() noexcept -> void;
+    auto create_command_buffers() noexcept -> void;
 
     auto cleanup_instance() noexcept -> void;
     auto cleanup_surface() noexcept -> void;
@@ -84,8 +89,9 @@ struct RenderContext {
     auto cleanup_shaders() noexcept -> void;
     auto cleanup_raster_pipeline() noexcept -> void;
     auto cleanup_framebuffers() noexcept -> void;
+    auto cleanup_command_pool() noexcept -> void;
 
-    auto physical_check_queue_family(VkPhysicalDevice physical_device, uint32_t* queue_family, VkQueueFlagBits bits) noexcept -> int32_t;
+    auto physical_check_queue_family(VkPhysicalDevice physical_device, VkQueueFlagBits bits) noexcept -> uint32_t;
     auto physical_check_extensions(VkPhysicalDevice physical_device) noexcept -> int32_t;
     auto physical_check_swapchain_support(VkPhysicalDevice physical_device) noexcept -> SwapchainSupport;
     auto physical_check_features_support(VkPhysicalDevice physical_device) noexcept -> int32_t;

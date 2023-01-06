@@ -57,7 +57,7 @@ auto RenderContext::create_surface() noexcept -> void {
     ASSERT(glfwCreateWindowSurface(instance, window, NULL, &surface), "Couldn't create GLFW window surface.");
 }
 
-auto RenderContext::physical_check_queue_family(VkPhysicalDevice physical, uint32_t* queue_family, VkQueueFlagBits bits) noexcept -> int32_t {
+auto RenderContext::physical_check_queue_family(VkPhysicalDevice physical, VkQueueFlagBits bits) noexcept -> uint32_t {
     uint32_t queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical, &queue_family_count, NULL);
     ASSERT(queue_family_count > 0, "No queue families.");
@@ -70,13 +70,12 @@ auto RenderContext::physical_check_queue_family(VkPhysicalDevice physical, uint3
 	    VkBool32 present_support = VK_FALSE;
 	    vkGetPhysicalDeviceSurfaceSupportKHR(physical, queue_family_index, surface, &present_support);
 	    if (present_support == VK_TRUE) {
-		if (queue_family) *queue_family = queue_family_index;
-		return 0;
+		return queue_family_index;
 	    }
 	}
     }
-
-    return -1;
+    
+    return 0xFFFFFFFF;
 }
 
 auto RenderContext::physical_check_extensions(VkPhysicalDevice physical) noexcept -> int32_t {
@@ -163,8 +162,8 @@ auto RenderContext::physical_score(const VkPhysicalDevice physical) noexcept -> 
 	device_type_score = 0;
     }
 
-    const int32_t queue_check = physical_check_queue_family(physical, NULL, (VkQueueFlagBits) (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT));
-    if (queue_check == -1) {
+    const uint32_t queue_check = physical_check_queue_family(physical, (VkQueueFlagBits) (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT));
+    if (queue_check == 0xFFFFFFFF) {
 	return -1;
     }
 
@@ -213,10 +212,10 @@ auto RenderContext::create_physical_device() noexcept -> void {
 }
 
 auto RenderContext::create_device() noexcept -> void {
-    uint32_t queue_family;
-    ASSERT(physical_check_queue_family(physical_device, &queue_family, (VkQueueFlagBits) (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)), "Could not find queue family.");
+    const uint32_t queue_family = physical_check_queue_family(physical_device, (VkQueueFlagBits) (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT));
+    ASSERT(queue_family, "Could not find queue family.");
 
-    float queue_priority = 1.0f;
+    const float queue_priority = 1.0f;
 
     VkDeviceQueueCreateInfo queue_create_info {};
     queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
