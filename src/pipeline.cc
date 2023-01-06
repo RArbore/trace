@@ -63,12 +63,6 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     VkPipelineShaderStageCreateInfo shader_stage_create_infos[] = {vertex_shader_stage_create_info, fragment_shader_stage_create_info};
 
-    VkDynamicState pipeline_dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-    VkPipelineDynamicStateCreateInfo pipeline_dynamic_state_create_info {};
-    pipeline_dynamic_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    pipeline_dynamic_state_create_info.dynamicStateCount = 2;
-    pipeline_dynamic_state_create_info.pDynamicStates = pipeline_dynamic_states;
-
     VkPipelineVertexInputStateCreateInfo vertex_input_create_info {};
     vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertex_input_create_info.vertexBindingDescriptionCount = 0;
@@ -94,6 +88,11 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     rasterization_state_create_info.frontFace = VK_FRONT_FACE_CLOCKWISE;
     rasterization_state_create_info.depthBiasEnable = VK_FALSE;
 
+    VkPipelineMultisampleStateCreateInfo multisampling_state_create_info {};
+    multisampling_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling_state_create_info.sampleShadingEnable = VK_FALSE;
+    multisampling_state_create_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
     VkPipelineColorBlendAttachmentState color_blend_attachment_state {};
     color_blend_attachment_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     color_blend_attachment_state.blendEnable = VK_TRUE;
@@ -110,6 +109,12 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     color_blending_state_create_info.logicOp = VK_LOGIC_OP_COPY;
     color_blending_state_create_info.attachmentCount = 1;
     color_blending_state_create_info.pAttachments = &color_blend_attachment_state;
+
+    VkDynamicState pipeline_dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    VkPipelineDynamicStateCreateInfo pipeline_dynamic_state_create_info {};
+    pipeline_dynamic_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    pipeline_dynamic_state_create_info.dynamicStateCount = 2;
+    pipeline_dynamic_state_create_info.pDynamicStates = pipeline_dynamic_states;
 
     VkPipelineLayoutCreateInfo pipeline_layout_create_info {};
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -156,6 +161,7 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     raster_pipeline_create_info.pInputAssemblyState = &input_assembly_create_info;
     raster_pipeline_create_info.pViewportState = &viewport_state_create_info;
     raster_pipeline_create_info.pRasterizationState = &rasterization_state_create_info;
+    raster_pipeline_create_info.pMultisampleState = &multisampling_state_create_info;
     raster_pipeline_create_info.pColorBlendState = &color_blending_state_create_info;
     raster_pipeline_create_info.pDynamicState = &pipeline_dynamic_state_create_info;
     raster_pipeline_create_info.layout = raster_pipeline_layout;
