@@ -43,6 +43,7 @@ auto RenderContext::init() noexcept -> void {
     create_physical_device();
     create_device();
     create_swapchain();
+    create_shaders();
 }
 
 auto RenderContext::render() noexcept -> void {
@@ -56,6 +57,7 @@ auto RenderContext::render() noexcept -> void {
 auto RenderContext::cleanup() noexcept -> void {
     vkDeviceWaitIdle(device);
 
+    cleanup_shaders();
     cleanup_swapchain();
     cleanup_device();
     cleanup_surface();

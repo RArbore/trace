@@ -1,8 +1,7 @@
 CXX := g++
 LD := g++
 RM := rm -f
-WFLAGS := -Wall -Wextra -Wshadow -Wconversion -Wpedantic -Werror
-LDLIBS := -lvulkan -lglfw
+GLSL := glslc
 
 RELEASE ?= 0
 ifeq ($(RELEASE), 1)
@@ -14,21 +13,28 @@ endif
 
 CPPFLAGS := $(CPPFLAGS) -c -fno-rtti
 LDFLAGS := $(LDFLAGS) -fuse-ld=mold
+WFLAGS := -Wall -Wextra -Wshadow -Wconversion -Wpedantic -Werror
+LDLIBS := -lvulkan -lglfw
 
 SRCS := $(shell find src -name "*.cc")
 HEADERS := $(shell find src -name "*.h")
-OBJS := $(subst src/, obj/, $(patsubst %.cc, %.o, $(SRCS)))
+SHADERS := $(shell find shaders -name "*.glsl")
+OBJS := $(subst src/, build/, $(patsubst %.cc, %.o, $(SRCS)))
+SPIRVS := $(subst shaders/, build/, $(patsubst %.glsl, %.spv, $(SHADERS)))
+
+trace: $(OBJS) $(SPIRVS)
+	$(LD) $(LDFLAGS) $(OBJS) -o trace $(LDLIBS)
+
+$(OBJS): build/%.o: src/%.cc $(HEADERS)
+	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
+
+$(SPIRVS): build/%.spv: shaders/%.glsl
+	$(GLSL) $< -o $@
 
 exe: trace
 	./trace
 
-trace: $(OBJS)
-	$(LD) $(LDFLAGS) $^ -o trace $(LDLIBS)
-
-$(OBJS): obj/%.o: src/%.cc $(HEADERS)
-	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
-
 clean:
-	$(RM) obj/* trace
+	$(RM) build/* trace
 
-.PHONY: exe
+.PHONY: clean exe
