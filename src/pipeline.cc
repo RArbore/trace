@@ -177,3 +177,28 @@ auto RenderContext::cleanup_raster_pipeline() noexcept -> void {
     vkDestroyRenderPass(device, raster_render_pass, NULL);
     vkDestroyPipelineLayout(device, raster_pipeline_layout, NULL);
 }
+
+auto RenderContext::create_framebuffers() noexcept -> void {
+    swapchain_framebuffers.resize(swapchain_images.size());
+
+    for (std::size_t i = 0; i < swapchain_framebuffers.size(); ++i) {
+	VkImageView attachments[] = {swapchain_image_views[i]};
+
+	VkFramebufferCreateInfo create_info {};
+	create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	create_info.renderPass = raster_render_pass;
+	create_info.attachmentCount = 1;
+	create_info.pAttachments = attachments;
+	create_info.width = swapchain_extent.width;
+	create_info.height = swapchain_extent.height;
+	create_info.layers = 1;
+
+	ASSERT(vkCreateFramebuffer(device, &create_info, NULL, &swapchain_framebuffers[i]), "Unable to create framebuffer.");
+    }
+}
+
+auto RenderContext::cleanup_framebuffers() noexcept -> void {
+    for (auto framebuffer : swapchain_framebuffers) {
+	vkDestroyFramebuffer(device, framebuffer, NULL);
+    }
+}

@@ -18,6 +18,7 @@
 #include <unordered_map>
 #include <cstring>
 #include <vector>
+#include <array>
 #include <tuple>
 
 #define GLFW_INCLUDE_VULKAN
@@ -50,6 +51,7 @@ struct RenderContext {
     VkExtent2D swapchain_extent;
     std::vector<VkImage> swapchain_images;
     std::vector<VkImageView> swapchain_image_views;
+    std::vector<VkFramebuffer> swapchain_framebuffers;
 
     std::unordered_map<std::string, VkShaderModule> shader_modules;
     VkPipelineLayout raster_pipeline_layout;
@@ -58,7 +60,7 @@ struct RenderContext {
 
     VmaAllocator allocator;
 
-    bool pressed_keys[GLFW_KEY_LAST + 1];
+    std::array<bool, GLFW_KEY_LAST + 1> pressed_keys;
 
     auto init() noexcept -> void;
     auto render() noexcept -> void;
@@ -72,6 +74,7 @@ struct RenderContext {
     auto create_swapchain() noexcept -> void;
     auto create_shaders() noexcept -> void;
     auto create_raster_pipeline() noexcept -> void;
+    auto create_framebuffers() noexcept -> void;
 
     auto cleanup_instance() noexcept -> void;
     auto cleanup_surface() noexcept -> void;
@@ -80,6 +83,7 @@ struct RenderContext {
     auto cleanup_swapchain() noexcept -> void;
     auto cleanup_shaders() noexcept -> void;
     auto cleanup_raster_pipeline() noexcept -> void;
+    auto cleanup_framebuffers() noexcept -> void;
 
     auto physical_check_queue_family(VkPhysicalDevice physical_device, uint32_t* queue_family, VkQueueFlagBits bits) noexcept -> int32_t;
     auto physical_check_extensions(VkPhysicalDevice physical_device) noexcept -> int32_t;
