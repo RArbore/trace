@@ -23,9 +23,9 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
 #include <vk_mem_alloc.h>
 
+#include "model.h"
 #include "util.h"
 
 static constexpr uint32_t FRAMES_IN_FLIGHT = 2;
