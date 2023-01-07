@@ -30,13 +30,13 @@ static auto glfw_key_callback(GLFWwindow* window, int key, __attribute__((unused
 auto RenderContext::init() noexcept -> void {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     window = glfwCreateWindow(width, height, "trace", NULL, NULL);
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, glfw_framebuffer_resize_callback);
     glfwSetKeyCallback(window, glfw_key_callback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     create_instance();
     create_surface();
@@ -48,19 +48,55 @@ auto RenderContext::init() noexcept -> void {
     create_framebuffers();
     create_command_pool();
     create_command_buffers();
+    create_sync_objects();
 }
 
 auto RenderContext::render() noexcept -> void {
     glfwPollEvents();
     if (pressed_keys[GLFW_KEY_ESCAPE] || glfwWindowShouldClose(window)) {
 	active = false;
+	return;
     }
+
+    vkWaitForFences(device, 1, &in_flight_fence, VK_TRUE, UINT64_MAX);
+    vkResetFences(device, 1, &in_flight_fence);
+
+    uint32_t image_index;
+    vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available_semaphore, VK_NULL_HANDLE, &image_index);
+
+    vkResetCommandBuffer(raster_command_buffer, 0);
+    record_raster_command_buffer(raster_command_buffer, image_index);
+
+    VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.pWaitSemaphores = &image_available_semaphore;
+    submit_info.pWaitDstStageMask = wait_stages;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &raster_command_buffer;
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = &render_finished_semaphore;
+
+    ASSERT(vkQueueSubmit(queue, 1, &submit_info, in_flight_fence), "");
+
+    VkPresentInfoKHR present_info{};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = &render_finished_semaphore;
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = &swapchain;
+    present_info.pImageIndices = &image_index;
+
+    vkQueuePresentKHR(queue, &present_info);
+
     resized = false;
 }
 
 auto RenderContext::cleanup() noexcept -> void {
     vkDeviceWaitIdle(device);
 
+    cleanup_sync_objects();
     cleanup_command_pool();
     cleanup_framebuffers();
     cleanup_raster_pipeline();

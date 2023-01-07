@@ -61,6 +61,10 @@ struct RenderContext {
     VkCommandPool command_pool;
     VkCommandBuffer raster_command_buffer;
 
+    VkSemaphore image_available_semaphore;
+    VkSemaphore render_finished_semaphore;
+    VkFence in_flight_fence;
+
     VmaAllocator allocator;
 
     std::array<bool, GLFW_KEY_LAST + 1> pressed_keys;
@@ -80,6 +84,7 @@ struct RenderContext {
     auto create_framebuffers() noexcept -> void;
     auto create_command_pool() noexcept -> void;
     auto create_command_buffers() noexcept -> void;
+    auto create_sync_objects() noexcept -> void;
 
     auto cleanup_instance() noexcept -> void;
     auto cleanup_surface() noexcept -> void;
@@ -90,6 +95,7 @@ struct RenderContext {
     auto cleanup_raster_pipeline() noexcept -> void;
     auto cleanup_framebuffers() noexcept -> void;
     auto cleanup_command_pool() noexcept -> void;
+    auto cleanup_sync_objects() noexcept -> void;
 
     auto physical_check_queue_family(VkPhysicalDevice physical_device, VkQueueFlagBits bits) noexcept -> uint32_t;
     auto physical_check_extensions(VkPhysicalDevice physical_device) noexcept -> int32_t;
@@ -107,6 +113,9 @@ struct RenderContext {
     auto cleanup_image_view(VkImageView view) noexcept -> void;
 
     auto record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void;
+
+    auto create_semaphore() noexcept -> VkSemaphore;
+    auto create_fence() noexcept -> VkFence;
 };
 
 #endif

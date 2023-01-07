@@ -87,3 +87,34 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
 
     ASSERT(vkEndCommandBuffer(command_buffer), "Something went wrong recording into a raster command buffer.");
 }
+
+auto RenderContext::create_sync_objects() noexcept -> void {
+    image_available_semaphore = create_semaphore();
+    render_finished_semaphore = create_semaphore();
+    in_flight_fence = create_fence();
+}
+
+auto RenderContext::cleanup_sync_objects() noexcept -> void {
+    vkDestroySemaphore(device, image_available_semaphore, NULL);
+    vkDestroySemaphore(device, render_finished_semaphore, NULL);
+    vkDestroyFence(device, in_flight_fence, NULL);
+}
+
+auto RenderContext::create_semaphore() noexcept -> VkSemaphore {
+    VkSemaphoreCreateInfo semaphore_info {};
+    semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkSemaphore result;
+    ASSERT(vkCreateSemaphore(device, &semaphore_info, NULL, &result), "Unable to create semaphore.");
+    return result;
+}
+
+auto RenderContext::create_fence() noexcept -> VkFence {
+    VkFenceCreateInfo fence_info {};
+    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    VkFence result;
+    ASSERT(vkCreateFence(device, &fence_info, NULL, &result), "Unable to create fence.");
+    return result;
+}
