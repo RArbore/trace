@@ -116,3 +116,18 @@ auto RenderContext::cleanup_swapchain() noexcept -> void {
     }
     vkDestroySwapchainKHR(device, swapchain, NULL);
 }
+
+auto RenderContext::recreate_swapchain() noexcept -> void {
+    glfwGetFramebufferSize(window, &width, &height);
+    while (width == 0 || height == 0) {
+        glfwGetFramebufferSize(window, &width, &height);
+        glfwWaitEvents();
+    }
+    vkDeviceWaitIdle(device);
+
+    cleanup_framebuffers();
+    cleanup_swapchain();
+    
+    create_swapchain();
+    create_framebuffers();
+}

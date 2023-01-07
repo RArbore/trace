@@ -18,6 +18,7 @@ static auto glfw_framebuffer_resize_callback(GLFWwindow* window, int width, int 
     RenderContext *context = (RenderContext*) glfwGetWindowUserPointer(window);
     context->width = width;
     context->height = height;
+    context->resized = true;
 }
 
 static auto glfw_key_callback(GLFWwindow* window, int key, __attribute__((unused)) int scancode, int action, __attribute__((unused)) int mods) noexcept -> void {
@@ -95,23 +96,14 @@ auto RenderContext::render() noexcept -> void {
     present_info.pImageIndices = &image_index;
 
     const VkResult queue_present_result = vkQueuePresentKHR(queue, &present_info);
-    if (queue_present_result == VK_ERROR_OUT_OF_DATE_KHR || queue_present_result == VK_SUBOPTIMAL_KHR) {
+    if (queue_present_result == VK_ERROR_OUT_OF_DATE_KHR || queue_present_result == VK_SUBOPTIMAL_KHR || resized) {
 	recreate_swapchain();
     } else {
 	ASSERT(queue_present_result, "Unable to present rendered image.");
     }
 
+    resized = false;
     ++current_frame;
-}
-
-auto RenderContext::recreate_swapchain() noexcept -> void {
-    vkDeviceWaitIdle(device);
-
-    cleanup_framebuffers();
-    cleanup_swapchain();
-    
-    create_swapchain();
-    create_framebuffers();
 }
 
 auto RenderContext::cleanup() noexcept -> void {
