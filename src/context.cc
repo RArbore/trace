@@ -58,32 +58,34 @@ auto RenderContext::render() noexcept -> void {
 	return;
     }
 
-    vkWaitForFences(device, 1, &in_flight_fence, VK_TRUE, UINT64_MAX);
-    vkResetFences(device, 1, &in_flight_fence);
+    uint32_t flight_index = current_frame % FRAMES_IN_FLIGHT;
+
+    vkWaitForFences(device, 1, &in_flight_fences[flight_index], VK_TRUE, UINT64_MAX);
+    vkResetFences(device, 1, &in_flight_fences[flight_index]);
 
     uint32_t image_index;
-    vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available_semaphore, VK_NULL_HANDLE, &image_index);
+    vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available_semaphores[flight_index], VK_NULL_HANDLE, &image_index);
 
-    vkResetCommandBuffer(raster_command_buffer, 0);
-    record_raster_command_buffer(raster_command_buffer, image_index);
+    vkResetCommandBuffer(raster_command_buffers[flight_index], 0);
+    record_raster_command_buffer(raster_command_buffers[flight_index], image_index);
 
     VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.waitSemaphoreCount = 1;
-    submit_info.pWaitSemaphores = &image_available_semaphore;
+    submit_info.pWaitSemaphores = &image_available_semaphores[flight_index];
     submit_info.pWaitDstStageMask = wait_stages;
     submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &raster_command_buffer;
+    submit_info.pCommandBuffers = &raster_command_buffers[flight_index];
     submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = &render_finished_semaphore;
+    submit_info.pSignalSemaphores = &render_finished_semaphores[flight_index];
 
-    ASSERT(vkQueueSubmit(queue, 1, &submit_info, in_flight_fence), "");
+    ASSERT(vkQueueSubmit(queue, 1, &submit_info, in_flight_fences[flight_index]), "");
 
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.waitSemaphoreCount = 1;
-    present_info.pWaitSemaphores = &render_finished_semaphore;
+    present_info.pWaitSemaphores = &render_finished_semaphores[flight_index];
     present_info.swapchainCount = 1;
     present_info.pSwapchains = &swapchain;
     present_info.pImageIndices = &image_index;
@@ -91,6 +93,7 @@ auto RenderContext::render() noexcept -> void {
     vkQueuePresentKHR(queue, &present_info);
 
     resized = false;
+    ++current_frame;
 }
 
 auto RenderContext::cleanup() noexcept -> void {

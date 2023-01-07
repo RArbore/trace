@@ -34,9 +34,9 @@ auto RenderContext::create_command_buffers() noexcept -> void {
     allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocate_info.commandPool = command_pool;
     allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocate_info.commandBufferCount = 1;
+    allocate_info.commandBufferCount = FRAMES_IN_FLIGHT;
 
-    ASSERT(vkAllocateCommandBuffers(device, &allocate_info, &raster_command_buffer), "Unable to create command buffers.");
+    ASSERT(vkAllocateCommandBuffers(device, &allocate_info, &raster_command_buffers[0]), "Unable to create command buffers.");
 }
 
 auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void {
@@ -89,15 +89,19 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
 }
 
 auto RenderContext::create_sync_objects() noexcept -> void {
-    image_available_semaphore = create_semaphore();
-    render_finished_semaphore = create_semaphore();
-    in_flight_fence = create_fence();
+    for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+	image_available_semaphores[i] = create_semaphore();
+	render_finished_semaphores[i] = create_semaphore();
+	in_flight_fences[i] = create_fence();
+    }
 }
 
 auto RenderContext::cleanup_sync_objects() noexcept -> void {
-    vkDestroySemaphore(device, image_available_semaphore, NULL);
-    vkDestroySemaphore(device, render_finished_semaphore, NULL);
-    vkDestroyFence(device, in_flight_fence, NULL);
+    for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+	vkDestroySemaphore(device, image_available_semaphores[i], NULL);
+	vkDestroySemaphore(device, render_finished_semaphores[i], NULL);
+	vkDestroyFence(device, in_flight_fences[i], NULL);
+    }
 }
 
 auto RenderContext::create_semaphore() noexcept -> VkSemaphore {

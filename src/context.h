@@ -26,8 +26,9 @@
 
 #include <vk_mem_alloc.h>
 
-#include "alloc.h"
 #include "util.h"
+
+static constexpr uint32_t FRAMES_IN_FLIGHT = 2;
 
 struct SwapchainSupport {
     VkSurfaceCapabilitiesKHR capabilities;
@@ -35,10 +36,21 @@ struct SwapchainSupport {
     std::vector<VkPresentModeKHR> present_modes;
 };
 
+struct Buffer {
+    VkBuffer buffer;
+    VmaAllocation allocation;
+};
+
+struct Image {
+    VkImage image;
+    VmaAllocation allocation;
+};
+
 struct RenderContext {
     GLFWwindow *window;
     int width = 1000, height = 1000;
     bool active = true, resized = false;
+    uint32_t current_frame = 0;
 
     VkInstance instance;
     VkSurfaceKHR surface;
@@ -59,11 +71,10 @@ struct RenderContext {
     VkPipeline raster_pipeline;
 
     VkCommandPool command_pool;
-    VkCommandBuffer raster_command_buffer;
-
-    VkSemaphore image_available_semaphore;
-    VkSemaphore render_finished_semaphore;
-    VkFence in_flight_fence;
+    std::array<VkCommandBuffer, FRAMES_IN_FLIGHT> raster_command_buffers;
+    std::array<VkSemaphore, FRAMES_IN_FLIGHT> image_available_semaphores;
+    std::array<VkSemaphore, FRAMES_IN_FLIGHT> render_finished_semaphores;
+    std::array<VkFence, FRAMES_IN_FLIGHT> in_flight_fences;
 
     VmaAllocator allocator;
 
