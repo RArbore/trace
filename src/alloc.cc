@@ -29,7 +29,7 @@ auto RenderContext::cleanup_allocator() noexcept -> void {
     vmaDestroyAllocator(allocator);
 }
 
-auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage) noexcept -> Buffer {
+auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags) noexcept -> Buffer {
     VkBufferCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     create_info.size = size;
@@ -38,6 +38,7 @@ auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage) n
 
     VmaAllocationCreateInfo alloc_info {};
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+    alloc_info.requiredFlags = memory_flags;
 
     VkBuffer buffer;
     VmaAllocation allocation;
@@ -50,7 +51,7 @@ auto RenderContext::cleanup_buffer(Buffer buffer) noexcept -> void {
     vmaDestroyBuffer(allocator, buffer.buffer, buffer.allocation);
 }
 
-auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkExtent3D extent, uint32_t mipLevels, uint32_t arrayLevels, VkImageUsageFlagBits usage) noexcept -> Image {
+auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkExtent3D extent, uint32_t mipLevels, uint32_t arrayLevels, VkImageUsageFlagBits usage, VkMemoryPropertyFlags memory_flags) noexcept -> Image {
     VkImageCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     create_info.flags = flags;
@@ -67,6 +68,7 @@ auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkEx
 
     VmaAllocationCreateInfo alloc_info {};
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+    alloc_info.requiredFlags = memory_flags;
 
     VkImage image;
     VmaAllocation allocation;
@@ -95,4 +97,13 @@ auto RenderContext::cleanup_image(Image image) noexcept -> void {
 
 auto RenderContext::cleanup_image_view(VkImageView view) noexcept -> void {
     vkDestroyImageView(device, view, NULL);
+}
+
+auto RenderContext::allocate_vulkan_objects_for_model(Model &model) noexcept -> void {
+    std::size_t size = model.total_buffer_size();
+    model.vertices = create_buffer(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+}
+
+auto RenderContext::cleanup_vulkan_objects_for_model(Model &model) noexcept -> void {
+    cleanup_buffer(model.vertices);
 }

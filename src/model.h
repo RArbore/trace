@@ -19,10 +19,38 @@
 #include <array>
 
 #include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 #include <glm/glm.hpp>
 
+struct Buffer {
+    VkBuffer buffer;
+    VmaAllocation allocation;
+};
+
+struct Image {
+    VkImage image;
+    VmaAllocation allocation;
+};
+
 struct Model {
-    static std::array<VkVertexInputBindingDescription, 2> binding_descriptions() {
+    std::vector<glm::vec2> positions;
+    std::vector<glm::vec3> colors;
+
+    Buffer vertices;
+
+    auto total_buffer_size() const noexcept -> std::size_t {
+	return positions.size() * sizeof(glm::vec2) + colors.size() * sizeof(glm::vec3);
+    }
+
+    auto offsets_into_buffer() const noexcept -> std::array<std::size_t, 2> {
+	return {0, positions.size() * sizeof(glm::vec2)};
+    }
+
+    auto num_vertices() const noexcept -> uint32_t {
+	return (uint32_t) positions.size();
+    }
+
+    static auto binding_descriptions() noexcept -> std::array<VkVertexInputBindingDescription, 2> {
 	std::array<VkVertexInputBindingDescription, 2> binding_descriptions {};
 	binding_descriptions[0].binding = 0;
 	binding_descriptions[0].stride = sizeof(glm::vec2);
@@ -34,7 +62,7 @@ struct Model {
 	return binding_descriptions;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 2> attribute_descriptions() {
+    static auto attribute_descriptions() noexcept -> std::array<VkVertexInputAttributeDescription, 2> {
 	std::array<VkVertexInputAttributeDescription, 2> attribute_descriptions {};
 	attribute_descriptions[0].binding = 0;
 	attribute_descriptions[0].location = 0;
@@ -46,23 +74,7 @@ struct Model {
 	attribute_descriptions[1].offset = 0;
 
 	return attribute_descriptions;
-    }
-    
-    std::vector<glm::vec2> positions;
-    std::vector<glm::vec3> colors;
-};
-
-static const Model simple_model {
-    {
-	{0.0f, -0.5f},
-	{0.5f, 0.5f},
-	{-0.5f, 0.5f}
-    },
-    {
-	{1.0f, 0.0f, 0.0f},
-	{0.0f, 1.0f, 0.0f},
-	{0.0f, 0.0f, 1.0f}
-    }
+    }   
 };
 
 #endif

@@ -81,7 +81,11 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
     scissor.extent = swapchain_extent;
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    vkCmdDraw(command_buffer, 3, 1, 0, 0);
+    VkBuffer vertex_buffers[] = {simple_model.vertices.buffer, simple_model.vertices.buffer};
+    auto offsets = simple_model.offsets_into_buffer();
+    vkCmdBindVertexBuffers(command_buffer, 0, 2, vertex_buffers, offsets.data());
+
+    vkCmdDraw(command_buffer, simple_model.num_vertices(), 1, 0, 0);
 
     vkCmdEndRenderPass(command_buffer);
 

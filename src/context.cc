@@ -42,11 +42,13 @@ auto RenderContext::init() noexcept -> void {
     create_surface();
     create_physical_device();
     create_device();
+    create_allocator();
     create_swapchain();
     create_shaders();
     create_raster_pipeline();
     create_framebuffers();
     create_command_pool();
+    allocate_vulkan_objects_for_model(simple_model);
     create_command_buffers();
     create_sync_objects();
 }
@@ -110,11 +112,13 @@ auto RenderContext::cleanup() noexcept -> void {
     vkDeviceWaitIdle(device);
 
     cleanup_sync_objects();
+    cleanup_vulkan_objects_for_model(simple_model);
     cleanup_command_pool();
     cleanup_framebuffers();
     cleanup_raster_pipeline();
     cleanup_shaders();
     cleanup_swapchain();
+    cleanup_allocator();
     cleanup_device();
     cleanup_surface();
     cleanup_instance();
