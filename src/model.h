@@ -35,11 +35,24 @@ struct Image {
 struct Model {
     std::vector<glm::vec2> positions;
     std::vector<glm::vec3> colors;
+    std::vector<uint16_t> indices;
 
-    Buffer vertices;
+    Buffer vertices_buf, indices_buf;
+
+    auto positions_buffer_size() const noexcept -> std::size_t {
+	return positions.size() * sizeof(glm::vec2);
+    }
+
+    auto colors_buffer_size() const noexcept -> std::size_t {
+	return colors.size() * sizeof(glm::vec3);
+    }
+
+    auto indices_buffer_size() const noexcept -> std::size_t {
+	return indices.size() * sizeof(uint16_t);
+    }
 
     auto total_buffer_size() const noexcept -> std::size_t {
-	return positions.size() * sizeof(glm::vec2) + colors.size() * sizeof(glm::vec3);
+	return positions.size() + colors.size() + indices.size();
     }
 
     auto offsets_into_buffer() const noexcept -> std::array<std::size_t, 2> {
@@ -48,6 +61,10 @@ struct Model {
 
     auto num_vertices() const noexcept -> uint32_t {
 	return (uint32_t) positions.size();
+    }
+
+    auto num_indices() const noexcept -> uint32_t {
+	return (uint32_t) indices.size();
     }
 
     static auto binding_descriptions() noexcept -> std::array<VkVertexInputBindingDescription, 2> {

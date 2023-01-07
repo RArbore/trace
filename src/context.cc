@@ -49,7 +49,8 @@ auto RenderContext::init() noexcept -> void {
     create_framebuffers();
     create_command_pool();
     allocate_vulkan_objects_for_model(simple_model);
-    inefficient_copy_into_buffer(simple_model.vertices, simple_model.positions, simple_model.colors);
+    inefficient_copy_into_buffer(simple_model.vertices_buf, simple_model.positions, simple_model.colors);
+    inefficient_copy_into_buffer(simple_model.indices_buf, simple_model.indices);
     create_command_buffers();
     create_sync_objects();
 }

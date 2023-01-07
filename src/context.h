@@ -43,15 +43,19 @@ struct RenderContext {
     
     Model simple_model {
 	{
-	    {0.0f, -0.5f},
+	    {-0.5f, -0.5f},
+	    {0.5f, -0.5f},
 	    {0.5f, 0.5f},
 	    {-0.5f, 0.5f}
 	},
 	{
 	    {1.0f, 0.0f, 0.0f},
 	    {0.0f, 1.0f, 0.0f},
-	    {0.0f, 0.0f, 1.0f}
+	    {0.0f, 0.0f, 1.0f},
+	    {1.0f, 1.0f, 1.0f}
 	},
+	{0, 1, 2, 2, 3, 0},
+	{ VK_NULL_HANDLE, VK_NULL_HANDLE },
 	{ VK_NULL_HANDLE, VK_NULL_HANDLE }
     };
     
@@ -137,6 +141,7 @@ struct RenderContext {
     auto cleanup_vulkan_objects_for_model(Model &model) noexcept -> void;
 
     auto inefficient_copy_into_buffer(Buffer dst, const std::vector<glm::vec2> &src1, const std::vector<glm::vec3> &src2) noexcept -> void;
+    auto inefficient_copy_into_buffer(Buffer dst, const std::vector<uint16_t> &src) noexcept -> void;
 };
 
 #endif

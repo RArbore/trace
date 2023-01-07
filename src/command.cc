@@ -81,11 +81,12 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
     scissor.extent = swapchain_extent;
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    VkBuffer vertex_buffers[] = {simple_model.vertices.buffer, simple_model.vertices.buffer};
+    VkBuffer vertex_buffers[] = {simple_model.vertices_buf.buffer, simple_model.vertices_buf.buffer};
     auto offsets = simple_model.offsets_into_buffer();
     vkCmdBindVertexBuffers(command_buffer, 0, 2, vertex_buffers, offsets.data());
+    vkCmdBindIndexBuffer(command_buffer, simple_model.indices_buf.buffer, 0, VK_INDEX_TYPE_UINT16);
 
-    vkCmdDraw(command_buffer, simple_model.num_vertices(), 1, 0, 0);
+    vkCmdDrawIndexed(command_buffer, simple_model.num_indices(), 1, 0, 0, 0);
 
     vkCmdEndRenderPass(command_buffer);
 
