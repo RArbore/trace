@@ -29,7 +29,7 @@ auto RenderContext::cleanup_allocator() noexcept -> void {
     vmaDestroyAllocator(allocator);
 }
 
-auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags) noexcept -> Buffer {
+auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags) noexcept -> Buffer {
     VkBufferCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     create_info.size = size;
@@ -37,6 +37,7 @@ auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, V
     create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     VmaAllocationCreateInfo alloc_info {};
+    alloc_info.flags = vma_flags;
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
     alloc_info.requiredFlags = memory_flags;
 
@@ -51,7 +52,7 @@ auto RenderContext::cleanup_buffer(Buffer buffer) noexcept -> void {
     vmaDestroyBuffer(allocator, buffer.buffer, buffer.allocation);
 }
 
-auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkExtent3D extent, uint32_t mipLevels, uint32_t arrayLevels, VkImageUsageFlagBits usage, VkMemoryPropertyFlags memory_flags) noexcept -> Image {
+auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkExtent3D extent, uint32_t mipLevels, uint32_t arrayLevels, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags) noexcept -> Image {
     VkImageCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     create_info.flags = flags;
@@ -67,6 +68,7 @@ auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkEx
     create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     VmaAllocationCreateInfo alloc_info {};
+    alloc_info.flags = vma_flags;
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
     alloc_info.requiredFlags = memory_flags;
 
@@ -101,9 +103,56 @@ auto RenderContext::cleanup_image_view(VkImageView view) noexcept -> void {
 
 auto RenderContext::allocate_vulkan_objects_for_model(Model &model) noexcept -> void {
     std::size_t size = model.total_buffer_size();
-    model.vertices = create_buffer(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    model.vertices = create_buffer(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
 
 auto RenderContext::cleanup_vulkan_objects_for_model(Model &model) noexcept -> void {
     cleanup_buffer(model.vertices);
+}
+
+auto RenderContext::inefficient_copy_into_buffer(Buffer dst, const std::vector<glm::vec2> &src1, const std::vector<glm::vec3> &src2) noexcept -> void {
+    std::size_t src1_size = src1.size() * sizeof(glm::vec2);
+    std::size_t src2_size = src2.size() * sizeof(glm::vec3);
+    Buffer cpu_visible = create_buffer(src1_size + src2_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+
+    char *data;
+    vmaMapMemory(allocator, cpu_visible.allocation, (void **) &data);
+    memcpy(data, src1.data(), src1_size);
+    memcpy(data + src1_size, src2.data(), src2_size);
+    vmaUnmapMemory(allocator, cpu_visible.allocation);
+
+    VkCommandBufferAllocateInfo command_buffer_alloc_info {};
+    command_buffer_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    command_buffer_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    command_buffer_alloc_info.commandPool = command_pool;
+    command_buffer_alloc_info.commandBufferCount = 1;
+    
+    VkCommandBuffer command_buffer;
+    vkAllocateCommandBuffers(device, &command_buffer_alloc_info, &command_buffer);
+
+    VkCommandBufferBeginInfo command_buffer_begin_info {};
+    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    
+    vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
+
+    VkBufferCopy copy_region {};
+    copy_region.srcOffset = 0;
+    copy_region.dstOffset = 0;
+    copy_region.size = src1_size + src2_size;
+    vkCmdCopyBuffer(command_buffer, cpu_visible.buffer, dst.buffer, 1, &copy_region);
+
+    vkEndCommandBuffer(command_buffer);
+
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &command_buffer;
+    
+    vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
+    vkQueueWaitIdle(queue);
+
+    vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
+    
+    cleanup_buffer(cpu_visible);
 }

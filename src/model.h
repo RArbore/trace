@@ -56,7 +56,7 @@ struct Model {
 	binding_descriptions[0].stride = sizeof(glm::vec2);
 	binding_descriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 	binding_descriptions[1].binding = 1;
-	binding_descriptions[1].stride = sizeof(glm::vec2);
+	binding_descriptions[1].stride = sizeof(glm::vec3);
 	binding_descriptions[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 	return binding_descriptions;

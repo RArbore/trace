@@ -19,10 +19,6 @@
 
 #include <vulkan/vulkan.h>
 
-template<typename T>
-inline auto assert_impl(T, const char*, const char*, uint32_t) noexcept -> void;
-
-template<>
 inline auto assert_impl(VkResult result, const char *msg, const char* file, uint32_t line) noexcept -> void {
     if (result != VK_SUCCESS) {
 	fprintf(stderr, "PANIC: %s\nOccurred in %s at line %u.\n", msg, file, line);
@@ -30,7 +26,6 @@ inline auto assert_impl(VkResult result, const char *msg, const char* file, uint
     }
 }
 
-template<>
 inline auto assert_impl(bool result, const char *msg, const char* file, uint32_t line) noexcept -> void {
     if (!result) {
 	fprintf(stderr, "PANIC: %s\nOccurred in %s at line %u.\n", msg, file, line);
@@ -38,7 +33,6 @@ inline auto assert_impl(bool result, const char *msg, const char* file, uint32_t
     }
 }
 
-template<>
 inline auto assert_impl(int32_t result, const char *msg, const char* file, uint32_t line) noexcept -> void {
     if (result == -1) {
 	fprintf(stderr, "PANIC: %s\nOccurred in %s at line %u.\n", msg, file, line);
@@ -46,7 +40,6 @@ inline auto assert_impl(int32_t result, const char *msg, const char* file, uint3
     }
 }
 
-template<>
 inline auto assert_impl(uint32_t result, const char *msg, const char* file, uint32_t line) noexcept -> void {
     if (result == 0xFFFFFFFF) {
 	fprintf(stderr, "PANIC: %s\nOccurred in %s at line %u.\n", msg, file, line);
