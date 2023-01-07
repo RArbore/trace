@@ -18,7 +18,6 @@ static auto glfw_framebuffer_resize_callback(GLFWwindow* window, int width, int 
     RenderContext *context = (RenderContext*) glfwGetWindowUserPointer(window);
     context->width = width;
     context->height = height;
-    context->resized = true;
 }
 
 static auto glfw_key_callback(GLFWwindow* window, int key, __attribute__((unused)) int scancode, int action, __attribute__((unused)) int mods) noexcept -> void {
@@ -58,18 +57,23 @@ auto RenderContext::render() noexcept -> void {
 	return;
     }
 
-    uint32_t flight_index = current_frame % FRAMES_IN_FLIGHT;
+    const uint32_t flight_index = current_frame % FRAMES_IN_FLIGHT;
 
     vkWaitForFences(device, 1, &in_flight_fences[flight_index], VK_TRUE, UINT64_MAX);
-    vkResetFences(device, 1, &in_flight_fences[flight_index]);
 
     uint32_t image_index;
-    vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available_semaphores[flight_index], VK_NULL_HANDLE, &image_index);
+    const VkResult acquire_next_image_result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available_semaphores[flight_index], VK_NULL_HANDLE, &image_index);
+    if (acquire_next_image_result == VK_ERROR_OUT_OF_DATE_KHR) {
+	recreate_swapchain();
+	return;
+    }
+    ASSERT(acquire_next_image_result == VK_SUCCESS || acquire_next_image_result == VK_SUBOPTIMAL_KHR, "Unable to acquire next image.");
+    vkResetFences(device, 1, &in_flight_fences[flight_index]);
 
     vkResetCommandBuffer(raster_command_buffers[flight_index], 0);
     record_raster_command_buffer(raster_command_buffers[flight_index], image_index);
 
-    VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    const VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.waitSemaphoreCount = 1;
@@ -90,10 +94,24 @@ auto RenderContext::render() noexcept -> void {
     present_info.pSwapchains = &swapchain;
     present_info.pImageIndices = &image_index;
 
-    vkQueuePresentKHR(queue, &present_info);
+    const VkResult queue_present_result = vkQueuePresentKHR(queue, &present_info);
+    if (queue_present_result == VK_ERROR_OUT_OF_DATE_KHR || queue_present_result == VK_SUBOPTIMAL_KHR) {
+	recreate_swapchain();
+    } else {
+	ASSERT(queue_present_result, "Unable to present rendered image.");
+    }
 
-    resized = false;
     ++current_frame;
+}
+
+auto RenderContext::recreate_swapchain() noexcept -> void {
+    vkDeviceWaitIdle(device);
+
+    cleanup_framebuffers();
+    cleanup_swapchain();
+    
+    create_swapchain();
+    create_framebuffers();
 }
 
 auto RenderContext::cleanup() noexcept -> void {

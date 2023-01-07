@@ -127,6 +127,8 @@ struct RenderContext {
 
     auto create_semaphore() noexcept -> VkSemaphore;
     auto create_fence() noexcept -> VkFence;
+
+    auto recreate_swapchain() noexcept -> void;
 };
 
 #endif
