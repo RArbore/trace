@@ -127,6 +127,7 @@ struct RenderContext {
     auto allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> void;
     auto cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> void;
     auto inefficient_copy_scene_data_into_buffers(Scene &scene, std::size_t vertex_size, std::size_t index_size) noexcept -> void;
+    auto inefficient_copy_buffers(Buffer dst, Buffer src, VkBufferCopy copy_region) noexcept -> void;
 };
 
 #endif

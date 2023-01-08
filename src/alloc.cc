@@ -121,7 +121,45 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> v
     cleanup_buffer(scene.indices_buf);
 }
 
-auto RenderContext::inefficient_copy_scene_data_into_buffers(Scene &scene, std::size_t vertex_size, std::size_t index_size) noexcept -> void {
+auto RenderContext::inefficient_copy_scene_data_into_buffers(Scene &scene, std::size_t vertex_size, std::size_t index_size) noexcept -> void { 
+    Buffer cpu_visible_vertex = create_buffer(vertex_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+    
+    char *data_vertex;
+    vmaMapMemory(allocator, cpu_visible_vertex.allocation, (void **) &data_vertex);
+    for (const Model &model : scene.models) {
+	model.dump_vertices(data_vertex);
+	data_vertex += model.vertex_buffer_size();
+    }
+    vmaUnmapMemory(allocator, cpu_visible_vertex.allocation);
+    
+    VkBufferCopy copy_region_vertex {};
+    copy_region_vertex.srcOffset = 0;
+    copy_region_vertex.dstOffset = 0;
+    copy_region_vertex.size = vertex_size;
+    inefficient_copy_buffers(scene.vertices_buf, cpu_visible_vertex, copy_region_vertex);
+    
+    cleanup_buffer(cpu_visible_vertex);
+    
+    Buffer cpu_visible_index = create_buffer(index_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+    
+    char *data_index;
+    vmaMapMemory(allocator, cpu_visible_index.allocation, (void **) &data_index);
+    for (const Model &model : scene.models) {
+	model.dump_indices(data_index);
+	data_index += model.index_buffer_size();
+    }
+    vmaUnmapMemory(allocator, cpu_visible_index.allocation);
+    
+    VkBufferCopy copy_region_index {};
+    copy_region_index.srcOffset = 0;
+    copy_region_index.dstOffset = 0;
+    copy_region_index.size = index_size;
+    inefficient_copy_buffers(scene.indices_buf, cpu_visible_index, copy_region_index);
+    
+    cleanup_buffer(cpu_visible_index);
+}
+
+auto RenderContext::inefficient_copy_buffers(Buffer dst, Buffer src, VkBufferCopy copy_region) noexcept -> void {
     VkCommandBufferAllocateInfo command_buffer_alloc_info {};
     command_buffer_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     command_buffer_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -130,78 +168,24 @@ auto RenderContext::inefficient_copy_scene_data_into_buffers(Scene &scene, std::
 
     VkCommandBuffer command_buffer;
     vkAllocateCommandBuffers(device, &command_buffer_alloc_info, &command_buffer);
-    
-    {
-	Buffer cpu_visible_vertex = create_buffer(vertex_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-	
-	char *data_vertex;
-	vmaMapMemory(allocator, cpu_visible_vertex.allocation, (void **) &data_vertex);
-	for (const Model &model : scene.models) {
-	    model.dump_vertices(data_vertex);
-	    data_vertex += model.vertex_buffer_size();
-	}
-	vmaUnmapMemory(allocator, cpu_visible_vertex.allocation);
-	
-	VkCommandBufferBeginInfo command_buffer_begin_info {};
-	command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	
-	vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
-	
-	VkBufferCopy copy_region {};
-	copy_region.srcOffset = 0;
-	copy_region.dstOffset = 0;
-	copy_region.size = vertex_size;
-	vkCmdCopyBuffer(command_buffer, cpu_visible_vertex.buffer, scene.vertices_buf.buffer, 1, &copy_region);
-	
-	vkEndCommandBuffer(command_buffer);
-	
-	VkSubmitInfo submit_info{};
-	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submit_info.commandBufferCount = 1;
-	submit_info.pCommandBuffers = &command_buffer;
-	
-	vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
-	vkQueueWaitIdle(queue);
-	
-	cleanup_buffer(cpu_visible_vertex);
-    }
 
-    {
-	Buffer cpu_visible_index = create_buffer(index_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-	
-	char *data_index;
-	vmaMapMemory(allocator, cpu_visible_index.allocation, (void **) &data_index);
-	for (const Model &model : scene.models) {
-	    model.dump_indices(data_index);
-	    data_index += model.index_buffer_size();
-	}
-	vmaUnmapMemory(allocator, cpu_visible_index.allocation);
-	
-	VkCommandBufferBeginInfo command_buffer_begin_info {};
-	command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	
-	vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
-	
-	VkBufferCopy copy_region {};
-	copy_region.srcOffset = 0;
-	copy_region.dstOffset = 0;
-	copy_region.size = index_size;
-	vkCmdCopyBuffer(command_buffer, cpu_visible_index.buffer, scene.indices_buf.buffer, 1, &copy_region);
-	
-	vkEndCommandBuffer(command_buffer);
-	
-	VkSubmitInfo submit_info{};
-	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submit_info.commandBufferCount = 1;
-	submit_info.pCommandBuffers = &command_buffer;
-	
-	vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
-	vkQueueWaitIdle(queue);
-	
-	cleanup_buffer(cpu_visible_index);
-    }
+    VkCommandBufferBeginInfo command_buffer_begin_info {};
+    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    
+    vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
+    
+    vkCmdCopyBuffer(command_buffer, src.buffer, dst.buffer, 1, &copy_region);
+    
+    vkEndCommandBuffer(command_buffer);
+    
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &command_buffer;
+    
+    vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
+    vkQueueWaitIdle(queue);
     
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 }

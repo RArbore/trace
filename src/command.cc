@@ -85,7 +85,6 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
 	const std::size_t model_id = scene.model_ids[i];
 	const std::size_t vertex_buffer_model_offset = scene.model_vertices_offsets[model_id];
 	const std::size_t index_buffer_model_offset = scene.model_indices_offsets[model_id];
-	std::cout << i << " " << model_id << " " << vertex_buffer_model_offset << " " << index_buffer_model_offset << '\n';
 	const VkBuffer vertex_buffers[] = {scene.vertices_buf.buffer, scene.vertices_buf.buffer};
 	auto offsets = scene.models[model_id].offsets_into_buffer();
 	offsets[0] += vertex_buffer_model_offset;
