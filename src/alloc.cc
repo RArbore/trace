@@ -114,8 +114,8 @@ auto RenderContext::cleanup_vulkan_objects_for_model(Model &model) noexcept -> v
     cleanup_buffer(model.indices_buf);
 }
 
-auto RenderContext::inefficient_copy_into_buffer(Buffer dst, const std::vector<glm::vec2> &src1, const std::vector<glm::vec3> &src2) noexcept -> void {
-    std::size_t src1_size = src1.size() * sizeof(glm::vec2);
+auto RenderContext::inefficient_copy_into_buffer(Buffer dst, const std::vector<glm::vec3> &src1, const std::vector<glm::vec3> &src2) noexcept -> void {
+    std::size_t src1_size = src1.size() * sizeof(glm::vec3);
     std::size_t src2_size = src2.size() * sizeof(glm::vec3);
     Buffer cpu_visible = create_buffer(src1_size + src2_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
 

@@ -86,6 +86,8 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
     vkCmdBindVertexBuffers(command_buffer, 0, 2, vertex_buffers, offsets.data());
     vkCmdBindIndexBuffer(command_buffer, simple_model.indices_buf.buffer, 0, VK_INDEX_TYPE_UINT16);
 
+    vkCmdPushConstants(command_buffer, raster_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 4 * 4, &perspective_camera_matrix[0][0]);
+
     vkCmdDrawIndexed(command_buffer, simple_model.num_indices(), 1, 0, 0, 0);
 
     vkCmdEndRenderPass(command_buffer);

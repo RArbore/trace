@@ -98,6 +98,9 @@ auto RenderContext::choose_swapchain_options(const SwapchainSupport &support) no
 	swap_extent = support.capabilities.currentExtent;
     }
     else {
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height);
+	
 	swap_extent.width = (uint32_t) width;
 	swap_extent.height = (uint32_t) height;
 
@@ -118,6 +121,7 @@ auto RenderContext::cleanup_swapchain() noexcept -> void {
 }
 
 auto RenderContext::recreate_swapchain() noexcept -> void {
+    int width, height;
     glfwGetFramebufferSize(window, &width, &height);
     while (width == 0 || height == 0) {
         glfwGetFramebufferSize(window, &width, &height);

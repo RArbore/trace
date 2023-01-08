@@ -37,16 +37,19 @@ struct SwapchainSupport {
 
 struct RenderContext {
     GLFWwindow *window;
-    int width = 1000, height = 1000;
     bool active = true, resized = false;
     uint32_t current_frame = 0;
+
+    glm::mat4 perspective_matrix;
+    glm::mat4 camera_matrix;
+    glm::mat4 perspective_camera_matrix;
     
     Model simple_model {
 	{
-	    {-0.5f, -0.5f},
-	    {0.5f, -0.5f},
-	    {0.5f, 0.5f},
-	    {-0.5f, 0.5f}
+	    {0.0, -0.5f, -0.5f},
+	    {0.0, 0.5f, -0.5f},
+	    {0.0, 0.5f, 0.5f},
+	    {0.0, -0.5f, 0.5f}
 	},
 	{
 	    {1.0f, 0.0f, 0.0f},
@@ -140,7 +143,7 @@ struct RenderContext {
     auto allocate_vulkan_objects_for_model(Model &model) noexcept -> void;
     auto cleanup_vulkan_objects_for_model(Model &model) noexcept -> void;
 
-    auto inefficient_copy_into_buffer(Buffer dst, const std::vector<glm::vec2> &src1, const std::vector<glm::vec3> &src2) noexcept -> void;
+    auto inefficient_copy_into_buffer(Buffer dst, const std::vector<glm::vec3> &src1, const std::vector<glm::vec3> &src2) noexcept -> void;
     auto inefficient_copy_into_buffer(Buffer dst, const std::vector<uint16_t> &src) noexcept -> void;
 };
 

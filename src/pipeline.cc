@@ -115,6 +115,11 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     color_blending_state_create_info.attachmentCount = 1;
     color_blending_state_create_info.pAttachments = &color_blend_attachment_state;
 
+    VkPushConstantRange push_constant_range {};
+    push_constant_range.offset = 0;
+    push_constant_range.size = sizeof(float) * 4 * 4;
+    push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
     VkDynamicState pipeline_dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo pipeline_dynamic_state_create_info {};
     pipeline_dynamic_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -123,8 +128,9 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     VkPipelineLayoutCreateInfo pipeline_layout_create_info {};
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipeline_layout_create_info.pushConstantRangeCount = 1;
+    pipeline_layout_create_info.pPushConstantRanges = &push_constant_range;
     pipeline_layout_create_info.setLayoutCount = 0;
-    pipeline_layout_create_info.pushConstantRangeCount = 0;
     ASSERT(vkCreatePipelineLayout(device, &pipeline_layout_create_info, NULL, &raster_pipeline_layout), "Unable to create raster pipeline layout.");
 
     VkAttachmentDescription color_attachment {};

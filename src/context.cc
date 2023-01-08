@@ -14,14 +14,12 @@
 
 #include "context.h"
 
-static auto glfw_framebuffer_resize_callback(GLFWwindow* window, int width, int height) noexcept -> void {
+static auto glfw_framebuffer_resize_callback(GLFWwindow* window, [[maybe_unused]] int width, [[maybe_unused]] int height) noexcept -> void {
     RenderContext *context = (RenderContext*) glfwGetWindowUserPointer(window);
-    context->width = width;
-    context->height = height;
     context->resized = true;
 }
 
-static auto glfw_key_callback(GLFWwindow* window, int key, __attribute__((unused)) int scancode, int action, __attribute__((unused)) int mods) noexcept -> void {
+static auto glfw_key_callback(GLFWwindow* window, int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods) noexcept -> void {
     ASSERT(key >= 0 && key < GLFW_KEY_LAST, "Pressed unknown key.");
     RenderContext *context = (RenderContext*) glfwGetWindowUserPointer(window);
     context->pressed_keys[key] = action != GLFW_RELEASE;
@@ -30,9 +28,9 @@ static auto glfw_key_callback(GLFWwindow* window, int key, __attribute__((unused
 auto RenderContext::init() noexcept -> void {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    window = glfwCreateWindow(width, height, "trace", NULL, NULL);
+    window = glfwCreateWindow(1000, 1000, "trace", NULL, NULL);
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, glfw_framebuffer_resize_callback);
     glfwSetKeyCallback(window, glfw_key_callback);
@@ -61,6 +59,13 @@ auto RenderContext::render() noexcept -> void {
 	active = false;
 	return;
     }
+
+    const float time = (float) current_frame / 1000.0f;
+    //perspective_matrix = glm::perspective(glm::radians(45.0f), (float) swapchain_extent.width / (float) swapchain_extent.height, 0.1f, 10.0f);
+    perspective_matrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 10.0f);
+    perspective_matrix[1][1] *= -1.0f;
+    camera_matrix = glm::lookAt(glm::vec3(4.0f * sin(time), 4.0f * cos(time), 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    perspective_camera_matrix = perspective_matrix * camera_matrix;
 
     const uint32_t flight_index = current_frame % FRAMES_IN_FLIGHT;
 
@@ -91,7 +96,7 @@ auto RenderContext::render() noexcept -> void {
 
     ASSERT(vkQueueSubmit(queue, 1, &submit_info, in_flight_fences[flight_index]), "");
 
-    VkPresentInfoKHR present_info{};
+    VkPresentInfoKHR present_info {};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.waitSemaphoreCount = 1;
     present_info.pWaitSemaphores = &render_finished_semaphores[flight_index];

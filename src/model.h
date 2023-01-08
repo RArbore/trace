@@ -20,7 +20,10 @@
 
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
+
+#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 struct Buffer {
     VkBuffer buffer;
@@ -33,14 +36,14 @@ struct Image {
 };
 
 struct Model {
-    std::vector<glm::vec2> positions;
+    std::vector<glm::vec3> positions;
     std::vector<glm::vec3> colors;
     std::vector<uint16_t> indices;
 
     Buffer vertices_buf, indices_buf;
 
     auto positions_buffer_size() const noexcept -> std::size_t {
-	return positions.size() * sizeof(glm::vec2);
+	return positions.size() * sizeof(glm::vec3);
     }
 
     auto colors_buffer_size() const noexcept -> std::size_t {
@@ -56,7 +59,7 @@ struct Model {
     }
 
     auto offsets_into_buffer() const noexcept -> std::array<std::size_t, 2> {
-	return {0, positions.size() * sizeof(glm::vec2)};
+	return {0, positions_buffer_size()};
     }
 
     auto num_vertices() const noexcept -> uint32_t {
@@ -70,7 +73,7 @@ struct Model {
     static auto binding_descriptions() noexcept -> std::array<VkVertexInputBindingDescription, 2> {
 	std::array<VkVertexInputBindingDescription, 2> binding_descriptions {};
 	binding_descriptions[0].binding = 0;
-	binding_descriptions[0].stride = sizeof(glm::vec2);
+	binding_descriptions[0].stride = sizeof(glm::vec3);
 	binding_descriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 	binding_descriptions[1].binding = 1;
 	binding_descriptions[1].stride = sizeof(glm::vec3);
@@ -83,7 +86,7 @@ struct Model {
 	std::array<VkVertexInputAttributeDescription, 2> attribute_descriptions {};
 	attribute_descriptions[0].binding = 0;
 	attribute_descriptions[0].location = 0;
-	attribute_descriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+	attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 	attribute_descriptions[0].offset = 0;
 	attribute_descriptions[1].binding = 1;
 	attribute_descriptions[1].location = 1;
