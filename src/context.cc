@@ -34,7 +34,7 @@ auto RenderContext::init() noexcept -> void {
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, glfw_framebuffer_resize_callback);
     glfwSetKeyCallback(window, glfw_key_callback);
-    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     create_instance();
     create_surface();
@@ -53,18 +53,18 @@ auto RenderContext::init() noexcept -> void {
     create_sync_objects();
 }
 
-auto RenderContext::render() noexcept -> void {
+auto RenderContext::render(double dt) noexcept -> void {
     glfwPollEvents();
     if (pressed_keys[GLFW_KEY_ESCAPE] || glfwWindowShouldClose(window)) {
 	active = false;
 	return;
     }
 
-    const float time = (float) current_frame / 1000.0f;
-    //perspective_matrix = glm::perspective(glm::radians(45.0f), (float) swapchain_extent.width / (float) swapchain_extent.height, 0.1f, 10.0f);
+    [[maybe_unused]] const float aspect_ratio = (float) swapchain_extent.width / (float) swapchain_extent.height;
+    elapsed_time += dt;
     perspective_matrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 10.0f);
     perspective_matrix[1][1] *= -1.0f;
-    camera_matrix = glm::lookAt(glm::vec3(4.0f * sin(time), 4.0f * cos(time), 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    camera_matrix = glm::lookAt(glm::vec3(4.0f * sin(elapsed_time), 4.0f * cos(elapsed_time), 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     perspective_camera_matrix = perspective_matrix * camera_matrix;
 
     const uint32_t flight_index = current_frame % FRAMES_IN_FLIGHT;

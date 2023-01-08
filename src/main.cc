@@ -12,13 +12,26 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <iostream>
+#include <chrono>
+
 #include "context.h"
 
 auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> int {
     RenderContext context {};
     context.init();
+    auto system_time = std::chrono::system_clock::now();
+    double rolling_average_dt = 0.0;
     while (context.active) {
-	context.render();
+	const auto current_time = std::chrono::system_clock::now();
+	const std::chrono::duration<double> dt = current_time - system_time;
+	system_time = current_time;
+	rolling_average_dt += dt.count();
+	context.render(dt.count());
+	if (context.current_frame % 10000 == 0) {
+	    printf("FPS: %f\n", 10000.0 / rolling_average_dt);
+	    rolling_average_dt = 0.0;
+	}
     }
     context.cleanup();
     return 0;

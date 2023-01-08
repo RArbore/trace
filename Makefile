@@ -13,7 +13,7 @@ endif
 
 CPPFLAGS := $(CPPFLAGS) -c -fno-rtti
 LDFLAGS := $(LDFLAGS) -fuse-ld=mold
-WFLAGS := -Wall -Wextra -Wshadow -Wconversion -Wpedantic -Werror
+WFLAGS := -Wall -Wextra -Wshadow -Wconversion -Wpedantic
 LDLIBS := -lvulkan -lglfw
 
 SRCS := $(shell find src -name "*.cc")

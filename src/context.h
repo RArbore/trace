@@ -39,6 +39,7 @@ struct RenderContext {
     GLFWwindow *window;
     bool active = true, resized = false;
     uint32_t current_frame = 0;
+    double elapsed_time = 0.0f;
 
     glm::mat4 perspective_matrix;
     glm::mat4 camera_matrix;
@@ -91,7 +92,7 @@ struct RenderContext {
     std::array<bool, GLFW_KEY_LAST + 1> pressed_keys;
 
     auto init() noexcept -> void;
-    auto render() noexcept -> void;
+    auto render(double dt) noexcept -> void;
     auto cleanup() noexcept -> void;
 
     auto create_instance() noexcept -> void;
