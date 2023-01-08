@@ -15,6 +15,7 @@
 #ifndef MODEL_H
 #define MODEL_H
 
+#include <cstring>
 #include <vector>
 #include <array>
 
@@ -40,26 +41,16 @@ struct Model {
     std::vector<glm::vec3> colors;
     std::vector<uint16_t> indices;
 
-    Buffer vertices_buf, indices_buf;
-
-    auto positions_buffer_size() const noexcept -> std::size_t {
-	return positions.size() * sizeof(glm::vec3);
+    auto vertex_buffer_size() const noexcept -> std::size_t {
+	return positions.size() * sizeof(glm::vec3) + colors.size() * sizeof(glm::vec3);
     }
 
-    auto colors_buffer_size() const noexcept -> std::size_t {
-	return colors.size() * sizeof(glm::vec3);
-    }
-
-    auto indices_buffer_size() const noexcept -> std::size_t {
+    auto index_buffer_size() const noexcept -> std::size_t {
 	return indices.size() * sizeof(uint16_t);
     }
 
-    auto total_buffer_size() const noexcept -> std::size_t {
-	return positions.size() + colors.size() + indices.size();
-    }
-
     auto offsets_into_buffer() const noexcept -> std::array<std::size_t, 2> {
-	return {0, positions_buffer_size()};
+	return {0, positions.size() * sizeof(glm::vec3)};
     }
 
     auto num_vertices() const noexcept -> uint32_t {
@@ -68,6 +59,15 @@ struct Model {
 
     auto num_indices() const noexcept -> uint32_t {
 	return (uint32_t) indices.size();
+    }
+
+    auto dump_vertices(char *dst) const noexcept -> void {
+	memcpy(dst, positions.data(), positions.size() * sizeof(glm::vec3));
+	memcpy(dst + positions.size() * sizeof(glm::vec3), colors.data(), colors.size() * sizeof(glm::vec3));
+    }
+
+    auto dump_indices(char *dst) const noexcept -> void {
+	memcpy(dst, indices.data(), indices.size() * sizeof(uint16_t));
     }
 
     static auto binding_descriptions() noexcept -> std::array<VkVertexInputBindingDescription, 2> {

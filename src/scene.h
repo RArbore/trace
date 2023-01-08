@@ -22,6 +22,8 @@ struct Scene {
     std::vector<glm::mat4> transforms;
     std::vector<uint16_t> model_ids;
 
+    Buffer vertices_buf, indices_buf;
+
     auto num_objects() const noexcept -> std::size_t {
 	return model_ids.size();
     }

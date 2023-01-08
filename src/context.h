@@ -16,6 +16,7 @@
 #define CONTEXT_H
 
 #include <unordered_map>
+#include <numeric>
 #include <cstring>
 #include <vector>
 #include <array>
@@ -123,11 +124,9 @@ struct RenderContext {
 
     auto recreate_swapchain() noexcept -> void;
 
-    auto allocate_vulkan_objects_for_model(Model &model) noexcept -> void;
-    auto cleanup_vulkan_objects_for_model(Model &model) noexcept -> void;
-
-    auto inefficient_copy_into_buffer(Buffer dst, const std::vector<glm::vec3> &src1, const std::vector<glm::vec3> &src2) noexcept -> void;
-    auto inefficient_copy_into_buffer(Buffer dst, const std::vector<uint16_t> &src) noexcept -> void;
+    auto allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> void;
+    auto cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> void;
+    auto inefficient_copy_scene_data_into_buffers(Scene &scene, std::size_t vertex_size, std::size_t index_size) noexcept -> void;
 };
 
 #endif

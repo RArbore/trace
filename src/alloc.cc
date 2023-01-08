@@ -101,110 +101,102 @@ auto RenderContext::cleanup_image_view(VkImageView view) noexcept -> void {
     vkDestroyImageView(device, view, NULL);
 }
 
-auto RenderContext::allocate_vulkan_objects_for_model(Model &model) noexcept -> void {
-    const std::size_t vertex_size = model.positions_buffer_size() + model.colors_buffer_size();
-    model.vertices_buf = create_buffer(vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
+    const std::size_t vertex_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [](const std::size_t &accum, const Model &model) { return accum + model.vertex_buffer_size(); });
+    scene.vertices_buf = create_buffer(vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    const std::size_t index_size = model.indices_buffer_size();
-    model.indices_buf = create_buffer(index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    const std::size_t index_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [](const std::size_t &accum, const Model &model) { return accum + model.index_buffer_size(); });
+    scene.indices_buf = create_buffer(index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    inefficient_copy_into_buffer(model.vertices_buf, model.positions, model.colors);
-    inefficient_copy_into_buffer(model.indices_buf, model.indices);
+    inefficient_copy_scene_data_into_buffers(scene, vertex_size, index_size);
 }
 
-auto RenderContext::cleanup_vulkan_objects_for_model(Model &model) noexcept -> void {
-    cleanup_buffer(model.vertices_buf);
-    cleanup_buffer(model.indices_buf);
+auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
+    cleanup_buffer(scene.vertices_buf);
+    cleanup_buffer(scene.indices_buf);
 }
 
-auto RenderContext::inefficient_copy_into_buffer(Buffer dst, const std::vector<glm::vec3> &src1, const std::vector<glm::vec3> &src2) noexcept -> void {
-    std::size_t src1_size = src1.size() * sizeof(glm::vec3);
-    std::size_t src2_size = src2.size() * sizeof(glm::vec3);
-    Buffer cpu_visible = create_buffer(src1_size + src2_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-
-    char *data;
-    vmaMapMemory(allocator, cpu_visible.allocation, (void **) &data);
-    memcpy(data, src1.data(), src1_size);
-    memcpy(data + src1_size, src2.data(), src2_size);
-    vmaUnmapMemory(allocator, cpu_visible.allocation);
-
+auto RenderContext::inefficient_copy_scene_data_into_buffers(Scene &scene, std::size_t vertex_size, std::size_t index_size) noexcept -> void {
     VkCommandBufferAllocateInfo command_buffer_alloc_info {};
     command_buffer_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     command_buffer_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     command_buffer_alloc_info.commandPool = command_pool;
     command_buffer_alloc_info.commandBufferCount = 1;
-    
+
     VkCommandBuffer command_buffer;
     vkAllocateCommandBuffers(device, &command_buffer_alloc_info, &command_buffer);
-
-    VkCommandBufferBeginInfo command_buffer_begin_info {};
-    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     
-    vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
+    {
+	Buffer cpu_visible_vertex = create_buffer(vertex_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+	
+	char *data_vertex;
+	vmaMapMemory(allocator, cpu_visible_vertex.allocation, (void **) &data_vertex);
+	for (const Model &model : scene.models) {
+	    model.dump_vertices(data_vertex);
+	    data_vertex += model.vertex_buffer_size();
+	}
+	vmaUnmapMemory(allocator, cpu_visible_vertex.allocation);
+	
+	VkCommandBufferBeginInfo command_buffer_begin_info {};
+	command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	
+	vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
+	
+	VkBufferCopy copy_region {};
+	copy_region.srcOffset = 0;
+	copy_region.dstOffset = 0;
+	copy_region.size = vertex_size;
+	vkCmdCopyBuffer(command_buffer, cpu_visible_vertex.buffer, scene.vertices_buf.buffer, 1, &copy_region);
+	
+	vkEndCommandBuffer(command_buffer);
+	
+	VkSubmitInfo submit_info{};
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers = &command_buffer;
+	
+	vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
+	vkQueueWaitIdle(queue);
+	
+	cleanup_buffer(cpu_visible_vertex);
+    }
 
-    VkBufferCopy copy_region {};
-    copy_region.srcOffset = 0;
-    copy_region.dstOffset = 0;
-    copy_region.size = src1_size + src2_size;
-    vkCmdCopyBuffer(command_buffer, cpu_visible.buffer, dst.buffer, 1, &copy_region);
-
-    vkEndCommandBuffer(command_buffer);
-
-    VkSubmitInfo submit_info{};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &command_buffer;
+    {
+	Buffer cpu_visible_index = create_buffer(index_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+	
+	char *data_index;
+	vmaMapMemory(allocator, cpu_visible_index.allocation, (void **) &data_index);
+	for (const Model &model : scene.models) {
+	    model.dump_indices(data_index);
+	    data_index += model.index_buffer_size();
+	}
+	vmaUnmapMemory(allocator, cpu_visible_index.allocation);
+	
+	VkCommandBufferBeginInfo command_buffer_begin_info {};
+	command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	
+	vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
+	
+	VkBufferCopy copy_region {};
+	copy_region.srcOffset = 0;
+	copy_region.dstOffset = 0;
+	copy_region.size = index_size;
+	vkCmdCopyBuffer(command_buffer, cpu_visible_index.buffer, scene.indices_buf.buffer, 1, &copy_region);
+	
+	vkEndCommandBuffer(command_buffer);
+	
+	VkSubmitInfo submit_info{};
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers = &command_buffer;
+	
+	vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
+	vkQueueWaitIdle(queue);
+	
+	cleanup_buffer(cpu_visible_index);
+    }
     
-    vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
-    vkQueueWaitIdle(queue);
-
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
-    
-    cleanup_buffer(cpu_visible);
-}
-
-auto RenderContext::inefficient_copy_into_buffer(Buffer dst, const std::vector<uint16_t> &src) noexcept -> void {
-    std::size_t src_size = src.size() * sizeof(uint16_t);
-    Buffer cpu_visible = create_buffer(src_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-
-    char *data;
-    vmaMapMemory(allocator, cpu_visible.allocation, (void **) &data);
-    memcpy(data, src.data(), src_size);
-    vmaUnmapMemory(allocator, cpu_visible.allocation);
-
-    VkCommandBufferAllocateInfo command_buffer_alloc_info {};
-    command_buffer_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    command_buffer_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    command_buffer_alloc_info.commandPool = command_pool;
-    command_buffer_alloc_info.commandBufferCount = 1;
-    
-    VkCommandBuffer command_buffer;
-    vkAllocateCommandBuffers(device, &command_buffer_alloc_info, &command_buffer);
-
-    VkCommandBufferBeginInfo command_buffer_begin_info {};
-    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    
-    vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
-
-    VkBufferCopy copy_region {};
-    copy_region.srcOffset = 0;
-    copy_region.dstOffset = 0;
-    copy_region.size = src_size;
-    vkCmdCopyBuffer(command_buffer, cpu_visible.buffer, dst.buffer, 1, &copy_region);
-
-    vkEndCommandBuffer(command_buffer);
-
-    VkSubmitInfo submit_info{};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &command_buffer;
-    
-    vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
-    vkQueueWaitIdle(queue);
-
-    vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
-    
-    cleanup_buffer(cpu_visible);
 }
