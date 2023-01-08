@@ -46,14 +46,11 @@ auto RenderContext::init() noexcept -> void {
     create_raster_pipeline();
     create_framebuffers();
     create_command_pool();
-    allocate_vulkan_objects_for_model(simple_model);
-    inefficient_copy_into_buffer(simple_model.vertices_buf, simple_model.positions, simple_model.colors);
-    inefficient_copy_into_buffer(simple_model.indices_buf, simple_model.indices);
     create_command_buffers();
     create_sync_objects();
 }
 
-auto RenderContext::render(double dt) noexcept -> void {
+auto RenderContext::render(double dt, const Scene &scene) noexcept -> void {
     glfwPollEvents();
     if (pressed_keys[GLFW_KEY_ESCAPE] || glfwWindowShouldClose(window)) {
 	active = false;
@@ -81,7 +78,7 @@ auto RenderContext::render(double dt) noexcept -> void {
     vkResetFences(device, 1, &in_flight_fences[flight_index]);
 
     vkResetCommandBuffer(raster_command_buffers[flight_index], 0);
-    record_raster_command_buffer(raster_command_buffers[flight_index], image_index);
+    record_raster_command_buffer(raster_command_buffers[flight_index], image_index, scene);
 
     const VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     VkSubmitInfo submit_info{};
@@ -119,7 +116,6 @@ auto RenderContext::cleanup() noexcept -> void {
     vkDeviceWaitIdle(device);
 
     cleanup_sync_objects();
-    cleanup_vulkan_objects_for_model(simple_model);
     cleanup_command_pool();
     cleanup_framebuffers();
     cleanup_raster_pipeline();

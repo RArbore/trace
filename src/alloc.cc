@@ -107,6 +107,9 @@ auto RenderContext::allocate_vulkan_objects_for_model(Model &model) noexcept -> 
 
     const std::size_t index_size = model.indices_buffer_size();
     model.indices_buf = create_buffer(index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    inefficient_copy_into_buffer(model.vertices_buf, model.positions, model.colors);
+    inefficient_copy_into_buffer(model.indices_buf, model.indices);
 }
 
 auto RenderContext::cleanup_vulkan_objects_for_model(Model &model) noexcept -> void {

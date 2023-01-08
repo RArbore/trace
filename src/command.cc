@@ -39,7 +39,7 @@ auto RenderContext::create_command_buffers() noexcept -> void {
     ASSERT(vkAllocateCommandBuffers(device, &allocate_info, &raster_command_buffers[0]), "Unable to create command buffers.");
 }
 
-auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void {
+auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, const Scene &scene) noexcept -> void {
     VkCommandBufferBeginInfo begin_info {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -81,14 +81,14 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
     scissor.extent = swapchain_extent;
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    VkBuffer vertex_buffers[] = {simple_model.vertices_buf.buffer, simple_model.vertices_buf.buffer};
-    auto offsets = simple_model.offsets_into_buffer();
+    VkBuffer vertex_buffers[] = {scene.models[0].vertices_buf.buffer, scene.models[0].vertices_buf.buffer};
+    auto offsets = scene.models[0].offsets_into_buffer();
     vkCmdBindVertexBuffers(command_buffer, 0, 2, vertex_buffers, offsets.data());
-    vkCmdBindIndexBuffer(command_buffer, simple_model.indices_buf.buffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(command_buffer, scene.models[0].indices_buf.buffer, 0, VK_INDEX_TYPE_UINT16);
 
     vkCmdPushConstants(command_buffer, raster_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 4 * 4, &perspective_camera_matrix[0][0]);
 
-    vkCmdDrawIndexed(command_buffer, simple_model.num_indices(), 1, 0, 0, 0);
+    vkCmdDrawIndexed(command_buffer, scene.models[0].num_indices(), 1, 0, 0, 0);
 
     vkCmdEndRenderPass(command_buffer);
 

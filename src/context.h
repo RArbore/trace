@@ -24,7 +24,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "model.h"
+#include "scene.h"
 #include "util.h"
 
 static constexpr uint32_t FRAMES_IN_FLIGHT = 2;
@@ -44,24 +44,6 @@ struct RenderContext {
     glm::mat4 perspective_matrix;
     glm::mat4 camera_matrix;
     glm::mat4 perspective_camera_matrix;
-    
-    Model simple_model {
-	{
-	    {0.0, -0.5f, -0.5f},
-	    {0.0, 0.5f, -0.5f},
-	    {0.0, 0.5f, 0.5f},
-	    {0.0, -0.5f, 0.5f}
-	},
-	{
-	    {1.0f, 0.0f, 0.0f},
-	    {0.0f, 1.0f, 0.0f},
-	    {0.0f, 0.0f, 1.0f},
-	    {1.0f, 1.0f, 1.0f}
-	},
-	{0, 1, 2, 2, 3, 0},
-	{ VK_NULL_HANDLE, VK_NULL_HANDLE },
-	{ VK_NULL_HANDLE, VK_NULL_HANDLE }
-    };
     
     VkInstance instance;
     VkSurfaceKHR surface;
@@ -92,7 +74,7 @@ struct RenderContext {
     std::array<bool, GLFW_KEY_LAST + 1> pressed_keys;
 
     auto init() noexcept -> void;
-    auto render(double dt) noexcept -> void;
+    auto render(double dt, const Scene &scene) noexcept -> void;
     auto cleanup() noexcept -> void;
 
     auto create_instance() noexcept -> void;
@@ -134,7 +116,7 @@ struct RenderContext {
     auto create_image_view(VkImage image, VkImageViewType type, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
     auto cleanup_image_view(VkImageView view) noexcept -> void;
 
-    auto record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void;
+    auto record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, const Scene &scene) noexcept -> void;
 
     auto create_semaphore() noexcept -> VkSemaphore;
     auto create_fence() noexcept -> VkFence;
