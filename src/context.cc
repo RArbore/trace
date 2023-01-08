@@ -113,8 +113,6 @@ auto RenderContext::render(double dt, const Scene &scene) noexcept -> void {
 }
 
 auto RenderContext::cleanup() noexcept -> void {
-    vkDeviceWaitIdle(device);
-
     cleanup_sync_objects();
     cleanup_command_pool();
     cleanup_framebuffers();

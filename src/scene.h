@@ -21,6 +21,10 @@ struct Scene {
     std::vector<Model> models;
     std::vector<glm::mat4> transforms;
     std::vector<uint16_t> model_ids;
+
+    auto num_objects() const noexcept -> std::size_t {
+	return model_ids.size();
+    }
 };
 
 #endif

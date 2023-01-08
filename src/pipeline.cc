@@ -118,7 +118,7 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     VkPushConstantRange push_constant_range {};
     push_constant_range.offset = 0;
-    push_constant_range.size = sizeof(float) * 4 * 4;
+    push_constant_range.size = sizeof(float) * 4 * 4 * 2;
     push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
     VkDynamicState pipeline_dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};

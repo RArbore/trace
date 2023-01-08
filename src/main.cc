@@ -44,6 +44,8 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     scene.models.push_back(simple_model);
     scene.transforms.push_back(glm::mat4(1));
     scene.model_ids.push_back(0);
+    scene.transforms.push_back(glm::translate(glm::mat4(1), glm::vec3(0.5f, 0.0f, 0.0f)));
+    scene.model_ids.push_back(0);
 
     auto system_time = std::chrono::system_clock::now();
     double rolling_average_dt = 0.0;
@@ -59,6 +61,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	}
     }
 
+    vkDeviceWaitIdle(context.device);
     context.cleanup_vulkan_objects_for_model(simple_model);
     context.cleanup();
     return 0;
