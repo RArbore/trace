@@ -37,24 +37,24 @@ struct Image {
 };
 
 struct Model {
-    std::vector<glm::vec3> positions;
-    std::vector<glm::vec3> colors;
+    struct Vertex {
+	glm::vec3 position;
+	glm::vec3 colors;
+    };
+    
+    std::vector<Vertex> vertices;
     std::vector<uint16_t> indices;
 
     auto vertex_buffer_size() const noexcept -> std::size_t {
-	return positions.size() * sizeof(glm::vec3) + colors.size() * sizeof(glm::vec3);
+	return vertices.size() * sizeof(Vertex);
     }
 
     auto index_buffer_size() const noexcept -> std::size_t {
 	return indices.size() * sizeof(uint16_t);
     }
 
-    auto offsets_into_buffer() const noexcept -> std::array<std::size_t, 2> {
-	return {0, positions.size() * sizeof(glm::vec3)};
-    }
-
     auto num_vertices() const noexcept -> uint32_t {
-	return (uint32_t) positions.size();
+	return (uint32_t) vertices.size();
     }
 
     auto num_indices() const noexcept -> uint32_t {
@@ -62,22 +62,18 @@ struct Model {
     }
 
     auto dump_vertices(char *dst) const noexcept -> void {
-	memcpy(dst, positions.data(), positions.size() * sizeof(glm::vec3));
-	memcpy(dst + positions.size() * sizeof(glm::vec3), colors.data(), colors.size() * sizeof(glm::vec3));
+	memcpy(dst, vertices.data(), vertices.size() * sizeof(Vertex));
     }
 
     auto dump_indices(char *dst) const noexcept -> void {
 	memcpy(dst, indices.data(), indices.size() * sizeof(uint16_t));
     }
 
-    static auto binding_descriptions() noexcept -> std::array<VkVertexInputBindingDescription, 2> {
-	std::array<VkVertexInputBindingDescription, 2> binding_descriptions {};
-	binding_descriptions[0].binding = 0;
-	binding_descriptions[0].stride = sizeof(glm::vec3);
-	binding_descriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-	binding_descriptions[1].binding = 1;
-	binding_descriptions[1].stride = sizeof(glm::vec3);
-	binding_descriptions[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    static auto binding_descriptions() noexcept -> VkVertexInputBindingDescription {
+	VkVertexInputBindingDescription binding_descriptions {};
+	binding_descriptions.binding = 0;
+	binding_descriptions.stride = sizeof(Vertex);
+	binding_descriptions.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 	return binding_descriptions;
     }
@@ -88,10 +84,10 @@ struct Model {
 	attribute_descriptions[0].location = 0;
 	attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 	attribute_descriptions[0].offset = 0;
-	attribute_descriptions[1].binding = 1;
+	attribute_descriptions[1].binding = 0;
 	attribute_descriptions[1].location = 1;
 	attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attribute_descriptions[1].offset = 0;
+	attribute_descriptions[1].offset = sizeof(glm::vec3);
 
 	return attribute_descriptions;
     }   

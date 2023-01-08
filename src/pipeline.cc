@@ -68,8 +68,8 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     VkPipelineVertexInputStateCreateInfo vertex_input_create_info {};
     vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertex_input_create_info.vertexBindingDescriptionCount = binding_descriptions.size();
-    vertex_input_create_info.pVertexBindingDescriptions = binding_descriptions.data();
+    vertex_input_create_info.vertexBindingDescriptionCount = 1;
+    vertex_input_create_info.pVertexBindingDescriptions = &binding_descriptions;
     vertex_input_create_info.vertexAttributeDescriptionCount = attribute_descriptions.size();
     vertex_input_create_info.pVertexAttributeDescriptions = attribute_descriptions.data();
 
