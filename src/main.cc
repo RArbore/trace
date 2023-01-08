@@ -21,7 +21,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     RenderContext context {};
     context.init();
 
-    Model simple_model = {
+    Model simple_model1 = {
 	{
 	    {0.0, -0.5f, -0.5f},
 	    {0.0, 0.5f, -0.5f},
@@ -36,12 +36,32 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	},
 	{0, 1, 2, 2, 3, 0},
     };
+
+    Model simple_model2 = {
+	{
+	    {0.0, -0.5f, -0.5f},
+	    {0.0, 0.5f, -0.5f},
+	    {0.0, 0.5f, 0.5f},
+	    {0.0, -0.5f, 0.5f}
+	},
+	{
+	    {1.0f, 0.0f, 0.0f},
+	    {1.0f, 0.0f, 0.0f},
+	    {1.0f, 0.0f, 0.0f},
+	    {1.0f, 0.0f, 0.0f}
+	},
+	{0, 1, 2, 2, 3, 0},
+    };
     
     Scene scene {};
-    scene.models.push_back(simple_model);
+    scene.models.push_back(simple_model1);
+    scene.models.push_back(simple_model2);
+    scene.models.push_back(simple_model1);
     scene.transforms.push_back(glm::mat4(1));
-    scene.model_ids.push_back(0);
+    scene.model_ids.push_back(1);
     scene.transforms.push_back(glm::translate(glm::mat4(1), glm::vec3(0.5f, 0.0f, 0.0f)));
+    scene.model_ids.push_back(1);
+    scene.transforms.push_back(glm::translate(glm::mat4(1), glm::vec3(-0.5f, 0.0f, 0.0f)));
     scene.model_ids.push_back(0);
     context.allocate_vulkan_objects_for_scene(scene);
 

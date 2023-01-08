@@ -23,6 +23,7 @@ struct Scene {
     std::vector<uint16_t> model_ids;
 
     Buffer vertices_buf, indices_buf;
+    std::vector<std::size_t> model_vertices_offsets, model_indices_offsets;
 
     auto num_objects() const noexcept -> std::size_t {
 	return model_ids.size();

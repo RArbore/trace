@@ -102,10 +102,15 @@ auto RenderContext::cleanup_image_view(VkImageView view) noexcept -> void {
 }
 
 auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
-    const std::size_t vertex_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [](const std::size_t &accum, const Model &model) { return accum + model.vertex_buffer_size(); });
+    scene.model_vertices_offsets.resize(scene.models.size());
+    scene.model_indices_offsets.resize(scene.models.size());
+    
+    std::size_t vertex_idx = 0;
+    const std::size_t vertex_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &vertex_idx](const std::size_t &accum, const Model &model) { scene.model_vertices_offsets[vertex_idx++] = accum; return accum + model.vertex_buffer_size(); });
     scene.vertices_buf = create_buffer(vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    const std::size_t index_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [](const std::size_t &accum, const Model &model) { return accum + model.index_buffer_size(); });
+    std::size_t index_idx = 0;
+    const std::size_t index_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &index_idx](const std::size_t &accum, const Model &model) { scene.model_indices_offsets[index_idx++] = accum; return accum + model.index_buffer_size(); });
     scene.indices_buf = create_buffer(index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     inefficient_copy_scene_data_into_buffers(scene, vertex_size, index_size);
