@@ -63,13 +63,13 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     VkPipelineShaderStageCreateInfo shader_stage_create_infos[] = {vertex_shader_stage_create_info, fragment_shader_stage_create_info};
 
-    auto binding_descriptions = Model::binding_descriptions();
-    auto attribute_descriptions = Model::attribute_descriptions();
+    auto binding_descriptions = Scene::binding_descriptions();
+    auto attribute_descriptions = Scene::attribute_descriptions();
 
     VkPipelineVertexInputStateCreateInfo vertex_input_create_info {};
     vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertex_input_create_info.vertexBindingDescriptionCount = 1;
-    vertex_input_create_info.pVertexBindingDescriptions = &binding_descriptions;
+    vertex_input_create_info.vertexBindingDescriptionCount = binding_descriptions.size();
+    vertex_input_create_info.pVertexBindingDescriptions = binding_descriptions.data();
     vertex_input_create_info.vertexAttributeDescriptionCount = attribute_descriptions.size();
     vertex_input_create_info.pVertexAttributeDescriptions = attribute_descriptions.data();
 
@@ -118,7 +118,7 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     VkPushConstantRange push_constant_range {};
     push_constant_range.offset = 0;
-    push_constant_range.size = sizeof(float) * 4 * 4 * 2;
+    push_constant_range.size = sizeof(float) * 4 * 4;
     push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
     VkDynamicState pipeline_dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};

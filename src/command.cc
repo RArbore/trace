@@ -83,16 +83,10 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
 
     const std::size_t offsets[] = {0};
     vkCmdBindVertexBuffers(command_buffer, 0, 1, &scene.vertices_buf.buffer, offsets);
+    vkCmdBindVertexBuffers(command_buffer, 1, 1, &scene.instances_buf.buffer, offsets);
     vkCmdBindIndexBuffer(command_buffer, scene.indices_buf.buffer, 0, VK_INDEX_TYPE_UINT16);
     vkCmdPushConstants(command_buffer, raster_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 4 * 4, &perspective_camera_matrix[0][0]);
-    for (std::size_t i = 0; i < scene.num_objects(); ++i) {
-	const std::size_t model_id = scene.model_ids[i];
-	const std::size_t vertex_buffer_model_offset = scene.model_vertices_offsets[model_id];
-	const std::size_t index_buffer_model_offset = scene.model_indices_offsets[model_id];
-	
-        vkCmdPushConstants(command_buffer, raster_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float) * 4 * 4, sizeof(float) * 4 * 4, &scene.transforms[i][0][0]);
-	vkCmdDrawIndexed(command_buffer, scene.models[model_id].num_indices(), 1, (uint32_t) index_buffer_model_offset / sizeof(uint16_t), (int32_t) vertex_buffer_model_offset / sizeof(Model::Vertex), 0);
-    }
+    vkCmdDrawIndexedIndirect(command_buffer, scene.indirect_draw_buf.buffer, 0, (uint32_t) scene.num_objects(), sizeof(VkDrawIndexedIndirectCommand));
 
     vkCmdEndRenderPass(command_buffer);
 

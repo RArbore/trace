@@ -113,19 +113,23 @@ auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> 
     const std::size_t index_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &index_idx](const std::size_t &accum, const Model &model) { scene.model_indices_offsets[index_idx++] = accum; return accum + model.index_buffer_size(); });
     scene.indices_buf = create_buffer(index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
+    const std::size_t instance_size = scene.num_objects() * sizeof(glm::mat4);
+    scene.instances_buf = create_buffer(instance_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
     const std::size_t indirect_draw_size = scene.num_objects() * sizeof(VkDrawIndexedIndirectCommand);
     scene.indirect_draw_buf = create_buffer(indirect_draw_size, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    inefficient_copy_scene_data_into_buffers(scene, vertex_size, index_size, indirect_draw_size);
+    inefficient_copy_scene_data_into_buffers(scene, vertex_size, index_size, instance_size, indirect_draw_size);
 }
 
 auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
     cleanup_buffer(scene.vertices_buf);
     cleanup_buffer(scene.indices_buf);
+    cleanup_buffer(scene.instances_buf);
     cleanup_buffer(scene.indirect_draw_buf);
 }
 
-auto RenderContext::inefficient_copy_scene_data_into_buffers(Scene &scene, std::size_t vertex_size, std::size_t index_size, std::size_t indirect_draw_size) noexcept -> void { 
+auto RenderContext::inefficient_copy_scene_data_into_buffers(Scene &scene, std::size_t vertex_size, std::size_t index_size, std::size_t instance_size, std::size_t indirect_draw_size) noexcept -> void { 
     Buffer cpu_visible_vertex = create_buffer(vertex_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
     
     char *data_vertex;
@@ -161,6 +165,21 @@ auto RenderContext::inefficient_copy_scene_data_into_buffers(Scene &scene, std::
     inefficient_copy_buffers(scene.indices_buf, cpu_visible_index, copy_region_index);
     
     cleanup_buffer(cpu_visible_index);
+
+    Buffer cpu_visible_instance = create_buffer(instance_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+    
+    char *data_instance;
+    vmaMapMemory(allocator, cpu_visible_instance.allocation, (void **) &data_instance);
+    memcpy(data_instance, scene.transforms.data(), instance_size);
+    vmaUnmapMemory(allocator, cpu_visible_instance.allocation);
+    
+    VkBufferCopy copy_region_instance {};
+    copy_region_instance.srcOffset = 0;
+    copy_region_instance.dstOffset = 0;
+    copy_region_instance.size = instance_size;
+    inefficient_copy_buffers(scene.instances_buf, cpu_visible_instance, copy_region_instance);
+    
+    cleanup_buffer(cpu_visible_instance);
 
     Buffer cpu_visible_indirect_draw = create_buffer(indirect_draw_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
 

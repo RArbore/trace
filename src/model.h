@@ -68,29 +68,6 @@ struct Model {
     auto dump_indices(char *dst) const noexcept -> void {
 	memcpy(dst, indices.data(), indices.size() * sizeof(uint16_t));
     }
-
-    static auto binding_descriptions() noexcept -> VkVertexInputBindingDescription {
-	VkVertexInputBindingDescription binding_descriptions {};
-	binding_descriptions.binding = 0;
-	binding_descriptions.stride = sizeof(Vertex);
-	binding_descriptions.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-	return binding_descriptions;
-    }
-
-    static auto attribute_descriptions() noexcept -> std::array<VkVertexInputAttributeDescription, 2> {
-	std::array<VkVertexInputAttributeDescription, 2> attribute_descriptions {};
-	attribute_descriptions[0].binding = 0;
-	attribute_descriptions[0].location = 0;
-	attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attribute_descriptions[0].offset = 0;
-	attribute_descriptions[1].binding = 0;
-	attribute_descriptions[1].location = 1;
-	attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attribute_descriptions[1].offset = sizeof(glm::vec3);
-
-	return attribute_descriptions;
-    }   
 };
 
 #endif

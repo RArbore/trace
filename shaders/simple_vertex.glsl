@@ -17,15 +17,15 @@
 
 layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec3 in_color;
+layout(location = 2) in mat4 in_model;
 
 layout (push_constant) uniform PushConstants {
     mat4 perspective_camera;
-    mat4 world;
 } push;
 
 layout(location = 0) out vec3 out_color;
 
 void main() {
-    gl_Position = push.perspective_camera * push.world * vec4(in_position, 1.0);
+    gl_Position = push.perspective_camera * in_model * vec4(in_position, 1.0);
     out_color = in_color;
 }
