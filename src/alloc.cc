@@ -52,13 +52,15 @@ auto RenderContext::cleanup_buffer(Buffer buffer) noexcept -> void {
     vmaDestroyBuffer(allocator, buffer.buffer, buffer.allocation);
 }
 
-auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkExtent3D extent, uint32_t mipLevels, uint32_t arrayLevels, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags) noexcept -> Image {
+auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mipLevels, uint32_t arrayLevels, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags) noexcept -> Image {
     VkImageCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     create_info.flags = flags;
-    create_info.imageType = extent.depth > 1 ? VK_IMAGE_TYPE_3D : extent.height > 1 ? VK_IMAGE_TYPE_2D : VK_IMAGE_TYPE_1D;
+    create_info.imageType = VK_IMAGE_TYPE_2D;
     create_info.format = format;
-    create_info.extent = extent;
+    create_info.extent.width = extent.width;
+    create_info.extent.height = extent.height;
+    create_info.extent.depth = 1;
     create_info.mipLevels = mipLevels;
     create_info.arrayLayers = arrayLevels;
     create_info.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -79,11 +81,11 @@ auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkEx
     return {image, allocation};
 }
 
-auto RenderContext::create_image_view(VkImage image, VkImageViewType type, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView {
+auto RenderContext::create_image_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView {
     VkImageViewCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     create_info.image = image;
-    create_info.viewType = type;
+    create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
     create_info.format = format;
     create_info.subresourceRange = subresource_range;
 
@@ -239,4 +241,20 @@ auto RenderContext::inefficient_copy_buffers(Buffer dst, Buffer src, VkBufferCop
     vkQueueWaitIdle(queue);
     
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
+}
+
+auto RenderContext::create_depth_resources() noexcept -> void {
+    depth_image = create_image(0, VK_FORMAT_D32_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    VkImageSubresourceRange subresource_range {}; 
+    subresource_range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    subresource_range.baseMipLevel = 0;
+    subresource_range.levelCount = 1;
+    subresource_range.baseArrayLayer = 0;
+    subresource_range.layerCount = 1;
+    depth_image_view = create_image_view(depth_image.image, VK_FORMAT_D32_SFLOAT, subresource_range);
+}
+
+auto RenderContext::cleanup_depth_resources() noexcept -> void {
+    cleanup_image_view(depth_image_view);
+    cleanup_image(depth_image);
 }

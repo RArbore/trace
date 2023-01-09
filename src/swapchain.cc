@@ -130,8 +130,10 @@ auto RenderContext::recreate_swapchain() noexcept -> void {
     vkDeviceWaitIdle(device);
 
     cleanup_framebuffers();
+    cleanup_depth_resources();
     cleanup_swapchain();
     
     create_swapchain();
+    create_depth_resources();
     create_framebuffers();
 }

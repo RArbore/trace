@@ -60,7 +60,7 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
     render_pass_begin_info.renderArea.offset.x = 0;
     render_pass_begin_info.renderArea.offset.y = 0;
     render_pass_begin_info.renderArea.extent = swapchain_extent;
-    render_pass_begin_info.clearValueCount = 1;
+    render_pass_begin_info.clearValueCount = 2;
     render_pass_begin_info.pClearValues = clear_values;
 
     vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);

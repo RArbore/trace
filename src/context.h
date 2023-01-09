@@ -64,6 +64,9 @@ struct RenderContext {
     VkRenderPass raster_render_pass;
     VkPipeline raster_pipeline;
 
+    Image depth_image;
+    VkImageView depth_image_view;
+
     VkCommandPool command_pool;
     std::array<VkCommandBuffer, FRAMES_IN_FLIGHT> raster_command_buffers;
     std::array<VkSemaphore, FRAMES_IN_FLIGHT> image_available_semaphores;
@@ -88,6 +91,7 @@ struct RenderContext {
     auto create_raster_pipeline() noexcept -> void;
     auto create_framebuffers() noexcept -> void;
     auto create_command_pool() noexcept -> void;
+    auto create_depth_resources() noexcept -> void;
     auto create_command_buffers() noexcept -> void;
     auto create_sync_objects() noexcept -> void;
 
@@ -100,6 +104,7 @@ struct RenderContext {
     auto cleanup_raster_pipeline() noexcept -> void;
     auto cleanup_framebuffers() noexcept -> void;
     auto cleanup_command_pool() noexcept -> void;
+    auto cleanup_depth_resources() noexcept -> void;
     auto cleanup_sync_objects() noexcept -> void;
 
     auto physical_check_queue_family(VkPhysicalDevice physical_device, VkQueueFlagBits bits) noexcept -> uint32_t;
@@ -112,9 +117,9 @@ struct RenderContext {
 
     auto create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Buffer;
     auto cleanup_buffer(Buffer buffer) noexcept -> void;
-    auto create_image(VkImageCreateFlags flags, VkFormat format, VkExtent3D extent, uint32_t mipLevels, uint32_t arrayLevels, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Image;
+    auto create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mipLevels, uint32_t arrayLevels, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Image;
     auto cleanup_image(Image image) noexcept -> void;
-    auto create_image_view(VkImage image, VkImageViewType type, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
+    auto create_image_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
     auto cleanup_image_view(VkImageView view) noexcept -> void;
 
     auto record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, const Scene &scene) noexcept -> void;

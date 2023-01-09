@@ -44,8 +44,9 @@ auto RenderContext::init() noexcept -> void {
     create_swapchain();
     create_shaders();
     create_raster_pipeline();
-    create_framebuffers();
     create_command_pool();
+    create_depth_resources();
+    create_framebuffers();
     create_command_buffers();
     create_sync_objects();
 }
@@ -114,8 +115,9 @@ auto RenderContext::render(double dt, const Scene &scene) noexcept -> void {
 
 auto RenderContext::cleanup() noexcept -> void {
     cleanup_sync_objects();
-    cleanup_command_pool();
     cleanup_framebuffers();
+    cleanup_depth_resources();
+    cleanup_command_pool();
     cleanup_raster_pipeline();
     cleanup_shaders();
     cleanup_swapchain();
