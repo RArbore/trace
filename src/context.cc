@@ -34,7 +34,7 @@ auto RenderContext::init() noexcept -> void {
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, glfw_framebuffer_resize_callback);
     glfwSetKeyCallback(window, glfw_key_callback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     create_instance();
     create_surface();
@@ -51,19 +51,23 @@ auto RenderContext::init() noexcept -> void {
     create_sync_objects();
 }
 
-auto RenderContext::render(double dt, const Scene &scene) noexcept -> void {
+auto RenderContext::render(const RasterScene &scene) noexcept -> void {
     glfwPollEvents();
     if (pressed_keys[GLFW_KEY_ESCAPE] || glfwWindowShouldClose(window)) {
 	active = false;
 	return;
     }
 
-    [[maybe_unused]] const float aspect_ratio = (float) swapchain_extent.width / (float) swapchain_extent.height;
-    elapsed_time += dt;
-    perspective_matrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 10.0f);
-    perspective_matrix[1][1] *= -1.0f;
-    camera_matrix = glm::lookAt(glm::vec3(4.0f * sin(elapsed_time), 4.0f * cos(elapsed_time), 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    perspective_camera_matrix = perspective_matrix * camera_matrix;
+    last_mouse_x = mouse_x;
+    last_mouse_y = mouse_y;
+    last_mouse_button = mouse_button;
+    glfwGetCursorPos(window, &mouse_x, &mouse_y);
+    mouse_button = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1);
+    if (current_frame == 0) {
+	last_mouse_x = mouse_x;
+	last_mouse_y = mouse_y;
+	last_mouse_button = mouse_button;
+    }
 
     const uint32_t flight_index = current_frame % FRAMES_IN_FLIGHT;
 

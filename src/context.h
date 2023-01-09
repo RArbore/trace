@@ -40,7 +40,6 @@ struct RenderContext {
     GLFWwindow *window;
     bool active = true, resized = false;
     uint32_t current_frame = 0;
-    double elapsed_time = 0.0f;
 
     glm::mat4 perspective_matrix;
     glm::mat4 camera_matrix;
@@ -75,10 +74,16 @@ struct RenderContext {
 
     VmaAllocator allocator;
 
+    double mouse_x;
+    double mouse_y;
+    double last_mouse_x;
+    double last_mouse_y;
+    int mouse_button;
+    int last_mouse_button;
     std::array<bool, GLFW_KEY_LAST + 1> pressed_keys;
 
     auto init() noexcept -> void;
-    auto render(double dt, const Scene &scene) noexcept -> void;
+    auto render(const RasterScene &scene) noexcept -> void;
     auto cleanup() noexcept -> void;
 
     auto create_instance() noexcept -> void;
@@ -122,16 +127,16 @@ struct RenderContext {
     auto create_image_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
     auto cleanup_image_view(VkImageView view) noexcept -> void;
 
-    auto record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, const Scene &scene) noexcept -> void;
+    auto record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, const RasterScene &scene) noexcept -> void;
 
     auto create_semaphore() noexcept -> VkSemaphore;
     auto create_fence() noexcept -> VkFence;
 
     auto recreate_swapchain() noexcept -> void;
 
-    auto allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> void;
-    auto cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> void;
-    auto inefficient_copy_scene_data_into_buffers(Scene &scene, std::size_t vertex_size, std::size_t index_size, std::size_t instance_size, std::size_t indirect_draw_size) noexcept -> void;
+    auto allocate_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void;
+    auto cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void;
+    auto inefficient_copy_scene_data_into_buffers(RasterScene &scene, std::size_t vertex_size, std::size_t index_size, std::size_t instance_size, std::size_t indirect_draw_size) noexcept -> void;
     auto inefficient_copy_buffers(Buffer dst, Buffer src, VkBufferCopy copy_region) noexcept -> void;
 };
 

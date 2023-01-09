@@ -17,7 +17,7 @@
 
 #include "model.h"
 
-struct Scene {
+struct RasterScene {
     std::vector<Model> models;
     std::vector<std::vector<glm::mat4>> transforms;
     uint16_t num_models;

@@ -103,7 +103,7 @@ auto RenderContext::cleanup_image_view(VkImageView view) noexcept -> void {
     vkDestroyImageView(device, view, NULL);
 }
 
-auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
+auto RenderContext::allocate_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void {
     scene.model_vertices_offsets.resize(scene.models.size());
     scene.model_indices_offsets.resize(scene.models.size());
     
@@ -124,14 +124,14 @@ auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> 
     inefficient_copy_scene_data_into_buffers(scene, vertex_size, index_size, instance_size, indirect_draw_size);
 }
 
-auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
+auto RenderContext::cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void {
     cleanup_buffer(scene.vertices_buf);
     cleanup_buffer(scene.indices_buf);
     cleanup_buffer(scene.instances_buf);
     cleanup_buffer(scene.indirect_draw_buf);
 }
 
-auto RenderContext::inefficient_copy_scene_data_into_buffers(Scene &scene, std::size_t vertex_size, std::size_t index_size, std::size_t instance_size, std::size_t indirect_draw_size) noexcept -> void { 
+auto RenderContext::inefficient_copy_scene_data_into_buffers(RasterScene &scene, std::size_t vertex_size, std::size_t index_size, std::size_t instance_size, std::size_t indirect_draw_size) noexcept -> void { 
     Buffer cpu_visible_vertex = create_buffer(vertex_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
     
     char *data_vertex;
