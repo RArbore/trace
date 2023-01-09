@@ -66,15 +66,11 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     };
     
     Scene scene {};
-    scene.models.push_back(simple_model1);
-    scene.models.push_back(simple_model2);
-    scene.models.push_back(simple_model1);
-    scene.transforms.push_back(glm::mat4(1));
-    scene.model_ids.push_back(1);
-    scene.transforms.push_back(glm::translate(glm::mat4(1), glm::vec3(0.5f, 0.0f, 0.0f)));
-    scene.model_ids.push_back(1);
-    scene.transforms.push_back(glm::translate(glm::mat4(1), glm::vec3(-0.5f, 0.0f, 0.0f)));
-    scene.model_ids.push_back(0);
+    scene.add_model(std::move(simple_model1));
+    scene.add_model(std::move(simple_model2));
+    scene.add_object(glm::mat4(1), 1);
+    scene.add_object(glm::translate(glm::mat4(1), glm::vec3(0.5f, 0.0f, 0.0f)), 0);
+    scene.add_object(glm::translate(glm::mat4(1), glm::vec3(-0.5f, 0.0f, 0.0f)), 0);
     context.allocate_vulkan_objects_for_scene(scene);
 
     auto system_time = std::chrono::system_clock::now();

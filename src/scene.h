@@ -19,14 +19,22 @@
 
 struct Scene {
     std::vector<Model> models;
-    std::vector<glm::mat4> transforms;
-    std::vector<uint16_t> model_ids;
+    std::vector<std::vector<glm::mat4>> transforms;
+    uint16_t num_models;
+    uint32_t num_objects;
 
     Buffer vertices_buf, indices_buf, instances_buf, indirect_draw_buf;
     std::vector<std::size_t> model_vertices_offsets, model_indices_offsets;
 
-    auto num_objects() const noexcept -> std::size_t {
-	return model_ids.size();
+    auto add_model(const Model &&model) noexcept -> void {
+	models.push_back(model);
+	transforms.push_back({});
+	++num_models;
+    }
+
+    auto add_object(const glm::mat4 &&transform, uint16_t model_id) noexcept -> void {
+	transforms.at(model_id).push_back(transform);
+	++num_objects;
     }
 
     static auto binding_descriptions() noexcept -> std::array<VkVertexInputBindingDescription, 2> {
