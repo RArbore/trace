@@ -89,16 +89,17 @@ auto RenderContext::render(const RasterScene &scene) noexcept -> void {
     const uint16_t num_wait_semaphores = 1 + main_ring_buffer.get_number_occupied(current_frame);
     ring_buffer_semaphore_scratchpad.reserve(num_wait_semaphores);
     ring_buffer_semaphore_scratchpad.resize(num_wait_semaphores);
+    ring_buffer_wait_stages_scratchpad.reserve(num_wait_semaphores);
+    ring_buffer_wait_stages_scratchpad.resize(num_wait_semaphores, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     main_ring_buffer.get_new_semaphores(ring_buffer_semaphore_scratchpad.data(), current_frame);
     ring_buffer_semaphore_scratchpad[num_wait_semaphores - 1] = image_available_semaphores[flight_index];
     main_ring_buffer.clear_occupied(current_frame - FRAMES_IN_FLIGHT);
 
-    const VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.waitSemaphoreCount = num_wait_semaphores;
     submit_info.pWaitSemaphores = ring_buffer_semaphore_scratchpad.data();
-    submit_info.pWaitDstStageMask = wait_stages;
+    submit_info.pWaitDstStageMask = ring_buffer_wait_stages_scratchpad.data();;
     submit_info.commandBufferCount = 1;
     submit_info.pCommandBuffers = &raster_command_buffers[flight_index];
     submit_info.signalSemaphoreCount = 1;

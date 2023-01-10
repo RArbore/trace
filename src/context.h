@@ -73,6 +73,7 @@ struct RenderContext {
     std::array<VkSemaphore, FRAMES_IN_FLIGHT> render_finished_semaphores;
     std::array<VkFence, FRAMES_IN_FLIGHT> in_flight_fences;
     std::vector<VkSemaphore> ring_buffer_semaphore_scratchpad;
+    std::vector<VkPipelineStageFlags> ring_buffer_wait_stages_scratchpad;
 
     VmaAllocator allocator;
 
@@ -140,10 +141,9 @@ struct RenderContext {
 
     auto allocate_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void;
     auto cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void;
-    auto inefficient_copy_scene_data_into_buffers(RasterScene &scene, std::size_t vertex_size, std::size_t index_size, std::size_t instance_size, std::size_t indirect_draw_size) noexcept -> void;
-    auto inefficient_copy_buffers(Buffer dst, Buffer src, VkBufferCopy copy_region) noexcept -> void;
+    auto ringbuffer_copy_scene_data_into_buffers(RasterScene &scene, std::size_t vertex_size, std::size_t index_size, std::size_t instance_size, std::size_t indirect_draw_size) noexcept -> void;
 
-    auto ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> std::pair<void *, uint16_t>;
+    auto ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void *;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer dst) noexcept -> void;
 };
 

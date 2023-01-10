@@ -121,7 +121,7 @@ auto RenderContext::allocate_vulkan_objects_for_scene(RasterScene &scene) noexce
     const std::size_t indirect_draw_size = scene.num_models * sizeof(VkDrawIndexedIndirectCommand);
     scene.indirect_draw_buf = create_buffer(indirect_draw_size, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    inefficient_copy_scene_data_into_buffers(scene, vertex_size, index_size, instance_size, indirect_draw_size);
+    ringbuffer_copy_scene_data_into_buffers(scene, vertex_size, index_size, instance_size, indirect_draw_size);
 }
 
 auto RenderContext::cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void {
@@ -131,65 +131,29 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcep
     cleanup_buffer(scene.indirect_draw_buf);
 }
 
-auto RenderContext::inefficient_copy_scene_data_into_buffers(RasterScene &scene, std::size_t vertex_size, std::size_t index_size, std::size_t instance_size, std::size_t indirect_draw_size) noexcept -> void { 
-    Buffer cpu_visible_vertex = create_buffer(vertex_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-    
-    char *data_vertex;
-    vmaMapMemory(allocator, cpu_visible_vertex.allocation, (void **) &data_vertex);
+auto RenderContext::ringbuffer_copy_scene_data_into_buffers(RasterScene &scene, std::size_t vertex_size, std::size_t index_size, std::size_t instance_size, std::size_t indirect_draw_size) noexcept -> void { 
+    char *data_vertex = (char *) ringbuffer_claim_buffer(main_ring_buffer, vertex_size);
     for (const Model &model : scene.models) {
 	model.dump_vertices(data_vertex);
 	data_vertex += model.vertex_buffer_size();
     }
-    vmaUnmapMemory(allocator, cpu_visible_vertex.allocation);
+    ringbuffer_submit_buffer(main_ring_buffer, scene.vertices_buf);
     
-    VkBufferCopy copy_region_vertex {};
-    copy_region_vertex.srcOffset = 0;
-    copy_region_vertex.dstOffset = 0;
-    copy_region_vertex.size = vertex_size;
-    inefficient_copy_buffers(scene.vertices_buf, cpu_visible_vertex, copy_region_vertex);
-    
-    cleanup_buffer(cpu_visible_vertex);
-    
-    Buffer cpu_visible_index = create_buffer(index_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-    
-    char *data_index;
-    vmaMapMemory(allocator, cpu_visible_index.allocation, (void **) &data_index);
+    char *data_index = (char *) ringbuffer_claim_buffer(main_ring_buffer, index_size);
     for (const Model &model : scene.models) {
 	model.dump_indices(data_index);
 	data_index += model.index_buffer_size();
     }
-    vmaUnmapMemory(allocator, cpu_visible_index.allocation);
-    
-    VkBufferCopy copy_region_index {};
-    copy_region_index.srcOffset = 0;
-    copy_region_index.dstOffset = 0;
-    copy_region_index.size = index_size;
-    inefficient_copy_buffers(scene.indices_buf, cpu_visible_index, copy_region_index);
-    
-    cleanup_buffer(cpu_visible_index);
+    ringbuffer_submit_buffer(main_ring_buffer, scene.indices_buf);
 
-    Buffer cpu_visible_instance = create_buffer(instance_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-    
-    glm::mat4 *data_instance;
-    vmaMapMemory(allocator, cpu_visible_instance.allocation, (void **) &data_instance);
+    glm::mat4 *data_instance = (glm::mat4 *) ringbuffer_claim_buffer(main_ring_buffer, instance_size);
     for (auto transforms : scene.transforms) {
 	memcpy(data_instance, transforms.data(), transforms.size() * sizeof(glm::mat4));
 	data_instance += transforms.size();
     }
-    vmaUnmapMemory(allocator, cpu_visible_instance.allocation);
-    
-    VkBufferCopy copy_region_instance {};
-    copy_region_instance.srcOffset = 0;
-    copy_region_instance.dstOffset = 0;
-    copy_region_instance.size = instance_size;
-    inefficient_copy_buffers(scene.instances_buf, cpu_visible_instance, copy_region_instance);
-    
-    cleanup_buffer(cpu_visible_instance);
+    ringbuffer_submit_buffer(main_ring_buffer, scene.instances_buf);
 
-    Buffer cpu_visible_indirect_draw = create_buffer(indirect_draw_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-
-    VkDrawIndexedIndirectCommand *data_indirect_draw;
-    vmaMapMemory(allocator, cpu_visible_indirect_draw.allocation, (void **) &data_indirect_draw);
+    VkDrawIndexedIndirectCommand *data_indirect_draw  = (VkDrawIndexedIndirectCommand  *) ringbuffer_claim_buffer(main_ring_buffer, indirect_draw_size);
     uint32_t num_instances_so_far = 0;
     for (std::size_t i = 0; i < scene.num_models; ++i) {
 	const std::size_t vertex_buffer_model_offset = scene.model_vertices_offsets[i];
@@ -201,46 +165,7 @@ auto RenderContext::inefficient_copy_scene_data_into_buffers(RasterScene &scene,
 	data_indirect_draw[i].firstInstance = num_instances_so_far;
 	num_instances_so_far += (uint32_t) scene.transforms[i].size();
     }
-    vmaUnmapMemory(allocator, cpu_visible_indirect_draw.allocation);
-    
-    VkBufferCopy copy_region_indirect_draw {};
-    copy_region_indirect_draw.srcOffset = 0;
-    copy_region_indirect_draw.dstOffset = 0;
-    copy_region_indirect_draw.size = indirect_draw_size;
-    inefficient_copy_buffers(scene.indirect_draw_buf, cpu_visible_indirect_draw, copy_region_indirect_draw);
-    
-    cleanup_buffer(cpu_visible_indirect_draw);
-}
-
-auto RenderContext::inefficient_copy_buffers(Buffer dst, Buffer src, VkBufferCopy copy_region) noexcept -> void {
-    VkCommandBufferAllocateInfo command_buffer_alloc_info {};
-    command_buffer_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    command_buffer_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    command_buffer_alloc_info.commandPool = command_pool;
-    command_buffer_alloc_info.commandBufferCount = 1;
-
-    VkCommandBuffer command_buffer;
-    vkAllocateCommandBuffers(device, &command_buffer_alloc_info, &command_buffer);
-
-    VkCommandBufferBeginInfo command_buffer_begin_info {};
-    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    
-    vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
-    
-    vkCmdCopyBuffer(command_buffer, src.buffer, dst.buffer, 1, &copy_region);
-    
-    vkEndCommandBuffer(command_buffer);
-    
-    VkSubmitInfo submit_info {};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &command_buffer;
-    
-    vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
-    vkQueueWaitIdle(queue);
-    
-    vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
+    ringbuffer_submit_buffer(main_ring_buffer, scene.indirect_draw_buf);
 }
 
 auto RenderContext::create_depth_resources() noexcept -> void {
@@ -282,7 +207,7 @@ static inline auto round_up_p2(std::size_t v) noexcept -> std::size_t {
     return v;
 }
 
-auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> std::pair<void *, uint16_t> {
+auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void * {
     ring_buffer.last_size = size;
     for (ring_buffer.last_id = 0; ring_buffer.last_id < ring_buffer.elements.size(); ++ring_buffer.last_id) {
 	auto &element = ring_buffer.elements[ring_buffer.last_id];
@@ -315,8 +240,8 @@ auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t
 
     ring_buffer.elements[ring_buffer.last_id].occupied = current_frame;
 
-    std::pair<void *, uint16_t> mapped_memory;
-    vmaMapMemory(allocator, ring_buffer.elements[ring_buffer.last_id].buffer.allocation, &mapped_memory.first);
+    void *mapped_memory;
+    vmaMapMemory(allocator, ring_buffer.elements[ring_buffer.last_id].buffer.allocation, &mapped_memory);
     return mapped_memory;
 }
 
