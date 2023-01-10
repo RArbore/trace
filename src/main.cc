@@ -81,7 +81,8 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     double rolling_average_dt = 0.0;
     double elapsed_time = 0.0;
     double camera_theta = M_PI / 2.0, camera_phi = M_PI / 4.0;
-    const double sensitivity = 150.0;
+    float camera_radius = 4.0f;
+    const double sensitivity = 100.0;
     while (context.active) {
 	const auto current_time = std::chrono::system_clock::now();
 	const std::chrono::duration<double> dt_chrono = current_time - system_time;
@@ -90,16 +91,19 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	rolling_average_dt += dt;
 
 	elapsed_time += dt;
-	context.camera_matrix = glm::lookAt(4.0f * glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	context.camera_matrix = glm::lookAt(camera_radius * glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	context.perspective_camera_matrix = context.perspective_matrix * context.camera_matrix;
 	const double mouse_dx = context.mouse_x - context.last_mouse_x;
 	const double mouse_dy = context.mouse_y - context.last_mouse_y;
-	if (context.mouse_button == GLFW_PRESS) {
+	if (context.pressed_buttons[GLFW_MOUSE_BUTTON_LEFT] == GLFW_PRESS) {
 	    camera_phi -= mouse_dx / sensitivity;
 	    camera_theta -= mouse_dy / sensitivity;
 	    camera_theta = glm::clamp(camera_theta, 0.01, M_PI - 0.01);
 	    if (camera_phi < 0.0) camera_phi += 2.0 * M_PI;
 	    if (camera_phi >= 2.0 * M_PI) camera_phi -= 2.0 * M_PI;
+	}
+	if (context.pressed_buttons[GLFW_MOUSE_BUTTON_RIGHT] == GLFW_PRESS) {
+	    camera_radius += (float) mouse_dy / (float) sensitivity;
 	}
 
 	scene.transforms[1][0] = glm::translate(glm::mat4(1), glm::vec3(0.0f, sin(elapsed_time), 0.0f));

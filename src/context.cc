@@ -61,14 +61,13 @@ auto RenderContext::render(const RasterScene &scene) noexcept -> void {
 
     last_mouse_x = mouse_x;
     last_mouse_y = mouse_y;
-    last_mouse_button = mouse_button;
     glfwGetCursorPos(window, &mouse_x, &mouse_y);
-    mouse_button = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1);
     if (current_frame == 0) {
 	last_mouse_x = mouse_x;
 	last_mouse_y = mouse_y;
-	last_mouse_button = mouse_button;
     }
+    for (uint8_t i = 0; i <= GLFW_MOUSE_BUTTON_LAST; ++i)
+	pressed_buttons[i] = glfwGetMouseButton(window, i) == GLFW_PRESS;
 
     const uint32_t flight_index = current_frame % FRAMES_IN_FLIGHT;
 

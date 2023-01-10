@@ -81,8 +81,7 @@ struct RenderContext {
     double mouse_y;
     double last_mouse_x;
     double last_mouse_y;
-    int mouse_button;
-    int last_mouse_button;
+    std::array<bool, GLFW_MOUSE_BUTTON_LAST + 1> pressed_buttons;
     std::array<bool, GLFW_KEY_LAST + 1> pressed_keys;
 
     auto init() noexcept -> void;
