@@ -264,13 +264,27 @@ auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer dst
     vkCmdCopyBuffer(command_buffer, ring_buffer.elements[ring_buffer.last_id].buffer.buffer, dst.buffer, 1, &copy_region);
     
     vkEndCommandBuffer(command_buffer);
-
+    
+    VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
+    VkSemaphore signal_semaphore = ring_buffer.elements[ring_buffer.last_id].semaphore;
     VkSubmitInfo submit_info {};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = 1;
     submit_info.pCommandBuffers = &command_buffer;
-    submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = &ring_buffer.elements[ring_buffer.last_id].semaphore;
-    
+
+    auto it = ring_buffer.upload_semaphores.find(dst.buffer);
+    VkSemaphore prev_semaphore;
+    if (it != ring_buffer.upload_semaphores.end()) {
+	prev_semaphore = it->second;
+	submit_info.waitSemaphoreCount = 1;
+	submit_info.pWaitSemaphores = &prev_semaphore;
+	submit_info.pWaitDstStageMask = wait_stages;
+    } else {
+	prev_semaphore = create_semaphore();
+	ring_buffer.upload_semaphores[dst.buffer] = prev_semaphore;
+    }
+    VkSemaphore signal_semaphores[] = {prev_semaphore, signal_semaphore};
+    submit_info.signalSemaphoreCount = 2;
+    submit_info.pSignalSemaphores = signal_semaphores;
     vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
 }

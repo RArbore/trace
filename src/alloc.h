@@ -15,6 +15,7 @@
 #ifndef ALLOC_H
 #define ALLOC_H
 
+#include <unordered_map>
 #include <vector>
 
 #include <vulkan/vulkan.h>
@@ -42,6 +43,7 @@ struct RingBuffer {
     static const std::size_t NOT_OCCUPIED = 0xFFFFFFFFFFFFFFFF;
     static const std::size_t MAX_ELEMENTS = 0xFFFF;
 
+    std::unordered_map<VkBuffer, VkSemaphore> upload_semaphores;
     std::vector<RingElement> elements;
     std::size_t last_size;
     uint16_t last_id;
