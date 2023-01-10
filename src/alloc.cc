@@ -232,7 +232,7 @@ auto RenderContext::inefficient_copy_buffers(Buffer dst, Buffer src, VkBufferCop
     
     vkEndCommandBuffer(command_buffer);
     
-    VkSubmitInfo submit_info{};
+    VkSubmitInfo submit_info {};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = 1;
     submit_info.pCommandBuffers = &command_buffer;
@@ -257,4 +257,94 @@ auto RenderContext::create_depth_resources() noexcept -> void {
 auto RenderContext::cleanup_depth_resources() noexcept -> void {
     cleanup_image_view(depth_image_view);
     cleanup_image(depth_image);
+}
+
+auto RenderContext::create_ringbuffer() noexcept -> RingBuffer {
+    return {};
+}
+
+auto RenderContext::cleanup_ringbuffer(RingBuffer &ring_buffer) noexcept -> void {
+    for (auto &element : ring_buffer.elements) {
+	cleanup_buffer(element.buffer);
+	vkDestroySemaphore(device, element.semaphore, NULL);
+    }
+}
+
+static inline auto round_up_p2(std::size_t v) noexcept -> std::size_t {
+    --v;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v |= v >> 32;
+    ++v;
+    return v;
+}
+
+auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> std::pair<void *, uint16_t> {
+    ring_buffer.last_size = size;
+    for (ring_buffer.last_id = 0; ring_buffer.last_id < ring_buffer.elements.size(); ++ring_buffer.last_id) {
+	auto &element = ring_buffer.elements[ring_buffer.last_id];
+	if (element.size >= size && element.occupied == RingBuffer::NOT_OCCUPIED) {
+	    break;
+	}
+    }
+    if (ring_buffer.last_id == ring_buffer.elements.size()) {
+	std::size_t new_element_size = round_up_p2(size);
+	Buffer new_element_buffer = create_buffer(new_element_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+	VkSemaphore new_element_semaphore = create_semaphore();
+
+	VkCommandBufferAllocateInfo allocate_info {};
+	allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocate_info.commandPool = command_pool;
+	allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocate_info.commandBufferCount = 1;
+
+	VkCommandBuffer new_element_command_buffer;
+	ASSERT(vkAllocateCommandBuffers(device, &allocate_info, &new_element_command_buffer), "Unable to create command buffers.");
+
+	ring_buffer.elements.push_back({
+		new_element_buffer,
+		new_element_size,
+		RingBuffer::NOT_OCCUPIED,
+		new_element_command_buffer,
+		new_element_semaphore
+	    });
+    }
+
+    ring_buffer.elements[ring_buffer.last_id].occupied = current_frame;
+
+    std::pair<void *, uint16_t> mapped_memory;
+    vmaMapMemory(allocator, ring_buffer.elements[ring_buffer.last_id].buffer.allocation, &mapped_memory.first);
+    return mapped_memory;
+}
+
+auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer dst) noexcept -> void {
+    vmaUnmapMemory(allocator, ring_buffer.elements[ring_buffer.last_id].buffer.allocation);
+
+    VkBufferCopy copy_region {};
+    copy_region.srcOffset = 0;
+    copy_region.dstOffset = 0;
+    copy_region.size = ring_buffer.last_size;
+
+    VkCommandBufferBeginInfo command_buffer_begin_info {};
+    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    VkCommandBuffer command_buffer = ring_buffer.elements[ring_buffer.last_id].command_buffer;
+    
+    vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
+    
+    vkCmdCopyBuffer(command_buffer, ring_buffer.elements[ring_buffer.last_id].buffer.buffer, dst.buffer, 1, &copy_region);
+    
+    vkEndCommandBuffer(command_buffer);
+
+    VkSubmitInfo submit_info {};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &command_buffer;
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = &ring_buffer.elements[ring_buffer.last_id].semaphore;
+    
+    vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
 }

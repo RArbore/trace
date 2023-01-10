@@ -21,7 +21,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     RenderContext context {};
     context.init();
 
-    Model simple_model1 = {
+    const Model simple_model1 = {
 	{
 	    {
 		{0.0, -0.5f, -0.5f},
@@ -43,7 +43,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	{0, 1, 2, 2, 3, 0},
     };
 
-    Model simple_model2 = {
+    const Model simple_model2 = {
 	{
 	    {
 		{0.0, -0.5f, -0.5f},
@@ -79,21 +79,21 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 
     auto system_time = std::chrono::system_clock::now();
     double rolling_average_dt = 0.0;
-    [[maybe_unused]] double elapsed_time = 0.0;
+    double elapsed_time = 0.0;
     double camera_theta = M_PI / 2.0, camera_phi = M_PI / 4.0;
-    double sensitivity = 150.0;
+    const double sensitivity = 150.0;
     while (context.active) {
 	const auto current_time = std::chrono::system_clock::now();
 	const std::chrono::duration<double> dt_chrono = current_time - system_time;
-	double dt = dt_chrono.count();
+	const double dt = dt_chrono.count();
 	system_time = current_time;
 	rolling_average_dt += dt;
 
 	elapsed_time += dt;
 	context.camera_matrix = glm::lookAt(4.0f * glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	context.perspective_camera_matrix = context.perspective_matrix * context.camera_matrix;
-	double mouse_dx = context.mouse_x - context.last_mouse_x;
-	double mouse_dy = context.mouse_y - context.last_mouse_y;
+	const double mouse_dx = context.mouse_x - context.last_mouse_x;
+	const double mouse_dy = context.mouse_y - context.last_mouse_y;
 	if (context.mouse_button == GLFW_PRESS) {
 	    camera_phi -= mouse_dx / sensitivity;
 	    camera_theta -= mouse_dy / sensitivity;
@@ -101,6 +101,8 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	    if (camera_phi < 0.0) camera_phi += 2.0 * M_PI;
 	    if (camera_phi >= 2.0 * M_PI) camera_phi -= 2.0 * M_PI;
 	}
+
+	scene.transforms[1][0] = glm::translate(glm::mat4(1), glm::vec3(0.0f, sin(elapsed_time), 0.0f));
 	
 	context.render(scene);
 	if (context.current_frame % 10000 == 0) {

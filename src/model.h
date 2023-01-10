@@ -16,26 +16,13 @@
 #define MODEL_H
 
 #include <cstring>
-#include <vector>
-#include <array>
-
-#include <vulkan/vulkan.h>
-#include <vk_mem_alloc.h>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-struct Buffer {
-    VkBuffer buffer;
-    VmaAllocation allocation;
-};
-
-struct Image {
-    VkImage image;
-    VmaAllocation allocation;
-};
+#include "alloc.h"
 
 struct Model {
     struct Vertex {
