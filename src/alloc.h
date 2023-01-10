@@ -24,11 +24,13 @@
 struct Buffer {
     VkBuffer buffer;
     VmaAllocation allocation;
+    std::size_t size;
 };
 
 struct Image {
     VkImage image;
     VmaAllocation allocation;
+    VkExtent2D extent;
 };
 
 struct RingBuffer {

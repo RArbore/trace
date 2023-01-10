@@ -141,7 +141,10 @@ struct RenderContext {
 
     auto allocate_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void;
     auto cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void;
-    auto ringbuffer_copy_scene_data_into_buffers(RasterScene &scene, std::size_t vertex_size, std::size_t index_size, std::size_t instance_size, std::size_t indirect_draw_size) noexcept -> void;
+    auto ringbuffer_copy_scene_vertices_into_buffer(RasterScene &scene) noexcept -> void;
+    auto ringbuffer_copy_scene_indices_into_buffer(RasterScene &scene) noexcept -> void;
+    auto ringbuffer_copy_scene_instances_into_buffer(RasterScene &scene) noexcept -> void;
+    auto ringbuffer_copy_scene_indirect_draw_into_buffer(RasterScene &scene) noexcept -> void;
 
     auto ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void *;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer dst) noexcept -> void;
