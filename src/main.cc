@@ -103,6 +103,14 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	}
 
 	scene.transforms[1][0] = glm::translate(glm::mat4(1), glm::vec3(0.0f, sin(elapsed_time), 0.0f));
+
+	const std::size_t instance_size = scene.num_objects * sizeof(glm::mat4);
+	glm::mat4 *data_instance = (glm::mat4 *) context.ringbuffer_claim_buffer(context.main_ring_buffer, instance_size);
+	for (auto transforms : scene.transforms) {
+	    memcpy(data_instance, transforms.data(), transforms.size() * sizeof(glm::mat4));
+	    data_instance += transforms.size();
+	}
+	context.ringbuffer_submit_buffer(context.main_ring_buffer, scene.instances_buf);
 	
 	context.render(scene);
 	if (context.current_frame % 10000 == 0) {

@@ -40,6 +40,7 @@ struct RingBuffer {
     };
 
     static const std::size_t NOT_OCCUPIED = 0xFFFFFFFFFFFFFFFF;
+    static const std::size_t MAX_ELEMENTS = 0xFFFF;
 
     std::vector<RingElement> elements;
     std::size_t last_size;

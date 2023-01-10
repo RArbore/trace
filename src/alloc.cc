@@ -216,6 +216,7 @@ auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t
 	}
     }
     if (ring_buffer.last_id == ring_buffer.elements.size()) {
+	ASSERT(ring_buffer.elements.size() < RingBuffer::MAX_ELEMENTS, "Too many elements in ring buffer.");
 	std::size_t new_element_size = round_up_p2(size);
 	Buffer new_element_buffer = create_buffer(new_element_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
 	VkSemaphore new_element_semaphore = create_semaphore();
