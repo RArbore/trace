@@ -56,22 +56,26 @@ struct RasterScene {
 	return binding_descriptions;
     }
 
-    static auto attribute_descriptions() noexcept -> std::array<VkVertexInputAttributeDescription, 6> {
-	std::array<VkVertexInputAttributeDescription, 6> attribute_descriptions {};
+    static auto attribute_descriptions() noexcept -> std::array<VkVertexInputAttributeDescription, 7> {
+	std::array<VkVertexInputAttributeDescription, 7> attribute_descriptions {};
 	attribute_descriptions[0].binding = 0;
 	attribute_descriptions[0].location = 0;
 	attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attribute_descriptions[0].offset = 0;
+	attribute_descriptions[0].offset = offsetof(Model::Vertex, position);
 	attribute_descriptions[1].binding = 0;
 	attribute_descriptions[1].location = 1;
 	attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attribute_descriptions[1].offset = sizeof(glm::vec3);
+	attribute_descriptions[1].offset = offsetof(Model::Vertex, color);
+	attribute_descriptions[2].binding = 0;
+	attribute_descriptions[2].location = 2;
+	attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+	attribute_descriptions[2].offset = offsetof(Model::Vertex, texture);
 
 	for (uint32_t i = 0; i < 4; ++i) {
-	    attribute_descriptions[2 + i].binding = 1;
-	    attribute_descriptions[2 + i].location = 2 + i;
-	    attribute_descriptions[2 + i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-	    attribute_descriptions[2 + i].offset = sizeof(float) * 4 * i;
+	    attribute_descriptions[3 + i].binding = 1;
+	    attribute_descriptions[3 + i].location = 3 + i;
+	    attribute_descriptions[3 + i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+	    attribute_descriptions[3 + i].offset = sizeof(float) * 4 * i;
 	}
 
 	return attribute_descriptions;

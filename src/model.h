@@ -27,7 +27,8 @@
 struct Model {
     struct Vertex {
 	glm::vec3 position;
-	glm::vec3 colors;
+	glm::vec3 color;
+	glm::vec2 texture;
     };
     
     std::vector<Vertex> vertices;

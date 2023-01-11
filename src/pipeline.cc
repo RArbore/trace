@@ -139,7 +139,8 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipeline_layout_create_info.pushConstantRangeCount = 1;
     pipeline_layout_create_info.pPushConstantRanges = &push_constant_range;
-    pipeline_layout_create_info.setLayoutCount = 0;
+    pipeline_layout_create_info.setLayoutCount = 1;
+    pipeline_layout_create_info.pSetLayouts = &raster_descriptor_set_layout;
     ASSERT(vkCreatePipelineLayout(device, &pipeline_layout_create_info, NULL, &raster_pipeline_layout), "Unable to create raster pipeline layout.");
 
     VkAttachmentDescription color_attachment {};

@@ -25,19 +25,23 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	{
 	    {
 		{0.0, -0.5f, -0.5f},
-		{1.0f, 0.0f, 0.0f}
+		{1.0f, 0.0f, 0.0f},
+		{0.0, 0.0}
 	    },
 	    {
 		{0.0, 0.5f, -0.5f},
-		{0.0f, 1.0f, 0.0f}
+		{0.0f, 1.0f, 0.0f},
+		{1.0, 0.0}
 	    },
 	    {
 		{0.0, 0.5f, 0.5f},
-		{0.0f, 0.0f, 1.0f}
+		{0.0f, 0.0f, 1.0f},
+		{1.0, 1.0}
 	    },
 	    {
 		{0.0, -0.5f, 0.5f},
-		{1.0f, 1.0f, 1.0f}
+		{1.0f, 1.0f, 1.0f},
+		{0.0, 1.0}
 	    }
 	},
 	{0, 1, 2, 2, 3, 0},
@@ -47,19 +51,23 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	{
 	    {
 		{0.0, -0.5f, -0.5f},
-		{1.0f, 0.0f, 0.0f}
+		{1.0f, 0.0f, 0.0f},
+		{0.0, 0.0}
 	    },
 	    {
 		{0.0, 0.5f, -0.5f},
-		{1.0f, 0.0f, 0.0f}
+		{1.0f, 0.0f, 0.0f},
+		{1.0, 0.0}
 	    },
 	    {
 		{0.0, 0.5f, 0.5f},
-		{1.0f, 0.0f, 0.0f}
+		{1.0f, 0.0f, 0.0f},
+		{1.0, 1.0}
 	    },
 	    {
 		{0.0, -0.5f, 0.5f},
-		{1.0f, 0.0f, 0.0f}
+		{1.0f, 0.0f, 0.0f},
+		{0.0, 1.0}
 	    }
 	},
 	{0, 1, 2, 2, 3, 0},
@@ -73,6 +81,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     scene.add_object(glm::translate(glm::mat4(1), glm::vec3(-0.5f, 0.0f, 0.0f)), 0);
     scene.add_texture(context.load_texture("models/viking_room.png"));
     context.allocate_vulkan_objects_for_scene(scene);
+    context.update_descriptors(scene, 0);
 
     [[maybe_unused]] const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
     context.perspective_matrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 10.0f);
