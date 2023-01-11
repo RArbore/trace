@@ -5,13 +5,13 @@ GLSL := glslc
 
 RELEASE ?= 0
 ifeq ($(RELEASE), 1)
-	CPPFLAGS := -Ofast -flto -DRELEASE
+	CPPFLAGS := -Ofast -march=native -flto -DRELEASE
 	LDFLAGS := -flto
 else
 	CPPFLAGS := -g
 endif
 
-CPPFLAGS := $(CPPFLAGS) -c -fno-rtti
+CPPFLAGS := $(CPPFLAGS) -c -fno-rtti -pipe
 LDFLAGS := $(LDFLAGS) -fuse-ld=mold
 WFLAGS := -Wall -Wextra -Wshadow -Wconversion -Wpedantic
 LDLIBS := -lvulkan -lglfw

@@ -71,6 +71,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     scene.add_object(glm::mat4(1), 1);
     scene.add_object(glm::translate(glm::mat4(1), glm::vec3(0.5f, 0.0f, 0.0f)), 0);
     scene.add_object(glm::translate(glm::mat4(1), glm::vec3(-0.5f, 0.0f, 0.0f)), 0);
+    scene.add_texture(context.load_texture("models/viking_room.png"));
     context.allocate_vulkan_objects_for_scene(scene);
 
     [[maybe_unused]] const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;

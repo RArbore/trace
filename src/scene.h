@@ -15,6 +15,8 @@
 #ifndef SCENE_H
 #define SCENE_H
 
+#include <array>
+
 #include "model.h"
 
 struct RasterScene {
@@ -25,6 +27,7 @@ struct RasterScene {
 
     Buffer vertices_buf, indices_buf, instances_buf, indirect_draw_buf;
     std::vector<std::size_t> model_vertices_offsets, model_indices_offsets;
+    std::vector<Image> textures;
 
     auto add_model(const Model &&model) noexcept -> void {
 	models.push_back(model);
@@ -35,6 +38,10 @@ struct RasterScene {
     auto add_object(const glm::mat4 &&transform, uint16_t model_id) noexcept -> void {
 	transforms.at(model_id).push_back(transform);
 	++num_objects;
+    }
+
+    auto add_texture(const Image &&image) noexcept -> void {
+	textures.push_back(image);
     }
 
     static auto binding_descriptions() noexcept -> std::array<VkVertexInputBindingDescription, 2> {

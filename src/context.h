@@ -147,6 +147,9 @@ struct RenderContext {
 
     auto ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void *;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer dst) noexcept -> void;
+    auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst) noexcept -> void;
+
+    auto load_texture(const char *filepath) noexcept -> Image;
 };
 
 #endif

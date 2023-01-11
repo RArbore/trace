@@ -21,6 +21,8 @@
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 
+#include <stb/stb_image.h>
+
 struct Buffer {
     VkBuffer buffer;
     VmaAllocation allocation;
@@ -45,9 +47,9 @@ struct RingBuffer {
     static const std::size_t NOT_OCCUPIED = 0xFFFFFFFFFFFFFFFF;
     static const std::size_t MAX_ELEMENTS = 0xFFFF;
 
-    std::unordered_map<VkBuffer, VkSemaphore> upload_semaphores;
+    std::unordered_map<VkBuffer, VkSemaphore> upload_buffer_semaphores;
+    std::unordered_map<VkImage, VkSemaphore> upload_image_semaphores;
     std::vector<RingElement> elements;
-    std::size_t last_size;
     uint16_t last_id;
 
     auto get_number_occupied(std::size_t current_frame) const noexcept -> uint16_t {

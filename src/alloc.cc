@@ -12,8 +12,6 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define VMA_IMPLEMENTATION
-
 #include "context.h"
 
 auto RenderContext::create_allocator() noexcept -> void {
@@ -132,6 +130,9 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcep
     cleanup_buffer(scene.indices_buf);
     cleanup_buffer(scene.instances_buf);
     cleanup_buffer(scene.indirect_draw_buf);
+    for (auto image : scene.textures) {
+	cleanup_image(image);
+    }
 }
 
 auto RenderContext::ringbuffer_copy_scene_vertices_into_buffer(RasterScene &scene) noexcept -> void {
@@ -203,10 +204,14 @@ auto RenderContext::cleanup_ringbuffer(RingBuffer &ring_buffer) noexcept -> void
 	vkDestroySemaphore(device, element.semaphore, NULL);
     }
     ring_buffer.elements.clear();
-    for (auto [_, semaphore] : ring_buffer.upload_semaphores) {
+    for (auto [_, semaphore] : ring_buffer.upload_buffer_semaphores) {
 	vkDestroySemaphore(device, semaphore, NULL);
     }
-    ring_buffer.upload_semaphores.clear();
+    ring_buffer.upload_buffer_semaphores.clear();
+    for (auto [_, semaphore] : ring_buffer.upload_image_semaphores) {
+	vkDestroySemaphore(device, semaphore, NULL);
+    }
+    ring_buffer.upload_image_semaphores.clear();
 }
 
 static inline auto round_up_p2(std::size_t v) noexcept -> std::size_t {
@@ -222,7 +227,6 @@ static inline auto round_up_p2(std::size_t v) noexcept -> std::size_t {
 }
 
 auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void * {
-    ring_buffer.last_size = size;
     for (ring_buffer.last_id = 0; ring_buffer.last_id < ring_buffer.elements.size(); ++ring_buffer.last_id) {
 	auto &element = ring_buffer.elements[ring_buffer.last_id];
 	if (element.size >= size && element.occupied == RingBuffer::NOT_OCCUPIED) {
@@ -266,7 +270,7 @@ auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer dst
     VkBufferCopy copy_region {};
     copy_region.srcOffset = 0;
     copy_region.dstOffset = 0;
-    copy_region.size = ring_buffer.last_size;
+    copy_region.size = dst.size;
 
     VkCommandBufferBeginInfo command_buffer_begin_info {};
     command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -286,19 +290,105 @@ auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer dst
     submit_info.commandBufferCount = 1;
     submit_info.pCommandBuffers = &command_buffer;
 
-    auto it = ring_buffer.upload_semaphores.find(dst.buffer);
+    auto it = ring_buffer.upload_buffer_semaphores.find(dst.buffer);
     VkSemaphore prev_semaphore;
-    if (it != ring_buffer.upload_semaphores.end()) {
+    if (it != ring_buffer.upload_buffer_semaphores.end()) {
 	prev_semaphore = it->second;
 	submit_info.waitSemaphoreCount = 1;
 	submit_info.pWaitSemaphores = &prev_semaphore;
 	submit_info.pWaitDstStageMask = wait_stages;
     } else {
 	prev_semaphore = create_semaphore();
-	ring_buffer.upload_semaphores[dst.buffer] = prev_semaphore;
+	ring_buffer.upload_buffer_semaphores[dst.buffer] = prev_semaphore;
     }
     VkSemaphore signal_semaphores[] = {prev_semaphore, signal_semaphore};
     submit_info.signalSemaphoreCount = 2;
     submit_info.pSignalSemaphores = signal_semaphores;
     vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
+}
+
+auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst) noexcept -> void {
+    vmaUnmapMemory(allocator, ring_buffer.elements[ring_buffer.last_id].buffer.allocation);
+
+    VkImageMemoryBarrier image_memory_barrier {};
+    image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    image_memory_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    image_memory_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    image_memory_barrier.image = dst.image;
+    image_memory_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    image_memory_barrier.subresourceRange.baseMipLevel = 0;
+    image_memory_barrier.subresourceRange.levelCount = 1;
+    image_memory_barrier.subresourceRange.baseArrayLayer = 0;
+    image_memory_barrier.subresourceRange.layerCount = 1;
+    image_memory_barrier.srcAccessMask = 0;
+    image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    VkBufferImageCopy copy_region {};
+    copy_region.bufferOffset = 0;
+    copy_region.bufferRowLength = 0;
+    copy_region.bufferImageHeight = 0;
+    copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    copy_region.imageSubresource.layerCount = 1;
+    copy_region.imageOffset = {0, 0, 0};
+    copy_region.imageExtent = {dst.extent.width, dst.extent.height, 1};
+
+    VkCommandBufferBeginInfo command_buffer_begin_info {};
+    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    VkCommandBuffer command_buffer = ring_buffer.elements[ring_buffer.last_id].command_buffer;
+    
+    vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
+
+    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
+    vkCmdCopyBufferToImage(command_buffer, ring_buffer.elements[ring_buffer.last_id].buffer.buffer, dst.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
+
+    image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    image_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
+    
+    vkEndCommandBuffer(command_buffer);
+    
+    VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
+    VkSemaphore signal_semaphore = ring_buffer.elements[ring_buffer.last_id].semaphore;
+    VkSubmitInfo submit_info {};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &command_buffer;
+
+    auto it = ring_buffer.upload_image_semaphores.find(dst.image);
+    VkSemaphore prev_semaphore;
+    if (it != ring_buffer.upload_image_semaphores.end()) {
+	prev_semaphore = it->second;
+	submit_info.waitSemaphoreCount = 1;
+	submit_info.pWaitSemaphores = &prev_semaphore;
+	submit_info.pWaitDstStageMask = wait_stages;
+    } else {
+	prev_semaphore = create_semaphore();
+	ring_buffer.upload_image_semaphores[dst.image] = prev_semaphore;
+    }
+    VkSemaphore signal_semaphores[] = {prev_semaphore, signal_semaphore};
+    submit_info.signalSemaphoreCount = 2;
+    submit_info.pSignalSemaphores = signal_semaphores;
+    vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
+}
+
+auto RenderContext::load_texture(const char *filepath) noexcept -> Image {
+    int tex_width, tex_height, tex_channels;
+    stbi_uc* pixels = stbi_load(filepath, &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
+
+    ASSERT(pixels, "Unable to load texture.");
+    std::size_t image_size = tex_width * tex_height * 4;
+
+    VkExtent2D extent = {(uint32_t) tex_width, (uint32_t) tex_height};
+    Image dst = create_image(0, VK_FORMAT_R8G8B8A8_SRGB, extent, 1, 1, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    void *data_image = ringbuffer_claim_buffer(main_ring_buffer, image_size);
+    memcpy(data_image, pixels, image_size);
+    ringbuffer_submit_buffer(main_ring_buffer, dst);
+
+    return dst;
 }
