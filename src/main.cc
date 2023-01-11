@@ -21,65 +21,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     RenderContext context {};
     context.init();
 
-    const Model simple_model1 = {
-	{
-	    {
-		{0.0, -0.5f, -0.5f},
-		{1.0f, 0.0f, 0.0f},
-		{0.0, 0.0}
-	    },
-	    {
-		{0.0, 0.5f, -0.5f},
-		{0.0f, 1.0f, 0.0f},
-		{1.0, 0.0}
-	    },
-	    {
-		{0.0, 0.5f, 0.5f},
-		{0.0f, 0.0f, 1.0f},
-		{1.0, 1.0}
-	    },
-	    {
-		{0.0, -0.5f, 0.5f},
-		{1.0f, 1.0f, 1.0f},
-		{0.0, 1.0}
-	    }
-	},
-	{0, 1, 2, 2, 3, 0},
-    };
-
-    const Model simple_model2 = {
-	{
-	    {
-		{0.0, -0.5f, -0.5f},
-		{1.0f, 0.0f, 0.0f},
-		{0.0, 0.0}
-	    },
-	    {
-		{0.0, 0.5f, -0.5f},
-		{1.0f, 0.0f, 0.0f},
-		{1.0, 0.0}
-	    },
-	    {
-		{0.0, 0.5f, 0.5f},
-		{1.0f, 0.0f, 0.0f},
-		{1.0, 1.0}
-	    },
-	    {
-		{0.0, -0.5f, 0.5f},
-		{1.0f, 0.0f, 0.0f},
-		{0.0, 1.0}
-	    }
-	},
-	{0, 1, 2, 2, 3, 0},
-    };
-    
-    RasterScene scene {};
-    scene.add_model(std::move(simple_model1));
-    scene.add_model(std::move(simple_model2));
-    scene.add_object(glm::mat4(1), 1);
-    scene.add_object(glm::translate(glm::mat4(1), glm::vec3(0.5f, 0.0f, 0.0f)), 0);
-    scene.add_object(glm::translate(glm::mat4(1), glm::vec3(-0.5f, 0.0f, 0.0f)), 0);
-    scene.add_texture(context.load_texture("models/viking_room.png"));
+    RasterScene scene = context.load_singleton_scene("models/viking_room.obj", "models/viking_room.png");
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors(scene, 0);
 
@@ -116,7 +58,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	    camera_radius += (float) mouse_dy / (float) sensitivity;
 	}
 
-	scene.transforms[1][0] = glm::translate(glm::mat4(1), glm::vec3(0.0f, sin(elapsed_time), 0.0f));
+	//scene.transforms[0][0] = glm::translate(glm::mat4(1), glm::vec3(0.0f, sin(elapsed_time), 0.0f));
 
 	context.ringbuffer_copy_scene_instances_into_buffer(scene);
 	

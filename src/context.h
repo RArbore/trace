@@ -164,6 +164,9 @@ struct RenderContext {
     auto load_texture(const char *filepath) noexcept -> std::pair<Image, VkImageView>;
 
     auto update_descriptors(const RasterScene &scene, uint32_t update_texture) noexcept -> void;
+
+    auto load_singleton_scene(const char *obj_filepath, const char *texture_filepath) noexcept -> RasterScene;
+    auto load_obj_model(const char *obj_filepath) noexcept -> Model;
 };
 
 #endif

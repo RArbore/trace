@@ -32,14 +32,14 @@ struct Model {
     };
     
     std::vector<Vertex> vertices;
-    std::vector<uint16_t> indices;
+    std::vector<uint32_t> indices;
 
     auto vertex_buffer_size() const noexcept -> std::size_t {
 	return vertices.size() * sizeof(Vertex);
     }
 
     auto index_buffer_size() const noexcept -> std::size_t {
-	return indices.size() * sizeof(uint16_t);
+	return indices.size() * sizeof(uint32_t);
     }
 
     auto num_vertices() const noexcept -> uint32_t {
@@ -55,7 +55,7 @@ struct Model {
     }
 
     auto dump_indices(char *dst) const noexcept -> void {
-	memcpy(dst, indices.data(), indices.size() * sizeof(uint16_t));
+	memcpy(dst, indices.data(), indices.size() * sizeof(uint32_t));
     }
 };
 

@@ -12,6 +12,8 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <tiny_obj_loader.h>
+
 #include "context.h"
 
 auto RenderContext::create_allocator() noexcept -> void {
@@ -175,7 +177,7 @@ auto RenderContext::ringbuffer_copy_scene_indirect_draw_into_buffer(RasterScene 
 	const std::size_t index_buffer_model_offset = scene.model_indices_offsets[i];
 	data_indirect_draw[i].indexCount = scene.models[i].num_indices();
 	data_indirect_draw[i].instanceCount = (uint32_t) scene.transforms[i].size();
-	data_indirect_draw[i].firstIndex = (uint32_t) index_buffer_model_offset / sizeof(uint16_t);
+	data_indirect_draw[i].firstIndex = (uint32_t) index_buffer_model_offset / sizeof(uint32_t);
 	data_indirect_draw[i].vertexOffset = (int32_t) vertex_buffer_model_offset / sizeof(Model::Vertex);
 	data_indirect_draw[i].firstInstance = num_instances_so_far;
 	num_instances_so_far += (uint32_t) scene.transforms[i].size();
@@ -403,4 +405,48 @@ auto RenderContext::load_texture(const char *filepath) noexcept -> std::pair<Ima
     subresource_range.layerCount = 1;
 
     return {dst, create_image_view(dst.image, VK_FORMAT_R8G8B8A8_SRGB, subresource_range)};
+}
+
+auto RenderContext::load_singleton_scene(const char *obj_filepath, const char *texture_filepath) noexcept -> RasterScene {
+    RasterScene scene {};
+
+    scene.add_model(load_obj_model(obj_filepath));
+    scene.add_object(glm::mat4(1), 0);
+    scene.add_texture(load_texture(texture_filepath));
+
+    return scene;
+}
+
+auto RenderContext::load_obj_model(const char *obj_filepath) noexcept -> Model {
+    Model model {};
+
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warn, err;
+    ASSERT(tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, obj_filepath), "Unable to load OBJ model.");
+
+    for (const auto& shape : shapes) {
+	for (const auto& index : shape.mesh.indices) {
+	    Model::Vertex vertex {};
+
+	    vertex.position = {
+		attrib.vertices[3 * index.vertex_index + 0],
+		attrib.vertices[3 * index.vertex_index + 1],
+		attrib.vertices[3 * index.vertex_index + 2]
+	    };
+	    
+	    vertex.texture = {
+		attrib.texcoords[2 * index.texcoord_index + 0],
+		1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+	    };
+	    
+	    vertex.color = {1.0f, 1.0f, 1.0f};
+	    
+	    model.vertices.push_back(vertex);
+	    model.indices.push_back((uint32_t) model.indices.size());
+	}
+    }
+    
+    return model;
 }
