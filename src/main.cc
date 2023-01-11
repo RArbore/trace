@@ -56,9 +56,10 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	}
 	if (context.pressed_buttons[GLFW_MOUSE_BUTTON_RIGHT] == GLFW_PRESS) {
 	    camera_radius += (float) mouse_dy / (float) sensitivity;
+	    if (camera_radius < 0.0001) camera_radius = 0.0001f;
 	}
 
-	//scene.transforms[0][0] = glm::translate(glm::mat4(1), glm::vec3(0.0f, sin(elapsed_time), 0.0f));
+	scene.transforms[0][0] = glm::translate(glm::mat4(1), glm::vec3(0.0f, sin(elapsed_time), 0.0f));
 
 	context.ringbuffer_copy_scene_instances_into_buffer(scene);
 	

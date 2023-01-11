@@ -426,6 +426,8 @@ auto RenderContext::load_obj_model(const char *obj_filepath) noexcept -> Model {
     std::string warn, err;
     ASSERT(tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, obj_filepath), "Unable to load OBJ model.");
 
+    std::unordered_map<Model::Vertex, uint32_t> unique_vertices;
+
     for (const auto& shape : shapes) {
 	for (const auto& index : shape.mesh.indices) {
 	    Model::Vertex vertex {};
@@ -444,9 +446,15 @@ auto RenderContext::load_obj_model(const char *obj_filepath) noexcept -> Model {
 	    vertex.color = {1.0f, 1.0f, 1.0f};
 	    
 	    model.vertices.push_back(vertex);
-	    model.indices.push_back((uint32_t) model.indices.size());
+	    if (unique_vertices.count(vertex) == 0) {
+		unique_vertices[vertex] = (uint32_t) model.vertices.size();
+		model.vertices.push_back(vertex);
+	    }
+	    model.indices.push_back(unique_vertices[vertex]);
 	}
     }
+
+    std::cout << "INFO: Loaded model " << obj_filepath << ", with " << model.vertices.size() << " vertices and " << model.indices.size() << " indices.\n";
     
     return model;
 }

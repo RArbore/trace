@@ -209,7 +209,7 @@ auto RenderContext::create_physical_device() noexcept -> void {
 
     VkPhysicalDeviceProperties device_properties;
     vkGetPhysicalDeviceProperties(physical_device, &device_properties);
-    printf("INFO: Using device \"%s\"\n", device_properties.deviceName);
+    std::cout << "INFO: Using device " << device_properties.deviceName << ".\n";
 }
 
 auto RenderContext::create_device() noexcept -> void {

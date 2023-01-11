@@ -21,6 +21,8 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 
 #include "alloc.h"
 
@@ -29,6 +31,10 @@ struct Model {
 	glm::vec3 position;
 	glm::vec3 color;
 	glm::vec2 texture;
+
+	bool operator==(const Vertex& other) const {
+	    return position == other.position && color == other.color && texture == other.texture;
+	}
     };
     
     std::vector<Vertex> vertices;
@@ -58,5 +64,15 @@ struct Model {
 	memcpy(dst, indices.data(), indices.size() * sizeof(uint32_t));
     }
 };
+
+namespace std {
+    template<> struct hash<Model::Vertex> {
+        size_t operator()(Model::Vertex const& vertex) const {
+            return ((hash<glm::vec3>()(vertex.position) ^
+                   (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+                   (hash<glm::vec2>()(vertex.texture) << 1);
+        }
+    };
+}
 
 #endif
