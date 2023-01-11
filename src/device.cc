@@ -125,6 +125,7 @@ auto RenderContext::physical_check_features_support(VkPhysicalDevice physical) n
 
     VkPhysicalDeviceFeatures2 device_features {};
     device_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    device_features.features.samplerAnisotropy = VK_TRUE;
     device_features.pNext = &indexing_features;
     
     vkGetPhysicalDeviceFeatures2(physical, &device_features);
@@ -230,6 +231,7 @@ auto RenderContext::create_device() noexcept -> void {
 
     VkPhysicalDeviceFeatures2 device_features {};
     device_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    device_features.features.samplerAnisotropy = VK_TRUE;
     device_features.pNext = &indexing_features;
 
     vkGetPhysicalDeviceFeatures2(physical_device, &device_features);

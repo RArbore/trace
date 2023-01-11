@@ -85,6 +85,10 @@ auto RenderContext::create_image_view(VkImage image, VkFormat format, VkImageSub
     create_info.image = image;
     create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
     create_info.format = format;
+    create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
     create_info.subresourceRange = subresource_range;
 
     VkImageView view;
@@ -131,7 +135,8 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcep
     cleanup_buffer(scene.instances_buf);
     cleanup_buffer(scene.indirect_draw_buf);
     for (auto image : scene.textures) {
-	cleanup_image(image);
+	cleanup_image_view(image.second);
+	cleanup_image(image.first);
     }
 }
 
@@ -376,7 +381,7 @@ auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst)
     vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
 }
 
-auto RenderContext::load_texture(const char *filepath) noexcept -> Image {
+auto RenderContext::load_texture(const char *filepath) noexcept -> std::pair<Image, VkImageView> {
     int tex_width, tex_height, tex_channels;
     stbi_uc* pixels = stbi_load(filepath, &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
 
@@ -390,5 +395,12 @@ auto RenderContext::load_texture(const char *filepath) noexcept -> Image {
     memcpy(data_image, pixels, image_size);
     ringbuffer_submit_buffer(main_ring_buffer, dst);
 
-    return dst;
+    VkImageSubresourceRange subresource_range {};
+    subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresource_range.baseMipLevel = 0;
+    subresource_range.levelCount = 1;
+    subresource_range.baseArrayLayer = 0;
+    subresource_range.layerCount = 1;
+
+    return {dst, create_image_view(dst.image, VK_FORMAT_R8G8B8A8_SRGB, subresource_range)};
 }

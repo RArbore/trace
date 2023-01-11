@@ -44,6 +44,7 @@ auto RenderContext::init() noexcept -> void {
     create_swapchain();
     create_shaders();
     create_raster_pipeline();
+    create_sampler();
     create_command_pool();
     create_depth_resources();
     create_framebuffers();
@@ -132,6 +133,7 @@ auto RenderContext::cleanup() noexcept -> void {
     cleanup_depth_resources();
     cleanup_command_pool();
     cleanup_raster_pipeline();
+    cleanup_sampler();
     cleanup_shaders();
     cleanup_swapchain();
     cleanup_allocator();

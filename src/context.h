@@ -75,6 +75,8 @@ struct RenderContext {
     std::vector<VkSemaphore> ring_buffer_semaphore_scratchpad;
     std::vector<VkPipelineStageFlags> ring_buffer_wait_stages_scratchpad;
 
+    VkSampler sampler;
+
     VmaAllocator allocator;
 
     double mouse_x;
@@ -97,6 +99,7 @@ struct RenderContext {
     auto create_shaders() noexcept -> void;
     auto create_raster_pipeline() noexcept -> void;
     auto create_framebuffers() noexcept -> void;
+    auto create_sampler() noexcept -> void;
     auto create_command_pool() noexcept -> void;
     auto create_depth_resources() noexcept -> void;
     auto create_command_buffers() noexcept -> void;
@@ -111,6 +114,7 @@ struct RenderContext {
     auto cleanup_shaders() noexcept -> void;
     auto cleanup_raster_pipeline() noexcept -> void;
     auto cleanup_framebuffers() noexcept -> void;
+    auto cleanup_sampler() noexcept -> void;
     auto cleanup_command_pool() noexcept -> void;
     auto cleanup_depth_resources() noexcept -> void;
     auto cleanup_sync_objects() noexcept -> void;
@@ -149,7 +153,7 @@ struct RenderContext {
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer dst) noexcept -> void;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst) noexcept -> void;
 
-    auto load_texture(const char *filepath) noexcept -> Image;
+    auto load_texture(const char *filepath) noexcept -> std::pair<Image, VkImageView>;
 };
 
 #endif

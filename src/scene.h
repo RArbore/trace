@@ -27,7 +27,7 @@ struct RasterScene {
 
     Buffer vertices_buf, indices_buf, instances_buf, indirect_draw_buf;
     std::vector<std::size_t> model_vertices_offsets, model_indices_offsets;
-    std::vector<Image> textures;
+    std::vector<std::pair<Image, VkImageView>> textures;
 
     auto add_model(const Model &&model) noexcept -> void {
 	models.push_back(model);
@@ -40,7 +40,7 @@ struct RasterScene {
 	++num_objects;
     }
 
-    auto add_texture(const Image &&image) noexcept -> void {
+    auto add_texture(const std::pair<Image, VkImageView> &&image) noexcept -> void {
 	textures.push_back(image);
     }
 

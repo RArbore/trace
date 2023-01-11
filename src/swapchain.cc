@@ -45,27 +45,19 @@ auto RenderContext::create_swapchain() noexcept -> void {
 
     vkGetSwapchainImagesKHR(device, swapchain, &image_count, NULL);
     swapchain_images.resize(image_count);
+    swapchain_image_views.resize(image_count);
     vkGetSwapchainImagesKHR(device, swapchain, &image_count, &swapchain_images[0]);
     swapchain_format = surface_format.format;
     swapchain_extent = swap_extent;
 
-    VkImageViewCreateInfo image_view_create_info {};
-    image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    image_view_create_info.format = swapchain_format;
-    image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-    image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    image_view_create_info.subresourceRange.baseMipLevel = 0;
-    image_view_create_info.subresourceRange.levelCount = 1;
-    image_view_create_info.subresourceRange.baseArrayLayer = 0;
-    image_view_create_info.subresourceRange.layerCount = 1;
-    swapchain_image_views.resize(image_count);
+    VkImageSubresourceRange subresource_range {};
+    subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresource_range.baseMipLevel = 0;
+    subresource_range.levelCount = 1;
+    subresource_range.baseArrayLayer = 0;
+    subresource_range.layerCount = 1;
     for (uint32_t image_index = 0; image_index < image_count; ++image_index) {
-	image_view_create_info.image = swapchain_images[image_index];
-	ASSERT(vkCreateImageView(device, &image_view_create_info, NULL, &swapchain_image_views[image_index]), "Couldn't create swapchain image view.");
+	swapchain_image_views[image_index] = create_image_view(swapchain_images[image_index], swapchain_format, subresource_range);
     }
 }
 
