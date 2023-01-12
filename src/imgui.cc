@@ -12,15 +12,21 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#if 0
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
+#else
+#include "../imgui/imgui.h"
+#include "../imgui/backends/imgui_impl_glfw.h"
+#include "../imgui/backends/imgui_impl_vulkan.h"
+#endif
 
 #include "context.h"
 
 auto RenderContext::init_imgui() noexcept -> void {
     ImGui::CreateContext();
-    ImGui_ImplGlfw_InitForVulkan(window, false);
+    ImGui_ImplGlfw_InitForVulkan(window, true);
 
     ImGui_ImplVulkan_InitInfo vulkan_init_info = {};
     vulkan_init_info.Instance = instance;
@@ -33,6 +39,7 @@ auto RenderContext::init_imgui() noexcept -> void {
     vulkan_init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     
     ImGui_ImplVulkan_Init(&vulkan_init_info, raster_render_pass);
+    ImGui::StyleColorsDark();
 
     VkCommandBufferAllocateInfo allocate_info {};
     allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -63,4 +70,26 @@ auto RenderContext::init_imgui() noexcept -> void {
 
 auto RenderContext::cleanup_imgui() noexcept -> void {
     ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+}
+
+auto RenderContext::recreate_imgui() noexcept -> void {
+    ImGui_ImplVulkan_SetMinImageCount((uint32_t) swapchain_images.size());
+}
+
+auto RenderContext::render_imgui() noexcept -> void {
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    ImGui::ShowDemoWindow();
+    ImGui::Render();
+}
+
+auto RenderContext::render_draw_data_wrapper_imgui(VkCommandBuffer command_buffer) noexcept -> void {
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
+}
+
+auto RenderContext::is_using_imgui() noexcept -> bool {
+    return ImGui::GetIO().WantCaptureMouse;
 }

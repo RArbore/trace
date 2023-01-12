@@ -45,18 +45,20 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	elapsed_time += dt;
 	context.camera_matrix = glm::lookAt(camera_radius * glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	context.perspective_camera_matrix = context.perspective_matrix * context.camera_matrix;
-	const double mouse_dx = context.mouse_x - context.last_mouse_x;
-	const double mouse_dy = context.mouse_y - context.last_mouse_y;
-	if (context.pressed_buttons[GLFW_MOUSE_BUTTON_LEFT] == GLFW_PRESS) {
-	    camera_phi -= mouse_dx / sensitivity;
-	    camera_theta -= mouse_dy / sensitivity;
-	    camera_theta = glm::clamp(camera_theta, 0.01, M_PI - 0.01);
-	    if (camera_phi < 0.0) camera_phi += 2.0 * M_PI;
-	    if (camera_phi >= 2.0 * M_PI) camera_phi -= 2.0 * M_PI;
-	}
-	if (context.pressed_buttons[GLFW_MOUSE_BUTTON_RIGHT] == GLFW_PRESS) {
-	    camera_radius += (float) mouse_dy / (float) sensitivity;
-	    if (camera_radius < 0.0001) camera_radius = 0.0001f;
+	if (!context.is_using_imgui()) {
+	    const double mouse_dx = context.mouse_x - context.last_mouse_x;
+	    const double mouse_dy = context.mouse_y - context.last_mouse_y;
+	    if (context.pressed_buttons[GLFW_MOUSE_BUTTON_LEFT] == GLFW_PRESS) {
+		camera_phi -= mouse_dx / sensitivity;
+		camera_theta -= mouse_dy / sensitivity;
+		camera_theta = glm::clamp(camera_theta, 0.01, M_PI - 0.01);
+		if (camera_phi < 0.0) camera_phi += 2.0 * M_PI;
+		if (camera_phi >= 2.0 * M_PI) camera_phi -= 2.0 * M_PI;
+	    }
+	    if (context.pressed_buttons[GLFW_MOUSE_BUTTON_RIGHT] == GLFW_PRESS) {
+		camera_radius += (float) mouse_dy / (float) sensitivity;
+		if (camera_radius < 0.0001) camera_radius = 0.0001f;
+	    }
 	}
 
 	scene.transforms[0][0] = glm::translate(glm::mat4(1), glm::vec3(0.0f, sin(elapsed_time), 0.0f));
@@ -64,6 +66,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	context.ringbuffer_copy_scene_instances_into_buffer(scene);
 	
 	context.render(scene);
+	
 	if (context.current_frame % 10000 == 0) {
 	    printf("FPS: %f\n", 10000.0 / rolling_average_dt);
 	    rolling_average_dt = 0.0;

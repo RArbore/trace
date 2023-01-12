@@ -59,7 +59,7 @@ auto RenderContext::init() noexcept -> void {
 
 auto RenderContext::render(const RasterScene &scene) noexcept -> void {
     glfwPollEvents();
-    if (pressed_keys[GLFW_KEY_ESCAPE] || glfwWindowShouldClose(window)) {
+    if ((pressed_keys[GLFW_KEY_ESCAPE] && !is_using_imgui()) || glfwWindowShouldClose(window)) {
 	active = false;
 	return;
     }
@@ -73,6 +73,8 @@ auto RenderContext::render(const RasterScene &scene) noexcept -> void {
     }
     for (uint8_t i = 0; i <= GLFW_MOUSE_BUTTON_LAST; ++i)
 	pressed_buttons[i] = glfwGetMouseButton(window, i) == GLFW_PRESS;
+
+    render_imgui();
 
     const uint32_t flight_index = current_frame % FRAMES_IN_FLIGHT;
 

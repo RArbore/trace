@@ -170,6 +170,10 @@ struct RenderContext {
 
     auto init_imgui() noexcept -> void;
     auto cleanup_imgui() noexcept -> void;
+    auto recreate_imgui() noexcept -> void;
+    auto render_imgui() noexcept -> void;
+    auto render_draw_data_wrapper_imgui(VkCommandBuffer command_buffer) noexcept -> void;
+    auto is_using_imgui() noexcept -> bool;
 };
 
 #endif

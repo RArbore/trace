@@ -88,6 +88,7 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, raster_pipeline_layout, 0, 1, &raster_descriptor_sets[current_frame % FRAMES_IN_FLIGHT], 0, NULL);
     vkCmdPushConstants(command_buffer, raster_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 4 * 4, &perspective_camera_matrix[0][0]);
     vkCmdDrawIndexedIndirect(command_buffer, scene.indirect_draw_buf.buffer, 0, (uint32_t) scene.num_models, sizeof(VkDrawIndexedIndirectCommand));
+    render_draw_data_wrapper_imgui(command_buffer);
 
     vkCmdEndRenderPass(command_buffer);
 

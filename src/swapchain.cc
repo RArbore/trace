@@ -128,4 +128,6 @@ auto RenderContext::recreate_swapchain() noexcept -> void {
     create_swapchain();
     create_depth_resources();
     create_framebuffers();
+
+    recreate_imgui();
 }
