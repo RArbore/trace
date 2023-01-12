@@ -89,9 +89,10 @@ auto RenderContext::render_imgui(RasterScene &scene) noexcept -> void {
 	uint16_t model_id = scene.add_model(load_model_lambda, obj_filepath.c_str());
 	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(imgui_data.model_position[0], imgui_data.model_position[1], imgui_data.model_position[2])), model_id);
 	auto load_image_lambda = [&](){ return load_texture(texture_filepath.c_str()); };
-	scene.add_texture(load_image_lambda, texture_filepath.c_str());
+	uint16_t image_id = scene.add_texture(load_image_lambda, texture_filepath.c_str());
 
 	update_vulkan_objects_for_scene(scene);
+	update_descriptors(scene, image_id);
     }
     
     ImGui::Render();

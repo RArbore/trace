@@ -14,14 +14,16 @@
 
 #version 460
 #pragma shader_stage(fragment)
+#extension GL_EXT_nonuniform_qualifier : enable
 
 layout(location = 0) in vec3 in_color;
 layout(location = 1) in vec2 in_texture;
+layout(location = 2) in flat uint in_model_id;
 
 layout(location = 0) out vec4 out_color;
 
 layout(set = 0, binding = 0) uniform sampler2D textures[];
 
 void main() {
-    out_color = vec4(in_color, 1.0) * texture(textures[0], in_texture);
+    out_color = vec4(in_color, 1.0) * texture(textures[in_model_id], in_texture);
 }

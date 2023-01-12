@@ -30,7 +30,7 @@ auto RenderContext::init() noexcept -> void {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    window = glfwCreateWindow(1000, 1000, "trace", NULL, NULL);
+    window = glfwCreateWindow(1200, 1200, "trace", NULL, NULL);
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, glfw_framebuffer_resize_callback);
     glfwSetKeyCallback(window, glfw_key_callback);

@@ -119,9 +119,13 @@ auto RenderContext::physical_check_swapchain_support(VkPhysicalDevice specific_p
 }
 
 auto RenderContext::physical_check_features_support(VkPhysicalDevice physical) noexcept -> int32_t {
+    VkPhysicalDeviceVulkan11Features vulkan_11_features {};
+    vulkan_11_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    vulkan_11_features.pNext = NULL;
+
     VkPhysicalDeviceDescriptorIndexingFeatures indexing_features {};
     indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-    indexing_features.pNext = NULL;
+    indexing_features.pNext = &vulkan_11_features;
 
     VkPhysicalDeviceFeatures2 device_features {};
     device_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
@@ -131,7 +135,8 @@ auto RenderContext::physical_check_features_support(VkPhysicalDevice physical) n
     vkGetPhysicalDeviceFeatures2(physical, &device_features);
     
     if (indexing_features.descriptorBindingPartiallyBound &&
-	indexing_features.runtimeDescriptorArray
+	indexing_features.runtimeDescriptorArray &&
+	vulkan_11_features.shaderDrawParameters
 	) {
 	return 0;
     }
@@ -224,10 +229,16 @@ auto RenderContext::create_device() noexcept -> void {
     queue_create_info.queueCount = 1;
     queue_create_info.pQueuePriorities = &queue_priority;
 
+    VkPhysicalDeviceVulkan11Features vulkan_11_features {};
+    vulkan_11_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    vulkan_11_features.shaderDrawParameters = VK_TRUE;
+    vulkan_11_features.pNext = NULL;
+
     VkPhysicalDeviceDescriptorIndexingFeatures indexing_features {};
     indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
     indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
     indexing_features.runtimeDescriptorArray = VK_TRUE;
+    indexing_features.pNext = &vulkan_11_features;
 
     VkPhysicalDeviceFeatures2 device_features {};
     device_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
