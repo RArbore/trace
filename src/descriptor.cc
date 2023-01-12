@@ -45,22 +45,46 @@ auto RenderContext::cleanup_sampler() noexcept -> void {
 }
 
 auto RenderContext::create_descriptor_pool() noexcept -> void {
-    VkDescriptorPoolSize pool_size {};
-    pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    pool_size.descriptorCount = FRAMES_IN_FLIGHT * MAX_TEXTURES;
+    VkDescriptorPoolSize descriptor_pool_size {};
+    descriptor_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptor_pool_size.descriptorCount = FRAMES_IN_FLIGHT * MAX_TEXTURES;
 
-    VkDescriptorPoolCreateInfo create_info {};
-    create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
-    create_info.poolSizeCount = 1;
-    create_info.pPoolSizes = &pool_size;
-    create_info.maxSets = FRAMES_IN_FLIGHT * MAX_TEXTURES;
+    VkDescriptorPoolCreateInfo descriptor_pool_create_info {};
+    descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
+    descriptor_pool_create_info.poolSizeCount = 1;
+    descriptor_pool_create_info.pPoolSizes = &descriptor_pool_size;
+    descriptor_pool_create_info.maxSets = FRAMES_IN_FLIGHT * MAX_TEXTURES;
 
-    ASSERT(vkCreateDescriptorPool(device, &create_info, NULL, &descriptor_pool), "Unable to create descriptor pool.");
+    ASSERT(vkCreateDescriptorPool(device, &descriptor_pool_create_info, NULL, &descriptor_pool), "Unable to create descriptor pool.");
+
+    VkDescriptorPoolSize imgui_descriptor_pool_sizes[] = {
+	{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+	{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+	{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+	{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+	{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+	{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+	{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+	{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+	{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+    };
+
+    VkDescriptorPoolCreateInfo imgui_descriptor_pool_create_info {};
+    imgui_descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    imgui_descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    imgui_descriptor_pool_create_info.maxSets = 1000;
+    imgui_descriptor_pool_create_info.poolSizeCount = sizeof(imgui_descriptor_pool_sizes) / sizeof(imgui_descriptor_pool_sizes[0]);
+    imgui_descriptor_pool_create_info.pPoolSizes = imgui_descriptor_pool_sizes;
+    
+    ASSERT(vkCreateDescriptorPool(device, &imgui_descriptor_pool_create_info, nullptr, &imgui_descriptor_pool), "Unable to create IMGUI descriptor pool.");
 }
 
 auto RenderContext::cleanup_descriptor_pool() noexcept -> void {
     vkDestroyDescriptorPool(device, descriptor_pool, NULL);
+    vkDestroyDescriptorPool(device, imgui_descriptor_pool, NULL);
 }
 
 auto RenderContext::create_descriptor_set_layout() noexcept -> void {

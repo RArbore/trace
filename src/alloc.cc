@@ -52,7 +52,7 @@ auto RenderContext::cleanup_buffer(Buffer buffer) noexcept -> void {
     vmaDestroyBuffer(allocator, buffer.buffer, buffer.allocation);
 }
 
-auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mipLevels, uint32_t arrayLevels, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags) noexcept -> Image {
+auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mip_levels, uint32_t array_layers, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags) noexcept -> Image {
     VkImageCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     create_info.flags = flags;
@@ -61,8 +61,8 @@ auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkEx
     create_info.extent.width = extent.width;
     create_info.extent.height = extent.height;
     create_info.extent.depth = 1;
-    create_info.mipLevels = mipLevels;
-    create_info.arrayLayers = arrayLevels;
+    create_info.mipLevels = mip_levels;
+    create_info.arrayLayers = array_layers;
     create_info.samples = VK_SAMPLE_COUNT_1_BIT;
     create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
     create_info.usage = usage;

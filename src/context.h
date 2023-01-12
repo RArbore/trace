@@ -76,7 +76,7 @@ struct RenderContext {
     std::vector<VkPipelineStageFlags> ring_buffer_wait_stages_scratchpad;
 
     VkSampler sampler;
-    VkDescriptorPool descriptor_pool;
+    VkDescriptorPool descriptor_pool, imgui_descriptor_pool;
     VkDescriptorSetLayout raster_descriptor_set_layout;
     std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> raster_descriptor_sets;
 
@@ -138,7 +138,7 @@ struct RenderContext {
 
     auto create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Buffer;
     auto cleanup_buffer(Buffer buffer) noexcept -> void;
-    auto create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mipLevels, uint32_t arrayLevels, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Image;
+    auto create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mip_levels, uint32_t array_layers, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Image;
     auto cleanup_image(Image image) noexcept -> void;
     auto create_image_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
     auto cleanup_image_view(VkImageView view) noexcept -> void;
@@ -167,6 +167,8 @@ struct RenderContext {
 
     auto load_singleton_scene(const char *obj_filepath, const char *texture_filepath) noexcept -> RasterScene;
     auto load_obj_model(const char *obj_filepath) noexcept -> Model;
+
+    auto init_imgui() noexcept -> void;
 };
 
 #endif

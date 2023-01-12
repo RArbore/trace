@@ -11,10 +11,10 @@ else
 	CPPFLAGS := -g
 endif
 
-CPPFLAGS := $(CPPFLAGS) -c -fno-rtti -pipe
+CPPFLAGS := $(CPPFLAGS) -c -fno-rtti -pipe -Ilib/imgui
 LDFLAGS := $(LDFLAGS) -fuse-ld=mold
 WFLAGS := -Wall -Wextra -Wshadow -Wconversion -Wpedantic
-LDLIBS := -lvulkan -lglfw
+LDLIBS := -lvulkan -lglfw -limgui
 
 SRCS := $(shell find src -name "*.cc")
 HEADERS := $(shell find src -name "*.h")

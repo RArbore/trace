@@ -54,6 +54,7 @@ auto RenderContext::init() noexcept -> void {
     create_command_buffers();
     create_sync_objects();
     main_ring_buffer = create_ringbuffer();
+    init_imgui();
 }
 
 auto RenderContext::render(const RasterScene &scene) noexcept -> void {

@@ -26,7 +26,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     context.update_descriptors(scene, 0);
 
     [[maybe_unused]] const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
-    context.perspective_matrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 10.0f);
+    context.perspective_matrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 1000.0f);
     context.perspective_matrix[1][1] *= -1.0f;
 
     auto system_time = std::chrono::system_clock::now();
