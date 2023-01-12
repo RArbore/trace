@@ -12,15 +12,9 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#if 0
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
-#else
-#include "../imgui/imgui.h"
-#include "../imgui/backends/imgui_impl_glfw.h"
-#include "../imgui/backends/imgui_impl_vulkan.h"
-#endif
 
 #include "context.h"
 
