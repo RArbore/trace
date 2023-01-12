@@ -36,6 +36,11 @@ struct SwapchainSupport {
     std::vector<VkPresentModeKHR> present_modes;
 };
 
+struct ImGuiData {
+    std::array<char, 100> model_name;
+    std::array<float, 3> model_position;
+};
+
 struct RenderContext {
     GLFWwindow *window;
     bool active = true, resized = false;
@@ -81,6 +86,9 @@ struct RenderContext {
     std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> raster_descriptor_sets;
 
     VmaAllocator allocator;
+    std::vector<std::pair<Buffer, std::size_t>> buffer_cleanup_queue;
+
+    ImGuiData imgui_data;
 
     double mouse_x;
     double mouse_y;
@@ -90,7 +98,7 @@ struct RenderContext {
     std::array<bool, GLFW_KEY_LAST + 1> pressed_keys;
 
     auto init() noexcept -> void;
-    auto render(const RasterScene &scene) noexcept -> void;
+    auto render(RasterScene &scene) noexcept -> void;
     auto cleanup() noexcept -> void;
 
     auto create_instance() noexcept -> void;
@@ -138,6 +146,7 @@ struct RenderContext {
 
     auto create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Buffer;
     auto cleanup_buffer(Buffer buffer) noexcept -> void;
+    auto future_cleanup_buffer(Buffer buffer) noexcept -> void;
     auto create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mip_levels, uint32_t array_layers, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Image;
     auto cleanup_image(Image image) noexcept -> void;
     auto create_image_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
@@ -152,13 +161,14 @@ struct RenderContext {
 
     auto allocate_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void;
     auto cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void;
+    auto update_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void;
     auto ringbuffer_copy_scene_vertices_into_buffer(RasterScene &scene) noexcept -> void;
     auto ringbuffer_copy_scene_indices_into_buffer(RasterScene &scene) noexcept -> void;
     auto ringbuffer_copy_scene_instances_into_buffer(RasterScene &scene) noexcept -> void;
     auto ringbuffer_copy_scene_indirect_draw_into_buffer(RasterScene &scene) noexcept -> void;
 
     auto ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void *;
-    auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer dst) noexcept -> void;
+    auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst) noexcept -> void;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst) noexcept -> void;
 
     auto load_texture(const char *filepath) noexcept -> std::pair<Image, VkImageView>;
@@ -171,7 +181,7 @@ struct RenderContext {
     auto init_imgui() noexcept -> void;
     auto cleanup_imgui() noexcept -> void;
     auto recreate_imgui() noexcept -> void;
-    auto render_imgui() noexcept -> void;
+    auto render_imgui(RasterScene &scene) noexcept -> void;
     auto render_draw_data_wrapper_imgui(VkCommandBuffer command_buffer) noexcept -> void;
     auto is_using_imgui() noexcept -> bool;
 };

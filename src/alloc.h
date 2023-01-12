@@ -27,6 +27,9 @@ struct Buffer {
     VkBuffer buffer;
     VmaAllocation allocation;
     std::size_t size;
+    VkBufferUsageFlags usage;
+    VkMemoryPropertyFlags memory_flags;
+    VmaAllocationCreateFlags vma_flags;
 };
 
 struct Image {
@@ -50,6 +53,7 @@ struct RingBuffer {
     std::unordered_map<VkBuffer, VkSemaphore> upload_buffer_semaphores;
     std::unordered_map<VkImage, VkSemaphore> upload_image_semaphores;
     std::vector<RingElement> elements;
+    std::size_t last_copy_size;
     uint16_t last_id;
 
     auto get_number_occupied(std::size_t current_frame) const noexcept -> uint16_t {

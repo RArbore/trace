@@ -15,7 +15,9 @@
 #ifndef SCENE_H
 #define SCENE_H
 
+#include <string>
 #include <array>
+#include <map>
 
 #include "model.h"
 
@@ -24,15 +26,26 @@ struct RasterScene {
     std::vector<std::vector<glm::mat4>> transforms;
     uint16_t num_models;
     uint32_t num_objects;
+    uint16_t num_textures;
 
     Buffer vertices_buf, indices_buf, instances_buf, indirect_draw_buf;
+    std::size_t vertices_buf_contents_size, indices_buf_contents_size, instances_buf_contents_size, indirect_draw_buf_contents_size;
     std::vector<std::size_t> model_vertices_offsets, model_indices_offsets;
     std::vector<std::pair<Image, VkImageView>> textures;
+    std::map<std::string, uint16_t> loaded_models;
+    std::map<std::string, uint16_t> loaded_textures;
 
-    auto add_model(const Model &&model) noexcept -> void {
-	models.push_back(model);
-	transforms.push_back({});
-	++num_models;
+    auto add_model(auto &model_thunk, const char *obj_filepath) noexcept -> uint16_t {
+	auto it = loaded_models.find(std::string(obj_filepath));
+	if (it == loaded_models.end()) {
+	    models.push_back(model_thunk());
+	    transforms.push_back({});
+	    loaded_models.insert({std::string(obj_filepath), num_models});
+	    ++num_models;
+	    return num_models - 1;
+	} else {
+	    return it->second;
+	}
     }
 
     auto add_object(const glm::mat4 &&transform, uint16_t model_id) noexcept -> void {
@@ -40,8 +53,16 @@ struct RasterScene {
 	++num_objects;
     }
 
-    auto add_texture(const std::pair<Image, VkImageView> &&image) noexcept -> void {
-	textures.push_back(image);
+    auto add_texture(auto &image_thunk, const char *texture_filepath) noexcept -> uint16_t {
+	auto it = loaded_textures.find(std::string(texture_filepath));
+	if (it == loaded_textures.end()) {
+	    textures.push_back(image_thunk());
+	    loaded_textures.insert({std::string(texture_filepath), num_textures});
+	    ++num_textures;
+	    return num_textures - 1;
+	} else {
+	    return it->second;
+	}
     }
 
     static auto binding_descriptions() noexcept -> std::array<VkVertexInputBindingDescription, 2> {

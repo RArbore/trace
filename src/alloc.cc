@@ -45,11 +45,15 @@ auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, V
     VmaAllocation allocation;
 
     ASSERT(vmaCreateBuffer(allocator, &create_info, &alloc_info, &buffer, &allocation, nullptr), "Unable to create buffer.");
-    return {buffer, allocation, size};
+    return {buffer, allocation, size, usage, memory_flags, vma_flags};
 }
 
 auto RenderContext::cleanup_buffer(Buffer buffer) noexcept -> void {
     vmaDestroyBuffer(allocator, buffer.buffer, buffer.allocation);
+}
+
+auto RenderContext::future_cleanup_buffer(Buffer buffer) noexcept -> void {
+    buffer_cleanup_queue.push_back({buffer, current_frame});
 }
 
 auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mip_levels, uint32_t array_layers, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags) noexcept -> Image {
@@ -113,17 +117,45 @@ auto RenderContext::allocate_vulkan_objects_for_scene(RasterScene &scene) noexce
     
     std::size_t vertex_idx = 0;
     const std::size_t vertex_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &vertex_idx](const std::size_t &accum, const Model &model) { scene.model_vertices_offsets[vertex_idx++] = accum; return accum + model.vertex_buffer_size(); });
+    scene.vertices_buf_contents_size = vertex_size;
     scene.vertices_buf = create_buffer(vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     std::size_t index_idx = 0;
     const std::size_t index_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &index_idx](const std::size_t &accum, const Model &model) { scene.model_indices_offsets[index_idx++] = accum; return accum + model.index_buffer_size(); });
+    scene.indices_buf_contents_size = index_size;
     scene.indices_buf = create_buffer(index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     const std::size_t instance_size = scene.num_objects * sizeof(glm::mat4);
+    scene.instances_buf_contents_size = instance_size;
     scene.instances_buf = create_buffer(instance_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     const std::size_t indirect_draw_size = scene.num_models * sizeof(VkDrawIndexedIndirectCommand);
+    scene.indirect_draw_buf_contents_size = indirect_draw_size;
     scene.indirect_draw_buf = create_buffer(indirect_draw_size, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    ringbuffer_copy_scene_vertices_into_buffer(scene);
+    ringbuffer_copy_scene_indices_into_buffer(scene);
+    ringbuffer_copy_scene_instances_into_buffer(scene);
+    ringbuffer_copy_scene_indirect_draw_into_buffer(scene);
+}
+
+auto RenderContext::update_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void {
+    scene.model_vertices_offsets.resize(scene.models.size());
+    scene.model_indices_offsets.resize(scene.models.size());
+    
+    std::size_t vertex_idx = 0;
+    const std::size_t vertex_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &vertex_idx](const std::size_t &accum, const Model &model) { scene.model_vertices_offsets[vertex_idx++] = accum; return accum + model.vertex_buffer_size(); });
+    scene.vertices_buf_contents_size = vertex_size;
+
+    std::size_t index_idx = 0;
+    const std::size_t index_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &index_idx](const std::size_t &accum, const Model &model) { scene.model_indices_offsets[index_idx++] = accum; return accum + model.index_buffer_size(); });
+    scene.indices_buf_contents_size = index_size;
+
+    const std::size_t instance_size = scene.num_objects * sizeof(glm::mat4);
+    scene.instances_buf_contents_size = instance_size;
+
+    const std::size_t indirect_draw_size = scene.num_models * sizeof(VkDrawIndexedIndirectCommand);
+    scene.indirect_draw_buf_contents_size = indirect_draw_size;
 
     ringbuffer_copy_scene_vertices_into_buffer(scene);
     ringbuffer_copy_scene_indices_into_buffer(scene);
@@ -143,7 +175,7 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcep
 }
 
 auto RenderContext::ringbuffer_copy_scene_vertices_into_buffer(RasterScene &scene) noexcept -> void {
-    char *data_vertex = (char *) ringbuffer_claim_buffer(main_ring_buffer, scene.vertices_buf.size);
+    char *data_vertex = (char *) ringbuffer_claim_buffer(main_ring_buffer, scene.vertices_buf_contents_size);
     for (const Model &model : scene.models) {
 	model.dump_vertices(data_vertex);
 	data_vertex += model.vertex_buffer_size();
@@ -152,7 +184,7 @@ auto RenderContext::ringbuffer_copy_scene_vertices_into_buffer(RasterScene &scen
 }
 
 auto RenderContext::ringbuffer_copy_scene_indices_into_buffer(RasterScene &scene) noexcept -> void {
-    char *data_index = (char *) ringbuffer_claim_buffer(main_ring_buffer, scene.indices_buf.size);
+    char *data_index = (char *) ringbuffer_claim_buffer(main_ring_buffer, scene.indices_buf_contents_size);
     for (const Model &model : scene.models) {
 	model.dump_indices(data_index);
 	data_index += model.index_buffer_size();
@@ -161,7 +193,7 @@ auto RenderContext::ringbuffer_copy_scene_indices_into_buffer(RasterScene &scene
 }
 
 auto RenderContext::ringbuffer_copy_scene_instances_into_buffer(RasterScene &scene) noexcept -> void {
-    glm::mat4 *data_instance = (glm::mat4 *) ringbuffer_claim_buffer(main_ring_buffer, scene.instances_buf.size);
+    glm::mat4 *data_instance = (glm::mat4 *) ringbuffer_claim_buffer(main_ring_buffer, scene.instances_buf_contents_size);
     for (auto transforms : scene.transforms) {
 	memcpy(data_instance, transforms.data(), transforms.size() * sizeof(glm::mat4));
 	data_instance += transforms.size();
@@ -170,7 +202,7 @@ auto RenderContext::ringbuffer_copy_scene_instances_into_buffer(RasterScene &sce
 }
 
 auto RenderContext::ringbuffer_copy_scene_indirect_draw_into_buffer(RasterScene &scene) noexcept -> void {
-    VkDrawIndexedIndirectCommand *data_indirect_draw  = (VkDrawIndexedIndirectCommand  *) ringbuffer_claim_buffer(main_ring_buffer, scene.indirect_draw_buf.size);
+    VkDrawIndexedIndirectCommand *data_indirect_draw  = (VkDrawIndexedIndirectCommand *) ringbuffer_claim_buffer(main_ring_buffer, scene.indirect_draw_buf_contents_size);
     uint32_t num_instances_so_far = 0;
     for (std::size_t i = 0; i < scene.num_models; ++i) {
 	const std::size_t vertex_buffer_model_offset = scene.model_vertices_offsets[i];
@@ -234,6 +266,7 @@ static inline auto round_up_p2(std::size_t v) noexcept -> std::size_t {
 }
 
 auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void * {
+    ring_buffer.last_copy_size = size;
     for (ring_buffer.last_id = 0; ring_buffer.last_id < ring_buffer.elements.size(); ++ring_buffer.last_id) {
 	auto &element = ring_buffer.elements[ring_buffer.last_id];
 	if (element.size >= size && element.occupied == RingBuffer::NOT_OCCUPIED) {
@@ -271,13 +304,18 @@ auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t
     return mapped_memory;
 }
 
-auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer dst) noexcept -> void {
+auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst) noexcept -> void {
     vmaUnmapMemory(allocator, ring_buffer.elements[ring_buffer.last_id].buffer.allocation);
+
+    if (ring_buffer.last_copy_size > dst.size) {
+	future_cleanup_buffer(dst);
+	dst = create_buffer(ring_buffer.last_copy_size * 2, dst.usage, dst.memory_flags, dst.vma_flags);
+    }
 
     VkBufferCopy copy_region {};
     copy_region.srcOffset = 0;
     copy_region.dstOffset = 0;
-    copy_region.size = dst.size;
+    copy_region.size = ring_buffer.last_copy_size;
 
     VkCommandBufferBeginInfo command_buffer_begin_info {};
     command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -410,9 +448,11 @@ auto RenderContext::load_texture(const char *filepath) noexcept -> std::pair<Ima
 auto RenderContext::load_singleton_scene(const char *obj_filepath, const char *texture_filepath) noexcept -> RasterScene {
     RasterScene scene {};
 
-    scene.add_model(load_obj_model(obj_filepath));
-    scene.add_object(glm::mat4(1), 0);
-    scene.add_texture(load_texture(texture_filepath));
+    auto load_model_lambda = [&](){ return load_obj_model(obj_filepath); };
+    uint16_t model_id = scene.add_model(load_model_lambda, obj_filepath);
+    scene.add_object(glm::mat4(1), model_id);
+    auto load_image_lambda = [&](){ return load_texture(texture_filepath); };
+    scene.add_texture(load_image_lambda, texture_filepath);
 
     return scene;
 }

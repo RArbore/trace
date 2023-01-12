@@ -11,7 +11,7 @@ else
 	CPPFLAGS := -g
 endif
 
-CPPFLAGS := $(CPPFLAGS) -c -fno-rtti -pipe -Iimgui -Iimgui/backends
+CPPFLAGS := $(CPPFLAGS) -c -fno-rtti -pipe -Iimgui -Iimgui/backends -std=c++20
 LDFLAGS := $(LDFLAGS) -fuse-ld=mold
 WFLAGS := -Wall -Wextra -Wshadow -Wconversion -Wpedantic
 LDLIBS := -lvulkan -lglfw

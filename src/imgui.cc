@@ -72,11 +72,28 @@ auto RenderContext::recreate_imgui() noexcept -> void {
     ImGui_ImplVulkan_SetMinImageCount((uint32_t) swapchain_images.size());
 }
 
-auto RenderContext::render_imgui() noexcept -> void {
+auto RenderContext::render_imgui(RasterScene &scene) noexcept -> void {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    ImGui::ShowDemoWindow();
+
+    ImGui::InputText("Name of model", imgui_data.model_name.data(), imgui_data.model_name.size());
+    ImGui::InputFloat("X position of model", &imgui_data.model_position[0]);
+    ImGui::InputFloat("Y position of model", &imgui_data.model_position[1]);
+    ImGui::InputFloat("Z position of model", &imgui_data.model_position[2]);
+    if (ImGui::Button("Load model")) {
+	std::string obj_filepath = "models/" + std::string(imgui_data.model_name.data()) + ".obj";
+	std::string texture_filepath = "models/" + std::string(imgui_data.model_name.data()) + ".png";
+
+	auto load_model_lambda = [&](){ return load_obj_model(obj_filepath.c_str()); };
+	uint16_t model_id = scene.add_model(load_model_lambda, obj_filepath.c_str());
+	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(imgui_data.model_position[0], imgui_data.model_position[1], imgui_data.model_position[2])), model_id);
+	auto load_image_lambda = [&](){ return load_texture(texture_filepath.c_str()); };
+	scene.add_texture(load_image_lambda, texture_filepath.c_str());
+
+	update_vulkan_objects_for_scene(scene);
+    }
+    
     ImGui::Render();
 }
 

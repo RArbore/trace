@@ -57,7 +57,7 @@ auto RenderContext::init() noexcept -> void {
     init_imgui();
 }
 
-auto RenderContext::render(const RasterScene &scene) noexcept -> void {
+auto RenderContext::render(RasterScene &scene) noexcept -> void {
     glfwPollEvents();
     if ((pressed_keys[GLFW_KEY_ESCAPE] && !is_using_imgui()) || glfwWindowShouldClose(window)) {
 	active = false;
@@ -74,7 +74,7 @@ auto RenderContext::render(const RasterScene &scene) noexcept -> void {
     for (uint8_t i = 0; i <= GLFW_MOUSE_BUTTON_LAST; ++i)
 	pressed_buttons[i] = glfwGetMouseButton(window, i) == GLFW_PRESS;
 
-    render_imgui();
+    render_imgui(scene);
 
     const uint32_t flight_index = current_frame % FRAMES_IN_FLIGHT;
 
@@ -128,11 +128,23 @@ auto RenderContext::render(const RasterScene &scene) noexcept -> void {
 	ASSERT(queue_present_result, "Unable to present rendered image.");
     }
 
+    for (auto it = buffer_cleanup_queue.begin(); it != buffer_cleanup_queue.end();) {
+	if (it->second + FRAMES_IN_FLIGHT == current_frame) {
+	    cleanup_buffer(it->first);
+	    it = buffer_cleanup_queue.erase(it);
+	} else {
+	    ++it;
+	}
+    }
+
     resized = false;
     ++current_frame;
 }
 
 auto RenderContext::cleanup() noexcept -> void {
+    for (auto [buffer, _] : buffer_cleanup_queue) {
+	cleanup_buffer(buffer);
+    }
     cleanup_imgui();
     cleanup_ringbuffer(main_ring_buffer);
     cleanup_sync_objects();
