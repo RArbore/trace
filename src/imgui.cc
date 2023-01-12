@@ -34,3 +34,7 @@ auto RenderContext::init_imgui() noexcept -> void {
     
     ImGui_ImplVulkan_Init(&vulkan_init_info, raster_render_pass);
 }
+
+auto RenderContext::cleanup_imgui() noexcept -> void {
+    ImGui_ImplVulkan_Shutdown();
+}

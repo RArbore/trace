@@ -131,6 +131,7 @@ auto RenderContext::render(const RasterScene &scene) noexcept -> void {
 }
 
 auto RenderContext::cleanup() noexcept -> void {
+    cleanup_imgui();
     cleanup_ringbuffer(main_ring_buffer);
     cleanup_sync_objects();
     cleanup_framebuffers();

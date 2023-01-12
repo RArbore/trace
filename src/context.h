@@ -169,6 +169,7 @@ struct RenderContext {
     auto load_obj_model(const char *obj_filepath) noexcept -> Model;
 
     auto init_imgui() noexcept -> void;
+    auto cleanup_imgui() noexcept -> void;
 };
 
 #endif
