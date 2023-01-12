@@ -33,6 +33,32 @@ auto RenderContext::init_imgui() noexcept -> void {
     vulkan_init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     
     ImGui_ImplVulkan_Init(&vulkan_init_info, raster_render_pass);
+
+    VkCommandBufferAllocateInfo allocate_info {};
+    allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocate_info.commandPool = command_pool;
+    allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocate_info.commandBufferCount = 1;
+    
+    VkCommandBuffer imgui_font_command_buffer;
+    ASSERT(vkAllocateCommandBuffers(device, &allocate_info, &imgui_font_command_buffer), "Unable to create command buffers.");
+
+    VkCommandBufferBeginInfo command_buffer_begin_info {};
+    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(imgui_font_command_buffer, &command_buffer_begin_info);
+    ImGui_ImplVulkan_CreateFontsTexture(imgui_font_command_buffer);
+    vkEndCommandBuffer(imgui_font_command_buffer);
+
+    VkSubmitInfo submit_info {};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &imgui_font_command_buffer;
+    vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
+    vkQueueWaitIdle(queue);
+
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
 auto RenderContext::cleanup_imgui() noexcept -> void {
