@@ -445,18 +445,6 @@ auto RenderContext::load_texture(const char *filepath) noexcept -> std::pair<Ima
     return {dst, create_image_view(dst.image, VK_FORMAT_R8G8B8A8_SRGB, subresource_range)};
 }
 
-auto RenderContext::load_singleton_scene(const char *obj_filepath, const char *texture_filepath) noexcept -> RasterScene {
-    RasterScene scene {};
-
-    auto load_model_lambda = [&](){ return load_obj_model(obj_filepath); };
-    uint16_t model_id = scene.add_model(load_model_lambda, obj_filepath);
-    scene.add_object(glm::mat4(1), model_id);
-    auto load_image_lambda = [&](){ return load_texture(texture_filepath); };
-    scene.add_texture(load_image_lambda, texture_filepath);
-
-    return scene;
-}
-
 auto RenderContext::load_obj_model(const char *obj_filepath) noexcept -> Model {
     Model model {};
 
