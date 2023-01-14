@@ -49,5 +49,9 @@ float light_intensity(vec4 light) {
 }
 
 void main() {
-    out_color = texture(textures[in_model_id], in_texture) * vec4(vec3(light_intensity(lights[0])), 1.0);
+    float light_contrib = 0.0;
+    for (uint idx = 0; idx < MAX_LIGHTS && lights[idx].w > 0.0; ++idx) {
+	light_contrib += light_intensity(lights[idx]);
+    }
+    out_color = texture(textures[in_model_id], in_texture) * vec4(vec3(light_contrib), 1.0);
 }

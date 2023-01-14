@@ -31,6 +31,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     const auto load_image_lambda = [&](){ return context.load_texture(texture_filepath); };
     const uint16_t image_id = scene.add_texture(load_image_lambda, texture_filepath);
     scene.add_light({});
+    scene.add_light({0.0, 0.0, 10.0, 10.0});
     
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors_textures(scene, image_id);
