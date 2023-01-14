@@ -28,7 +28,7 @@ struct RasterScene {
     std::vector<Model> models;
     std::vector<std::vector<glm::mat4>> transforms;
     std::vector<std::pair<Image, VkImageView>> textures;
-    std::vector<glm::vec3> lights;
+    std::vector<glm::vec4> lights;
     uint16_t num_models;
     uint32_t num_objects;
     uint16_t num_textures;
@@ -70,7 +70,7 @@ struct RasterScene {
 	}
     }
 
-    auto add_light(const glm::vec3 &&light) noexcept -> uint32_t {
+    auto add_light(const glm::vec4 &&light) noexcept -> uint32_t {
 	ASSERT(num_lights < MAX_LIGHTS, "Tried to add too many lights.");
 	lights.emplace_back(light);
 	++num_lights;

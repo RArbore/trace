@@ -30,12 +30,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     scene.add_object(glm::mat4(1), model_id);
     const auto load_image_lambda = [&](){ return context.load_texture(texture_filepath); };
     const uint16_t image_id = scene.add_texture(load_image_lambda, texture_filepath);
-    scene.add_light({1.0f, 1.0f, 1.0f});
-    scene.add_light({1.0f, 1.0f, 0.0f});
-    scene.add_light({1.0f, 0.0f, 1.0f});
-    scene.add_light({0.0f, 1.0f, 1.0f});
-    scene.add_light({0.5f, 0.5f, 0.5f});
-    scene.add_light({0.5f, 0.5f, 0.5f});
+    scene.add_light({});
     
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors_textures(scene, image_id);
@@ -60,7 +55,8 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	rolling_average_dt += dt;
 
 	elapsed_time += dt;
-	context.camera_matrix = glm::lookAt(camera_radius * glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	context.camera_position = camera_radius * glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta));
+	context.camera_matrix = glm::lookAt(context.camera_position, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	context.perspective_camera_matrix = context.perspective_matrix * context.camera_matrix;
 	if (!context.is_using_imgui()) {
 	    const double mouse_dx = context.mouse_x - context.last_mouse_x;
@@ -78,7 +74,11 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	    }
 	}
 
+	const float pos = sin(elapsed_time) + 1.2f;
+	scene.lights[0] = glm::vec4(pos, pos, pos, 2.0f);
+
 	context.ringbuffer_copy_scene_instances_into_buffer(scene);
+	context.ringbuffer_copy_scene_lights_into_buffer(scene);
 	
 	context.render(scene);
 	

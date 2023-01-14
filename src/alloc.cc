@@ -230,9 +230,7 @@ auto RenderContext::ringbuffer_copy_scene_indirect_draw_into_buffer(RasterScene 
 
 auto RenderContext::ringbuffer_copy_scene_lights_into_buffer(RasterScene &scene) noexcept -> void {
     glm::vec4 *data_light = (glm::vec4 *) ringbuffer_claim_buffer(main_ring_buffer, scene.lights_buf_contents_size);
-    for (std::size_t i = 0; i < scene.num_lights; ++i) {
-	data_light[i] = {scene.lights[i], 1.0f};
-    }
+    memcpy(data_light, scene.lights.data(), scene.num_lights * sizeof(glm::vec4));
     ringbuffer_submit_buffer(main_ring_buffer, scene.lights_buf);
 }
 
