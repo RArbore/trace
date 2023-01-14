@@ -39,6 +39,7 @@ struct Model {
     
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+    bool has_normals, has_textures;
 
     auto vertex_buffer_size() const noexcept -> std::size_t {
 	return vertices.size() * sizeof(Vertex);
@@ -62,6 +63,13 @@ struct Model {
 
     auto dump_indices(char *dst) const noexcept -> void {
 	memcpy(dst, indices.data(), indices.size() * sizeof(uint32_t));
+    }
+
+    auto disable_texturing() noexcept -> void {
+	for (auto &v : vertices) {
+	    v.texture = {-1.0f, -1.0f};
+	}
+	has_textures = false;
     }
 };
 

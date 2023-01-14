@@ -468,6 +468,8 @@ auto RenderContext::load_texture(const char *filepath) noexcept -> std::pair<Ima
 
 auto RenderContext::load_obj_model(const char *obj_filepath) noexcept -> Model {
     Model model {};
+    model.has_normals = true;
+    model.has_textures = true;
 
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -487,16 +489,26 @@ auto RenderContext::load_obj_model(const char *obj_filepath) noexcept -> Model {
 		attrib.vertices[3 * index.vertex_index + 2]
 	    };
 	    
-	    vertex.normal = {
-		attrib.normals[3 * index.normal_index + 0],
-		attrib.normals[3 * index.normal_index + 1],
-		attrib.normals[3 * index.normal_index + 2]
-	    };
+	    if (index.normal_index >= 0) {
+		vertex.normal = {
+		    attrib.normals[3 * index.normal_index + 0],
+		    attrib.normals[3 * index.normal_index + 1],
+		    attrib.normals[3 * index.normal_index + 2]
+		};
+	    } else {
+		vertex.normal = {0.0f, 0.0f, 0.0f};
+		model.has_normals = false;
+	    }
 	    
-	    vertex.texture = {
-		attrib.texcoords[2 * index.texcoord_index + 0],
-		1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-	    };
+	    if (index.texcoord_index >= 0) {
+		vertex.texture = {
+		    attrib.texcoords[2 * index.texcoord_index + 0],
+		    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+		};
+	    } else {
+		vertex.texture = {-1.0f, -1.0f};
+		model.has_textures = false;
+	    }
 	    
 	    model.vertices.push_back(vertex);
 	    if (unique_vertices.count(vertex) == 0) {

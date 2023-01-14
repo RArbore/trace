@@ -75,7 +75,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	    }
 	}
 
-	const float pos = sin(elapsed_time) + 1.2f;
+	const float pos = (float) sin(elapsed_time) + 1.2f;
 	scene.lights[0] = glm::vec4(pos, pos, pos, 2.0f);
 
 	context.ringbuffer_copy_scene_instances_into_buffer(scene);

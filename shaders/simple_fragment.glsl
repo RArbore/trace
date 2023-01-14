@@ -50,8 +50,16 @@ float light_intensity(vec4 light) {
 
 void main() {
     float light_contrib = 0.0;
-    for (uint idx = 0; idx < MAX_LIGHTS && lights[idx].w > 0.0; ++idx) {
-	light_contrib += light_intensity(lights[idx]);
+    if (in_normal != vec3(0.0, 0.0, 0.0)) {
+	for (uint idx = 0; idx < MAX_LIGHTS && lights[idx].w > 0.0; ++idx) {
+	    light_contrib += light_intensity(lights[idx]);
+	}
+    } else {
+	light_contrib = 1.0;
     }
-    out_color = texture(textures[in_model_id], in_texture) * vec4(vec3(light_contrib), 1.0);
+    vec4 albedo = vec4(1.0);
+    if (in_texture.x >= 0.0) {
+	albedo = texture(textures[in_model_id], in_texture);
+    }
+    out_color = albedo * vec4(vec3(light_contrib), 1.0);
 }
