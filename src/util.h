@@ -18,10 +18,11 @@
 #include <iostream>
 
 #include <vulkan/vulkan.h>
+#include <vulkan/vk_enum_string_helper.h>
 
 inline auto assert_impl(VkResult result, const char *msg, const char* file, uint32_t line) noexcept -> void {
     if (result != VK_SUCCESS) {
-	fprintf(stderr, "PANIC: %s\nOccurred in %s at line %u.\n", msg, file, line);
+	fprintf(stderr, "PANIC: %s\nFound Vulkan error code: %s\nOccurred in %s at line %u.\n", msg, string_VkResult(result), file, line);
 	exit(-1);
     }
 }

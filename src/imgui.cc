@@ -92,7 +92,7 @@ auto RenderContext::render_imgui(RasterScene &scene) noexcept -> void {
 	uint16_t image_id = scene.add_texture(load_image_lambda, texture_filepath.c_str());
 
 	update_vulkan_objects_for_scene(scene);
-	update_descriptors(scene, image_id);
+	update_descriptors_textures(scene, image_id);
     }
     
     ImGui::Render();

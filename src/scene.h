@@ -20,18 +20,23 @@
 #include <map>
 
 #include "model.h"
+#include "util.h"
 
 struct RasterScene {
+    static const uint32_t MAX_LIGHTS = 512;
+    
     std::vector<Model> models;
     std::vector<std::vector<glm::mat4>> transforms;
+    std::vector<std::pair<Image, VkImageView>> textures;
+    std::vector<glm::vec3> lights;
     uint16_t num_models;
     uint32_t num_objects;
     uint16_t num_textures;
+    uint16_t num_lights;
 
-    Buffer vertices_buf, indices_buf, instances_buf, indirect_draw_buf;
-    std::size_t vertices_buf_contents_size, indices_buf_contents_size, instances_buf_contents_size, indirect_draw_buf_contents_size;
+    Buffer vertices_buf, indices_buf, instances_buf, indirect_draw_buf, lights_buf;
+    std::size_t vertices_buf_contents_size, indices_buf_contents_size, instances_buf_contents_size, indirect_draw_buf_contents_size, lights_buf_contents_size;
     std::vector<std::size_t> model_vertices_offsets, model_indices_offsets;
-    std::vector<std::pair<Image, VkImageView>> textures;
     std::map<std::string, uint16_t> loaded_models;
     std::map<std::string, uint16_t> loaded_textures;
 
@@ -49,7 +54,7 @@ struct RasterScene {
     }
 
     auto add_object(const glm::mat4 &&transform, uint16_t model_id) noexcept -> void {
-	transforms.at(model_id).push_back(transform);
+	transforms.at(model_id).emplace_back(transform);
 	++num_objects;
     }
 
@@ -63,6 +68,13 @@ struct RasterScene {
 	} else {
 	    return it->second;
 	}
+    }
+
+    auto add_light(const glm::vec3 &&light) noexcept -> uint32_t {
+	ASSERT(num_lights < MAX_LIGHTS, "Tried to add too many lights.");
+	lights.emplace_back(light);
+	++num_lights;
+	return num_lights - 1;
     }
 
     static auto binding_descriptions() noexcept -> std::array<VkVertexInputBindingDescription, 2> {
@@ -86,7 +98,7 @@ struct RasterScene {
 	attribute_descriptions[1].binding = 0;
 	attribute_descriptions[1].location = 1;
 	attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attribute_descriptions[1].offset = offsetof(Model::Vertex, color);
+	attribute_descriptions[1].offset = offsetof(Model::Vertex, normal);
 	attribute_descriptions[2].binding = 0;
 	attribute_descriptions[2].location = 2;
 	attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;

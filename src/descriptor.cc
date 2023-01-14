@@ -45,16 +45,17 @@ auto RenderContext::cleanup_sampler() noexcept -> void {
 }
 
 auto RenderContext::create_descriptor_pool() noexcept -> void {
-    VkDescriptorPoolSize descriptor_pool_size {};
-    descriptor_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptor_pool_size.descriptorCount = FRAMES_IN_FLIGHT * MAX_TEXTURES;
+    VkDescriptorPoolSize descriptor_pool_sizes[] = {
+	{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, FRAMES_IN_FLIGHT * MAX_TEXTURES },
+	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, FRAMES_IN_FLIGHT },
+    };
 
     VkDescriptorPoolCreateInfo descriptor_pool_create_info {};
     descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
-    descriptor_pool_create_info.poolSizeCount = 1;
-    descriptor_pool_create_info.pPoolSizes = &descriptor_pool_size;
-    descriptor_pool_create_info.maxSets = FRAMES_IN_FLIGHT * MAX_TEXTURES;
+    descriptor_pool_create_info.poolSizeCount = sizeof(descriptor_pool_sizes) / sizeof(descriptor_pool_sizes[0]);
+    descriptor_pool_create_info.pPoolSizes = descriptor_pool_sizes;
+    descriptor_pool_create_info.maxSets = FRAMES_IN_FLIGHT * sizeof(descriptor_pool_sizes) / sizeof(descriptor_pool_sizes[0]);
 
     ASSERT(vkCreateDescriptorPool(device, &descriptor_pool_create_info, NULL, &descriptor_pool), "Unable to create descriptor pool.");
 
@@ -88,26 +89,34 @@ auto RenderContext::cleanup_descriptor_pool() noexcept -> void {
 }
 
 auto RenderContext::create_descriptor_set_layout() noexcept -> void {
-    VkDescriptorSetLayoutBinding sampler_layout_binding {};
-    sampler_layout_binding.binding = 0;
-    sampler_layout_binding.descriptorCount = MAX_TEXTURES;
-    sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    sampler_layout_binding.pImmutableSamplers = NULL;
-    sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    VkDescriptorSetLayoutBinding lights_buffer_layout_binding {};
+    lights_buffer_layout_binding.binding = 0;
+    lights_buffer_layout_binding.descriptorCount = 1;
+    lights_buffer_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    lights_buffer_layout_binding.pImmutableSamplers = NULL;
+    lights_buffer_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     
-    VkDescriptorSetLayoutBinding bindings[] = {sampler_layout_binding};
+    VkDescriptorSetLayoutBinding bindless_textures_layout_binding {};
+    bindless_textures_layout_binding.binding = 1;
+    bindless_textures_layout_binding.descriptorCount = MAX_TEXTURES;
+    bindless_textures_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindless_textures_layout_binding.pImmutableSamplers = NULL;
+    bindless_textures_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     
-    VkDescriptorBindingFlags bindless_flags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT;
+    VkDescriptorSetLayoutBinding bindings[] = {lights_buffer_layout_binding, bindless_textures_layout_binding};
+    
+    VkDescriptorBindingFlags bindless_flags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+    VkDescriptorBindingFlags bindings_flags[] = {0, bindless_flags};
 
-    VkDescriptorSetLayoutBindingFlagsCreateInfoEXT layout_binding_flags_create_info {};
-    layout_binding_flags_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
-    layout_binding_flags_create_info.bindingCount = 1;
-    layout_binding_flags_create_info.pBindingFlags = &bindless_flags;
+    VkDescriptorSetLayoutBindingFlagsCreateInfo layout_binding_flags_create_info {};
+    layout_binding_flags_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+    layout_binding_flags_create_info.bindingCount = sizeof(bindings_flags) / sizeof(bindings_flags[0]);
+    layout_binding_flags_create_info.pBindingFlags = bindings_flags;
 
     VkDescriptorSetLayoutCreateInfo layout_create_info {};
     layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layout_create_info.pNext = &layout_binding_flags_create_info;
-    layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
+    layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
     layout_create_info.bindingCount = sizeof(bindings) / sizeof(bindings[0]);
     layout_create_info.pBindings = bindings;
 
@@ -124,8 +133,8 @@ auto RenderContext::create_descriptor_sets() noexcept -> void {
     layouts.fill(raster_descriptor_set_layout);
     max_variable_count.fill(MAX_TEXTURES);
     
-    VkDescriptorSetVariableDescriptorCountAllocateInfoEXT variable_count_allocate_info {};
-    variable_count_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
+    VkDescriptorSetVariableDescriptorCountAllocateInfo variable_count_allocate_info {};
+    variable_count_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
     variable_count_allocate_info.descriptorSetCount = FRAMES_IN_FLIGHT;
     variable_count_allocate_info.pDescriptorCounts = max_variable_count.data();
     
@@ -139,7 +148,7 @@ auto RenderContext::create_descriptor_sets() noexcept -> void {
     ASSERT(vkAllocateDescriptorSets(device, &allocate_info, raster_descriptor_sets.data()), "Unable to allocate descriptor sets.");
 }
 
-auto RenderContext::update_descriptors(const RasterScene &scene, uint32_t update_texture) noexcept -> void {
+auto RenderContext::update_descriptors_textures(const RasterScene &scene, uint32_t update_texture) noexcept -> void {
     VkDescriptorImageInfo descriptor_image_info {};
     descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     descriptor_image_info.imageView = scene.textures[update_texture].second;
@@ -149,12 +158,34 @@ auto RenderContext::update_descriptors(const RasterScene &scene, uint32_t update
     for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
 	write_descriptor_set[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	write_descriptor_set[i].dstSet = raster_descriptor_sets[i];
-	write_descriptor_set[i].dstBinding = 0;
+	write_descriptor_set[i].dstBinding = 1;
 	write_descriptor_set[i].dstArrayElement = update_texture;
 	write_descriptor_set[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	write_descriptor_set[i].descriptorCount = 1;
 	write_descriptor_set[i].pImageInfo = &descriptor_image_info;
 	write_descriptor_set[i].pBufferInfo = NULL;
+	write_descriptor_set[i].pTexelBufferView = NULL;
+	write_descriptor_set[i].pNext = NULL;
+    }
+    vkUpdateDescriptorSets(device, FRAMES_IN_FLIGHT, write_descriptor_set, 0, NULL);
+}
+
+auto RenderContext::update_descriptors_lights(const RasterScene &scene) noexcept -> void {
+    VkDescriptorBufferInfo descriptor_buffer_info {};
+    descriptor_buffer_info.buffer = scene.lights_buf.buffer;
+    descriptor_buffer_info.offset = 0;
+    descriptor_buffer_info.range = VK_WHOLE_SIZE;
+
+    VkWriteDescriptorSet write_descriptor_set[FRAMES_IN_FLIGHT];
+    for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+	write_descriptor_set[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write_descriptor_set[i].dstSet = raster_descriptor_sets[i];
+	write_descriptor_set[i].dstBinding = 0;
+	write_descriptor_set[i].dstArrayElement = 0;
+	write_descriptor_set[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	write_descriptor_set[i].descriptorCount = 1;
+	write_descriptor_set[i].pImageInfo = NULL;
+	write_descriptor_set[i].pBufferInfo = &descriptor_buffer_info;
 	write_descriptor_set[i].pTexelBufferView = NULL;
 	write_descriptor_set[i].pNext = NULL;
     }

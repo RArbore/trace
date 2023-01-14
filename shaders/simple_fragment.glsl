@@ -16,14 +16,20 @@
 #pragma shader_stage(fragment)
 #extension GL_EXT_nonuniform_qualifier : enable
 
-layout(location = 0) in vec3 in_color;
+layout(location = 0) in vec3 in_normal;
 layout(location = 1) in vec2 in_texture;
 layout(location = 2) in flat uint in_model_id;
 
 layout(location = 0) out vec4 out_color;
 
-layout(set = 0, binding = 0) uniform sampler2D textures[];
+const uint MAX_LIGHTS = 512;
+layout(set = 0, binding = 0) uniform lights {
+    vec4 light[MAX_LIGHTS];
+};
+layout(set = 0, binding = 1) uniform sampler2D textures[];
 
 void main() {
-    out_color = vec4(in_color, 1.0) * texture(textures[in_model_id], in_texture);
+    //out_color = texture(textures[in_model_id], in_texture);
+    vec3 corrected_normal = normalize(in_normal);
+    out_color = vec4(corrected_normal / 2.0 + 0.5, 1.0);
 }

@@ -41,10 +41,11 @@ auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, V
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
     alloc_info.requiredFlags = memory_flags;
 
-    VkBuffer buffer;
-    VmaAllocation allocation;
+    VkBuffer buffer = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
 
-    ASSERT(vmaCreateBuffer(allocator, &create_info, &alloc_info, &buffer, &allocation, nullptr), "Unable to create buffer.");
+    if (size > 0)
+	ASSERT(vmaCreateBuffer(allocator, &create_info, &alloc_info, &buffer, &allocation, nullptr), "Unable to create buffer.");
     return {buffer, allocation, size, usage, memory_flags, vma_flags};
 }
 
@@ -133,10 +134,15 @@ auto RenderContext::allocate_vulkan_objects_for_scene(RasterScene &scene) noexce
     scene.indirect_draw_buf_contents_size = indirect_draw_size;
     scene.indirect_draw_buf = create_buffer(indirect_draw_size, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
+    const std::size_t lights_size = scene.num_lights * sizeof(glm::vec4);
+    scene.lights_buf_contents_size = lights_size;
+    scene.lights_buf = create_buffer(lights_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
     ringbuffer_copy_scene_vertices_into_buffer(scene);
     ringbuffer_copy_scene_indices_into_buffer(scene);
     ringbuffer_copy_scene_instances_into_buffer(scene);
     ringbuffer_copy_scene_indirect_draw_into_buffer(scene);
+    ringbuffer_copy_scene_lights_into_buffer(scene);
 }
 
 auto RenderContext::update_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void {
@@ -157,10 +163,14 @@ auto RenderContext::update_vulkan_objects_for_scene(RasterScene &scene) noexcept
     const std::size_t indirect_draw_size = scene.num_models * sizeof(VkDrawIndexedIndirectCommand);
     scene.indirect_draw_buf_contents_size = indirect_draw_size;
 
+    const std::size_t lights_size = scene.num_lights * sizeof(glm::vec4);
+    scene.lights_buf_contents_size = lights_size;
+
     ringbuffer_copy_scene_vertices_into_buffer(scene);
     ringbuffer_copy_scene_indices_into_buffer(scene);
     ringbuffer_copy_scene_instances_into_buffer(scene);
     ringbuffer_copy_scene_indirect_draw_into_buffer(scene);
+    ringbuffer_copy_scene_lights_into_buffer(scene);
 }
 
 auto RenderContext::cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void {
@@ -168,6 +178,7 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcep
     cleanup_buffer(scene.indices_buf);
     cleanup_buffer(scene.instances_buf);
     cleanup_buffer(scene.indirect_draw_buf);
+    cleanup_buffer(scene.lights_buf);
     for (auto image : scene.textures) {
 	cleanup_image_view(image.second);
 	cleanup_image(image.first);
@@ -215,6 +226,14 @@ auto RenderContext::ringbuffer_copy_scene_indirect_draw_into_buffer(RasterScene 
 	num_instances_so_far += (uint32_t) scene.transforms[i].size();
     }
     ringbuffer_submit_buffer(main_ring_buffer, scene.indirect_draw_buf);
+}
+
+auto RenderContext::ringbuffer_copy_scene_lights_into_buffer(RasterScene &scene) noexcept -> void {
+    glm::vec4 *data_light = (glm::vec4 *) ringbuffer_claim_buffer(main_ring_buffer, scene.lights_buf_contents_size);
+    for (std::size_t i = 0; i < scene.num_lights; ++i) {
+	data_light[i] = {scene.lights[i], 1.0f};
+    }
+    ringbuffer_submit_buffer(main_ring_buffer, scene.lights_buf);
 }
 
 auto RenderContext::create_depth_resources() noexcept -> void {
@@ -267,6 +286,8 @@ static inline auto round_up_p2(std::size_t v) noexcept -> std::size_t {
 
 auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void * {
     ring_buffer.last_copy_size = size;
+    if (size == 0)
+	return NULL;
     for (ring_buffer.last_id = 0; ring_buffer.last_id < ring_buffer.elements.size(); ++ring_buffer.last_id) {
 	auto &element = ring_buffer.elements[ring_buffer.last_id];
 	if (element.size >= size && element.occupied == RingBuffer::NOT_OCCUPIED) {
@@ -305,6 +326,8 @@ auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t
 }
 
 auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst) noexcept -> void {
+    if (ring_buffer.last_copy_size == 0)
+	return;
     vmaUnmapMemory(allocator, ring_buffer.elements[ring_buffer.last_id].buffer.allocation);
 
     if (ring_buffer.last_copy_size > dst.size) {
@@ -466,12 +489,16 @@ auto RenderContext::load_obj_model(const char *obj_filepath) noexcept -> Model {
 		attrib.vertices[3 * index.vertex_index + 2]
 	    };
 	    
+	    vertex.normal = {
+		attrib.normals[3 * index.normal_index + 0],
+		attrib.normals[3 * index.normal_index + 1],
+		attrib.normals[3 * index.normal_index + 2]
+	    };
+	    
 	    vertex.texture = {
 		attrib.texcoords[2 * index.texcoord_index + 0],
 		1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
 	    };
-	    
-	    vertex.color = {1.0f, 1.0f, 1.0f};
 	    
 	    model.vertices.push_back(vertex);
 	    if (unique_vertices.count(vertex) == 0) {

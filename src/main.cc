@@ -21,18 +21,25 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     RenderContext context {};
     context.init();
 
-    RasterScene scene = {};
+    RasterScene scene {};
 
     const char *obj_filepath = "models/viking_room.obj";
     const char *texture_filepath = "models/viking_room.png";
-    auto load_model_lambda = [&](){ return context.load_obj_model(obj_filepath); };
-    uint16_t model_id = scene.add_model(load_model_lambda, obj_filepath);
+    const auto load_model_lambda = [&](){ return context.load_obj_model(obj_filepath); };
+    const uint16_t model_id = scene.add_model(load_model_lambda, obj_filepath);
     scene.add_object(glm::mat4(1), model_id);
-    auto load_image_lambda = [&](){ return context.load_texture(texture_filepath); };
-    uint16_t image_id = scene.add_texture(load_image_lambda, texture_filepath);
+    const auto load_image_lambda = [&](){ return context.load_texture(texture_filepath); };
+    const uint16_t image_id = scene.add_texture(load_image_lambda, texture_filepath);
+    scene.add_light({1.0f, 1.0f, 1.0f});
+    scene.add_light({1.0f, 1.0f, 0.0f});
+    scene.add_light({1.0f, 0.0f, 1.0f});
+    scene.add_light({0.0f, 1.0f, 1.0f});
+    scene.add_light({0.5f, 0.5f, 0.5f});
+    scene.add_light({0.5f, 0.5f, 0.5f});
     
     context.allocate_vulkan_objects_for_scene(scene);
-    context.update_descriptors(scene, image_id);
+    context.update_descriptors_textures(scene, image_id);
+    context.update_descriptors_lights(scene);
     
     const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
     context.perspective_matrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 1000.0f);
@@ -41,7 +48,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     auto system_time = std::chrono::system_clock::now();
     double rolling_average_dt = 0.0;
     double elapsed_time = 0.0;
-    double camera_theta = M_PI / 2.0, camera_phi = M_PI / 4.0;
+    double camera_theta = M_PI / 4.0, camera_phi = M_PI / 4.0;
     float camera_radius = 4.0f;
     const double sensitivity = 100.0;
     const uint32_t frames_per_fps_print = 2500;

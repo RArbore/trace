@@ -166,6 +166,7 @@ struct RenderContext {
     auto ringbuffer_copy_scene_indices_into_buffer(RasterScene &scene) noexcept -> void;
     auto ringbuffer_copy_scene_instances_into_buffer(RasterScene &scene) noexcept -> void;
     auto ringbuffer_copy_scene_indirect_draw_into_buffer(RasterScene &scene) noexcept -> void;
+    auto ringbuffer_copy_scene_lights_into_buffer(RasterScene &scene) noexcept -> void;
 
     auto ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void *;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst) noexcept -> void;
@@ -174,7 +175,8 @@ struct RenderContext {
     auto load_obj_model(const char *obj_filepath) noexcept -> Model;
     auto load_texture(const char *filepath) noexcept -> std::pair<Image, VkImageView>;
 
-    auto update_descriptors(const RasterScene &scene, uint32_t update_texture) noexcept -> void;
+    auto update_descriptors_textures(const RasterScene &scene, uint32_t update_texture) noexcept -> void;
+    auto update_descriptors_lights(const RasterScene &scene) noexcept -> void;
 
     auto init_imgui() noexcept -> void;
     auto cleanup_imgui() noexcept -> void;

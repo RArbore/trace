@@ -29,11 +29,11 @@
 struct Model {
     struct Vertex {
 	glm::vec3 position;
-	glm::vec3 color;
+	glm::vec3 normal;
 	glm::vec2 texture;
 
 	bool operator==(const Vertex& other) const {
-	    return position == other.position && color == other.color && texture == other.texture;
+	    return position == other.position && normal == other.normal && texture == other.texture;
 	}
     };
     
@@ -68,9 +68,7 @@ struct Model {
 namespace std {
     template<> struct hash<Model::Vertex> {
         size_t operator()(Model::Vertex const& vertex) const {
-            return ((hash<glm::vec3>()(vertex.position) ^
-                   (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
-                   (hash<glm::vec2>()(vertex.texture) << 1);
+            return ((hash<glm::vec3>()(vertex.position) ^ (hash<glm::vec3>()(vertex.normal) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texture) << 1);
         }
     };
 }
