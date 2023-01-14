@@ -28,12 +28,15 @@ layout (push_constant) uniform PushConstants {
 layout(location = 0) out vec3 out_position;
 layout(location = 1) out vec3 out_normal;
 layout(location = 2) out vec3 out_texture;
-layout(location = 3) out flat uint out_model_id;
+layout(location = 3) out flat uint out_model_info;
 
 void main() {
-    gl_Position = perspective_camera * in_model * vec4(in_position, 1.0);
-    out_position = (in_model * vec4(in_position, 1.0)).xyz;
-    out_normal = (in_model * vec4(in_normal, 0.0)).xyz;
+    out_model_info = floatBitsToInt(in_model[3][3]);
+    mat4 corrected_model = in_model;
+    corrected_model[3][3] = 1.0;
+    
+    gl_Position = perspective_camera * corrected_model * vec4(in_position, 1.0);
+    out_position = (corrected_model * vec4(in_position, 1.0)).xyz;
+    out_normal = (corrected_model * vec4(in_normal, 0.0)).xyz;
     out_texture = in_texture;
-    out_model_id = gl_DrawID;
 }

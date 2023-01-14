@@ -91,14 +91,15 @@ auto RenderContext::render_imgui(RasterScene &scene) noexcept -> void {
 	uint16_t model_id = scene.add_model(load_model_lambda, obj_filepath.c_str());
 	if (!std::filesystem::exists(texture_filepath)) {
 	    std::cout << model_id << " " << scene.models[model_id].vertices.size() << std::endl;
-	    scene.models[model_id].disable_texturing();
+            scene.models[model_id].disable_texturing();
 	}
-	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(imgui_data.model_position[0], imgui_data.model_position[1], imgui_data.model_position[2])), model_id);
+	uint16_t image_id = 0;
 	if (scene.models[model_id].has_textures) {
 	    auto load_image_lambda = [&](){ return load_texture(texture_filepath.c_str()); };
-	    uint16_t image_id = scene.add_texture(load_image_lambda, texture_filepath.c_str());
+	    image_id = scene.add_texture(load_image_lambda, texture_filepath.c_str());
 	    update_descriptors_textures(scene, image_id);
 	}
+	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(imgui_data.model_position[0], imgui_data.model_position[1], imgui_data.model_position[2])), model_id, image_id);
 
 	update_vulkan_objects_for_scene(scene);
     }

@@ -66,9 +66,6 @@ struct Model {
     }
 
     auto disable_texturing() noexcept -> void {
-	for (auto &v : vertices) {
-	    v.texture = {-1.0f, -1.0f};
-	}
 	has_textures = false;
     }
 };

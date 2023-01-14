@@ -27,9 +27,9 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     const char *texture_filepath = "models/viking_room.png";
     const auto load_model_lambda = [&](){ return context.load_obj_model(obj_filepath); };
     const uint16_t model_id = scene.add_model(load_model_lambda, obj_filepath);
-    scene.add_object(glm::mat4(1), model_id);
     const auto load_image_lambda = [&](){ return context.load_texture(texture_filepath); };
     const uint16_t image_id = scene.add_texture(load_image_lambda, texture_filepath);
+    scene.add_object(glm::mat4(1), model_id, image_id);
     scene.add_light({});
     scene.add_light({0.0, 0.0, 10.0, 10.0});
     

@@ -17,6 +17,7 @@
 
 #include <string>
 #include <array>
+#include <bit>
 #include <map>
 
 #include "model.h"
@@ -53,8 +54,13 @@ struct RasterScene {
 	}
     }
 
-    auto add_object(const glm::mat4 &&transform, uint16_t model_id) noexcept -> void {
-	transforms.at(model_id).emplace_back(transform);
+    auto add_object(const glm::mat4 &&transform, uint16_t model_id, uint16_t texture_id) noexcept -> void {
+	transforms[model_id].emplace_back(transform);
+	uint32_t model_info =
+	    (uint32_t) models[model_id].has_normals << 31 |
+	    (uint32_t) models[model_id].has_textures << 30 |
+	    texture_id;
+	transforms[model_id].back()[3][3] = std::bit_cast<float>(model_info);
 	++num_objects;
     }
 

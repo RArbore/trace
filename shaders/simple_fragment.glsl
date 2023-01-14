@@ -19,7 +19,7 @@
 layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec3 in_normal;
 layout(location = 2) in vec2 in_texture;
-layout(location = 3) in flat uint in_model_id;
+layout(location = 3) in flat uint in_model_info;
 
 layout (push_constant) uniform PushConstants {
     mat4 perspective_camera;
@@ -49,8 +49,11 @@ float light_intensity(vec4 light) {
 }
 
 void main() {
+    uint texture_id = in_model_info & 0xFFFF;
+    bool has_normal = bool(in_model_info >> 31);
+    bool has_textures = bool((in_model_info >> 30) & 1);
     float light_contrib = 0.0;
-    if (in_normal != vec3(0.0, 0.0, 0.0)) {
+    if (has_normal) {
 	for (uint idx = 0; idx < MAX_LIGHTS && lights[idx].w > 0.0; ++idx) {
 	    light_contrib += light_intensity(lights[idx]);
 	}
@@ -58,8 +61,8 @@ void main() {
 	light_contrib = 1.0;
     }
     vec4 albedo = vec4(1.0);
-    if (in_texture.x >= 0.0) {
-	albedo = texture(textures[in_model_id], in_texture);
+    if (has_textures) {
+	albedo = texture(textures[texture_id], in_texture);
     }
     out_color = albedo * vec4(vec3(light_contrib), 1.0);
 }
