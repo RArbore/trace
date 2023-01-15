@@ -173,8 +173,9 @@ struct RenderContext {
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst) noexcept -> void;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst) noexcept -> void;
 
-    auto load_obj_model(const char *obj_filepath) noexcept -> Model;
-    auto load_texture(const char *filepath) noexcept -> std::pair<Image, VkImageView>;
+    auto load_model(std::string_view model_name, RasterScene &scene) noexcept -> uint16_t;
+    auto load_obj_model(std::string_view obj_filepath) noexcept -> Model;
+    auto load_texture(std::string_view texture_filepath) noexcept -> std::pair<Image, VkImageView>;
 
     auto update_descriptors_textures(const RasterScene &scene, uint32_t update_texture) noexcept -> void;
     auto update_descriptors_lights(const RasterScene &scene) noexcept -> void;

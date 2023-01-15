@@ -12,6 +12,8 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <filesystem>
+
 #include <tiny_obj_loader.h>
 
 #include "context.h"
@@ -81,7 +83,7 @@ auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkEx
 
     VkImage image;
     VmaAllocation allocation;
-
+    
     ASSERT(vmaCreateImage(allocator, &create_info, &alloc_info, &image, &allocation, nullptr), "Unable to create image.");
     return {image, allocation, extent};
 }
@@ -442,40 +444,78 @@ auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst)
     vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
 }
 
-auto RenderContext::load_texture(const char *filepath) noexcept -> std::pair<Image, VkImageView> {
-    int tex_width, tex_height, tex_channels;
-    stbi_uc* pixels = stbi_load(filepath, &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
+auto RenderContext::load_model(std::string_view model_name, RasterScene &scene) noexcept -> uint16_t {
+    auto it = scene.loaded_models.find(std::string(model_name));
+    if (it != scene.loaded_models.end())
+	return it->second;
+    
+    const std::string obj_filepath =
+	std::string("models/") +
+	std::string(model_name) +
+	std::string(".obj");
+    std::string color_filepath =
+	std::string("models/") +
+	std::string(model_name) +
+	std::string("PBRCOLOR.png");
+    std::string normal_filepath =
+	std::string("models/") +
+	std::string(model_name) +
+	std::string("PBRNORMAL.png");
+    std::string rough_filepath =
+	std::string("models/") +
+	std::string(model_name) +
+	std::string("PBRROUGH.png");
+    std::string metal_filepath =
+	std::string("models/") +
+	std::string(model_name) +
+	std::string("PBRMETAL.png");
 
-    ASSERT(pixels, "Unable to load texture.");
-    std::size_t image_size = tex_width * tex_height * 4;
+    if (!std::filesystem::exists(color_filepath)) color_filepath = "models/DEFAULTPBRCOLOR.png";
+    if (!std::filesystem::exists(normal_filepath)) normal_filepath = "models/DEFAULTPBRNORMAL.png";
+    if (!std::filesystem::exists(rough_filepath)) rough_filepath = "models/DEFAULTPBRROUGH.png";
+    if (!std::filesystem::exists(metal_filepath)) metal_filepath = "models/DEFAULTPBRMETAL.png";
 
-    VkExtent2D extent = {(uint32_t) tex_width, (uint32_t) tex_height};
-    Image dst = create_image(0, VK_FORMAT_R8G8B8A8_SRGB, extent, 1, 1, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (std::filesystem::exists(obj_filepath)) {
+	const uint16_t model_id = scene.num_models;
+	const uint16_t base_texture_id = scene.num_textures;
 
-    void *data_image = ringbuffer_claim_buffer(main_ring_buffer, image_size);
-    memcpy(data_image, pixels, image_size);
-    ringbuffer_submit_buffer(main_ring_buffer, dst);
+	scene.models.emplace_back(load_obj_model(obj_filepath));
+	scene.textures.emplace_back(load_texture(color_filepath));
+	scene.textures.emplace_back(load_texture(normal_filepath));
+	scene.textures.emplace_back(load_texture(rough_filepath));
+	scene.textures.emplace_back(load_texture(metal_filepath));
+	scene.num_models += 1;
+	scene.num_textures += 4;
+	scene.transforms.emplace_back();
+	scene.models.back().base_texture_id = base_texture_id;
 
-    VkImageSubresourceRange subresource_range {};
-    subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    subresource_range.baseMipLevel = 0;
-    subresource_range.levelCount = 1;
-    subresource_range.baseArrayLayer = 0;
-    subresource_range.layerCount = 1;
+	update_descriptors_textures(scene, base_texture_id);
+	update_descriptors_textures(scene, base_texture_id + 1);
+	update_descriptors_textures(scene, base_texture_id + 2);
+	update_descriptors_textures(scene, base_texture_id + 3);
 
-    return {dst, create_image_view(dst.image, VK_FORMAT_R8G8B8A8_SRGB, subresource_range)};
+	scene.loaded_models.insert({std::string(model_name), model_id});
+
+	std::cout << "INFO: Loaded model " << obj_filepath << ", with " << scene.models.back().vertices.size() << " vertices and " << scene.models.back().indices.size() << " indices.\n";
+	std::cout << "INFO: Used PBR color texture at " << color_filepath << ".\n";
+	std::cout << "INFO: Used PBR normal texture at " << normal_filepath << ".\n";
+	std::cout << "INFO: Used PBR roughness texture at " << rough_filepath << ".\n";
+	std::cout << "INFO: Used PBR metallicity texture at " << metal_filepath << ".\n";
+	return model_id;
+    } else {
+	ASSERT(false, "Couldn't find model with given name. Currently, only .obj models are supported.");
+	return {};
+    }
 }
 
-auto RenderContext::load_obj_model(const char *obj_filepath) noexcept -> Model {
+auto RenderContext::load_obj_model(std::string_view obj_filepath) noexcept -> Model {
     Model model {};
-    model.has_normals = true;
-    model.has_textures = true;
 
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
-    ASSERT(tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, obj_filepath), "Unable to load OBJ model.");
+    ASSERT(tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, &obj_filepath[0]), "Unable to load OBJ model.");
 
     std::unordered_map<Model::Vertex, uint32_t> unique_vertices;
 
@@ -496,8 +536,7 @@ auto RenderContext::load_obj_model(const char *obj_filepath) noexcept -> Model {
 		    attrib.normals[3 * index.normal_index + 2]
 		};
 	    } else {
-		vertex.normal = {0.0f, 0.0f, 0.0f};
-		model.has_normals = false;
+		ASSERT(false, "Model must contain vertex normals.");
 	    }
 	    
 	    if (index.texcoord_index >= 0) {
@@ -506,8 +545,7 @@ auto RenderContext::load_obj_model(const char *obj_filepath) noexcept -> Model {
 		    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
 		};
 	    } else {
-		vertex.texture = {-1.0f, -1.0f};
-		model.has_textures = false;
+		vertex.texture = {0.0f, 0.0f};
 	    }
 	    
 	    model.vertices.push_back(vertex);
@@ -518,8 +556,30 @@ auto RenderContext::load_obj_model(const char *obj_filepath) noexcept -> Model {
 	    model.indices.push_back(unique_vertices[vertex]);
 	}
     }
-
-    std::cout << "INFO: Loaded model " << obj_filepath << ", with " << model.vertices.size() << " vertices and " << model.indices.size() << " indices.\n";
     
     return model;
+}
+
+auto RenderContext::load_texture(std::string_view texture_filepath) noexcept -> std::pair<Image, VkImageView> {
+    int tex_width, tex_height, tex_channels;
+    stbi_uc* pixels = stbi_load(&texture_filepath[0], &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
+
+    ASSERT(pixels, "Unable to load texture.");
+    std::size_t image_size = tex_width * tex_height * 4;
+
+    VkExtent2D extent = {(uint32_t) tex_width, (uint32_t) tex_height};
+    Image dst = create_image(0, VK_FORMAT_R8G8B8A8_SRGB, extent, 1, 1, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    void *data_image = ringbuffer_claim_buffer(main_ring_buffer, image_size);
+    memcpy(data_image, pixels, image_size);
+    ringbuffer_submit_buffer(main_ring_buffer, dst);
+
+    VkImageSubresourceRange subresource_range {};
+    subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresource_range.baseMipLevel = 0;
+    subresource_range.levelCount = 1;
+    subresource_range.baseArrayLayer = 0;
+    subresource_range.layerCount = 1;
+
+    return {dst, create_image_view(dst.image, VK_FORMAT_R8G8B8A8_SRGB, subresource_range)};
 }

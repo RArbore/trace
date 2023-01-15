@@ -12,8 +12,6 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <filesystem>
-
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
@@ -84,22 +82,8 @@ auto RenderContext::render_imgui(RasterScene &scene) noexcept -> void {
     ImGui::InputFloat("Y position of model", &imgui_data.model_position[1]);
     ImGui::InputFloat("Z position of model", &imgui_data.model_position[2]);
     if (ImGui::Button("Load model")) {
-	std::string obj_filepath = "models/" + std::string(imgui_data.model_name.data()) + ".obj";
-	std::string texture_filepath = "models/" + std::string(imgui_data.model_name.data()) + ".png";
-
-	auto load_model_lambda = [&](){ return load_obj_model(obj_filepath.c_str()); };
-	uint16_t model_id = scene.add_model(load_model_lambda, obj_filepath.c_str());
-	if (!std::filesystem::exists(texture_filepath)) {
-	    std::cout << model_id << " " << scene.models[model_id].vertices.size() << std::endl;
-            scene.models[model_id].disable_texturing();
-	}
-	uint16_t image_id = 0;
-	if (scene.models[model_id].has_textures) {
-	    auto load_image_lambda = [&](){ return load_texture(texture_filepath.c_str()); };
-	    image_id = scene.add_texture(load_image_lambda, texture_filepath.c_str());
-	    update_descriptors_textures(scene, image_id);
-	}
-	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(imgui_data.model_position[0], imgui_data.model_position[1], imgui_data.model_position[2])), model_id, image_id);
+	uint16_t model_id = load_model(imgui_data.model_name.data(), scene);
+	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(imgui_data.model_position[0], imgui_data.model_position[1], imgui_data.model_position[2])), model_id);
 
 	update_vulkan_objects_for_scene(scene);
     }

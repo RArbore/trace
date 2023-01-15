@@ -39,41 +39,12 @@ struct RasterScene {
     std::size_t vertices_buf_contents_size, indices_buf_contents_size, instances_buf_contents_size, indirect_draw_buf_contents_size, lights_buf_contents_size;
     std::vector<std::size_t> model_vertices_offsets, model_indices_offsets;
     std::map<std::string, uint16_t> loaded_models;
-    std::map<std::string, uint16_t> loaded_textures;
 
-    auto add_model(auto &model_thunk, const char *obj_filepath) noexcept -> uint16_t {
-	auto it = loaded_models.find(std::string(obj_filepath));
-	if (it == loaded_models.end()) {
-	    models.push_back(model_thunk());
-	    transforms.push_back({});
-	    loaded_models.insert({std::string(obj_filepath), num_models});
-	    ++num_models;
-	    return num_models - 1;
-	} else {
-	    return it->second;
-	}
-    }
-
-    auto add_object(const glm::mat4 &&transform, uint16_t model_id, uint16_t texture_id) noexcept -> void {
+    auto add_object(const glm::mat4 &&transform, uint16_t model_id) noexcept -> void {
 	transforms[model_id].emplace_back(transform);
-	uint32_t model_info =
-	    (uint32_t) models[model_id].has_normals << 31 |
-	    (uint32_t) models[model_id].has_textures << 30 |
-	    texture_id;
+	uint32_t model_info = models[model_id].base_texture_id;
 	transforms[model_id].back()[3][3] = std::bit_cast<float>(model_info);
 	++num_objects;
-    }
-
-    auto add_texture(auto &image_thunk, const char *texture_filepath) noexcept -> uint16_t {
-	auto it = loaded_textures.find(std::string(texture_filepath));
-	if (it == loaded_textures.end()) {
-	    textures.push_back(image_thunk());
-	    loaded_textures.insert({std::string(texture_filepath), num_textures});
-	    ++num_textures;
-	    return num_textures - 1;
-	} else {
-	    return it->second;
-	}
     }
 
     auto add_light(const glm::vec4 &&light) noexcept -> uint32_t {

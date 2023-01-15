@@ -23,18 +23,12 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 
     RasterScene scene {};
 
-    const char *obj_filepath = "models/viking_room.obj";
-    const char *texture_filepath = "models/viking_room.png";
-    const auto load_model_lambda = [&](){ return context.load_obj_model(obj_filepath); };
-    const uint16_t model_id = scene.add_model(load_model_lambda, obj_filepath);
-    const auto load_image_lambda = [&](){ return context.load_texture(texture_filepath); };
-    const uint16_t image_id = scene.add_texture(load_image_lambda, texture_filepath);
-    scene.add_object(glm::mat4(1), model_id, image_id);
+    uint16_t model_id = context.load_model("viking_room", scene);
+    scene.add_object(glm::mat4(1), model_id);
     scene.add_light({});
     scene.add_light({0.0, 0.0, 10.0, 10.0});
     
     context.allocate_vulkan_objects_for_scene(scene);
-    context.update_descriptors_textures(scene, image_id);
     context.update_descriptors_lights(scene);
     
     const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
