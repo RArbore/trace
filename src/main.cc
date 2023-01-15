@@ -23,10 +23,10 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 
     RasterScene scene {};
 
-    uint16_t model_id = context.load_model("backpack", scene);
+    uint16_t model_id = context.load_model("pico", scene);
     scene.add_object(glm::mat4(1), model_id);
-    scene.add_light({1.0, 1.0, 1.0, 5.0});
-    scene.add_light({0.0, 0.0, 10.0, 10.0});
+    scene.add_light({1.0, 1.0, 1.0, 20.0});
+    scene.add_light({0.0, 0.0, 10.0, 100.0});
     
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors_lights(scene);
