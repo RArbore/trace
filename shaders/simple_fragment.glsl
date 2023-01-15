@@ -34,26 +34,94 @@ layout(set = 0, binding = 0) uniform lights_uniform {
 };
 layout(set = 0, binding = 1) uniform sampler2D textures[];
 
-float light_intensity(vec4 light) {
-    vec3 corrected_normal = normalize(in_normal);
-    float light_distance = length(light.xyz - in_position);
-    vec3 light_dir = normalize(light.xyz - in_position);
-    vec3 view_dir = normalize(camera_position - in_position);
-    vec3 reflect_dir = reflect(-light_dir, corrected_normal);
+const float PI = 3.14159265358979;
 
-    float ambient = 1.0;
-    float diffuse = max(dot(light_dir, corrected_normal), 0.0);
-    float specular = pow(max(dot(view_dir, reflect_dir), 0.0), 32);
+float normal_distribution(vec3 normal, vec3 halfway, float alpha) {
+    float alpha_2 = alpha * alpha;
+    float normal_dot_halfway = max(dot(normal, halfway), 0.0);
+    float normal_dot_halfway_2 = normal_dot_halfway * normal_dot_halfway;
+    
+    float nominator = alpha_2;
+    float denominator = (normal_dot_halfway_2 * (alpha_2 - 1.0) + 1.0);
+    denominator = PI * denominator * denominator;
+    
+    return nominator / denominator;
+}
 
-    return dot(vec3(ambient, diffuse, specular), vec3(0.2, 0.4, 0.4)) / light_distance * light.w;
+float geometry_schlick(float normal_dot_view, float k) {
+    float nominator = normal_dot_view;
+    float denominator = normal_dot_view * (1.0 - k) + k;
+	
+    return nominator / denominator;
+}
+  
+float geometry_smith(vec3 normal, vec3 view, vec3 light, float k) {
+    float normal_dot_view = max(dot(normal, view), 0.0);
+    float normal_dot_light = max(dot(normal, light), 0.0);
+    float ggx1 = geometry_schlick(normal_dot_view, k);
+    float ggx2 = geometry_schlick(normal_dot_light, k);
+	
+    return ggx1 * ggx2;
+}
+
+vec3 fresnel_schlick(float cos_theta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
 }
 
 void main() {
     uint texture_id = in_model_info & 0xFFFF;
-    float light_contrib = 0.0;
-    for (uint idx = 0; idx < MAX_LIGHTS && lights[idx].w > 0.0; ++idx) {
-	light_contrib += light_intensity(lights[idx]);
+    vec3 albedo = pow(texture(textures[texture_id], in_texture).xyz, vec3(2.2));
+    vec3 normal = texture(textures[texture_id + 1], in_texture).xyz;
+    float roughness = texture(textures[texture_id + 2], in_texture).x;
+    float metallicity = texture(textures[texture_id + 3], in_texture).x;
+
+    vec3 tangent_normal = normal * 2.0 - 1.0;
+
+    vec3 Q1 = dFdx(in_position);
+    vec3 Q2 = dFdy(in_position);
+    vec2 st1 = dFdx(in_texture);
+    vec2 st2 = dFdy(in_texture);
+
+    vec3 N = normalize(in_normal);
+    vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
+    vec3 B = -normalize(cross(N, T));
+    mat3 TBN = mat3(T, B, N);
+
+    vec3 corrected_normal = normalize(TBN * tangent_normal);
+
+    vec3 view_dir = normalize(camera_position - in_position);
+    vec3 F0_dieletric = vec3(0.04); 
+    vec3 F0 = mix(F0_dieletric, albedo, metallicity);
+    float alpha = roughness * roughness;
+    float k = (roughness + 1.0) * (roughness + 1.0) / 8.0;
+
+    vec3 outward_radiance = vec3(0.0);
+    for (uint light_id = 0; light_id < MAX_LIGHTS && lights[light_id].w > 0.0; ++light_id) {
+	vec3 light_position = lights[light_id].xyz;
+	float light_intensity = lights[light_id].w;
+
+	vec3 light_dir = normalize(light_position - in_position);
+	vec3 halfway_dir = normalize(view_dir + light_dir);
+
+	float distance = length(light_position - in_position);
+	float attenuation = 1.0 / (distance * distance);
+	vec3 radiance = vec3(light_intensity) * attenuation; 
+
+	float D = normal_distribution(corrected_normal, halfway_dir, alpha);
+	float G = geometry_smith(corrected_normal, view_dir, light_dir, k);
+	vec3 F = fresnel_schlick(max(dot(halfway_dir, view_dir), 0.0), F0);
+
+	vec3 numerator = D * G * F;
+	float denominator = 4.0 * max(dot(corrected_normal, view_dir), 0.0) * max(dot(corrected_normal, light_dir), 0.0)  + 0.0001;
+	vec3 specular = numerator / denominator;
+
+	vec3 kS = F;
+	vec3 kD = (vec3(1.0) - kS) * (1.0 - metallicity);
+	float normal_dot_light = max(dot(corrected_normal, light_dir), 0.0);
+	outward_radiance += (kD * albedo / PI + specular) * radiance * normal_dot_light;
     }
-    vec4 albedo = texture(textures[texture_id], in_texture);
-    out_color = albedo * vec4(vec3(light_contrib), 1.0);
+
+    vec3 color = outward_radiance + vec3(0.03) * albedo;
+    vec3 tonemapped_color = pow(color / (color + vec3(1.0)), vec3(1.0 / 2.2)); 
+    out_color = vec4(tonemapped_color, 1.0);
 }

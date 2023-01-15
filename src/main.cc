@@ -23,9 +23,9 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 
     RasterScene scene {};
 
-    uint16_t model_id = context.load_model("viking_room", scene);
+    uint16_t model_id = context.load_model("backpack", scene);
     scene.add_object(glm::mat4(1), model_id);
-    scene.add_light({});
+    scene.add_light({1.0, 1.0, 1.0, 5.0});
     scene.add_light({0.0, 0.0, 10.0, 10.0});
     
     context.allocate_vulkan_objects_for_scene(scene);
@@ -68,9 +68,6 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 		if (camera_radius < 0.0001) camera_radius = 0.0001f;
 	    }
 	}
-
-	const float pos = (float) sin(elapsed_time) + 1.2f;
-	scene.lights[0] = glm::vec4(pos, pos, pos, 2.0f);
 
 	context.ringbuffer_copy_scene_instances_into_buffer(scene);
 	context.ringbuffer_copy_scene_lights_into_buffer(scene);

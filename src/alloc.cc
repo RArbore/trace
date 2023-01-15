@@ -480,10 +480,10 @@ auto RenderContext::load_model(std::string_view model_name, RasterScene &scene) 
 	const uint16_t base_texture_id = scene.num_textures;
 
 	scene.models.emplace_back(load_obj_model(obj_filepath));
-	scene.textures.emplace_back(load_texture(color_filepath));
-	scene.textures.emplace_back(load_texture(normal_filepath));
-	scene.textures.emplace_back(load_texture(rough_filepath));
-	scene.textures.emplace_back(load_texture(metal_filepath));
+	scene.textures.emplace_back(load_texture(color_filepath, true));
+	scene.textures.emplace_back(load_texture(normal_filepath, false));
+	scene.textures.emplace_back(load_texture(rough_filepath, false));
+	scene.textures.emplace_back(load_texture(metal_filepath, false));
 	scene.num_models += 1;
 	scene.num_textures += 4;
 	scene.transforms.emplace_back();
@@ -560,15 +560,16 @@ auto RenderContext::load_obj_model(std::string_view obj_filepath) noexcept -> Mo
     return model;
 }
 
-auto RenderContext::load_texture(std::string_view texture_filepath) noexcept -> std::pair<Image, VkImageView> {
+auto RenderContext::load_texture(std::string_view texture_filepath, bool srgb) noexcept -> std::pair<Image, VkImageView> {
     int tex_width, tex_height, tex_channels;
     stbi_uc* pixels = stbi_load(&texture_filepath[0], &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
 
     ASSERT(pixels, "Unable to load texture.");
     std::size_t image_size = tex_width * tex_height * 4;
 
+    VkFormat format = srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
     VkExtent2D extent = {(uint32_t) tex_width, (uint32_t) tex_height};
-    Image dst = create_image(0, VK_FORMAT_R8G8B8A8_SRGB, extent, 1, 1, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    Image dst = create_image(0, format, extent, 1, 1, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     void *data_image = ringbuffer_claim_buffer(main_ring_buffer, image_size);
     memcpy(data_image, pixels, image_size);
@@ -581,5 +582,5 @@ auto RenderContext::load_texture(std::string_view texture_filepath) noexcept -> 
     subresource_range.baseArrayLayer = 0;
     subresource_range.layerCount = 1;
 
-    return {dst, create_image_view(dst.image, VK_FORMAT_R8G8B8A8_SRGB, subresource_range)};
+    return {dst, create_image_view(dst.image, format, subresource_range)};
 }
