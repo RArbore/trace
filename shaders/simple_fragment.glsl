@@ -70,7 +70,7 @@ vec3 fresnel_schlick(float cos_theta, vec3 F0) {
 
 void main() {
     uint texture_id = in_model_info & 0xFFFF;
-    vec3 albedo = pow(texture(textures[texture_id], in_texture).xyz, vec3(2.2));
+    vec3 albedo = texture(textures[texture_id], in_texture).xyz;
     vec3 normal = texture(textures[texture_id + 1], in_texture).xyz;
     float roughness = texture(textures[texture_id + 2], in_texture).x;
     float metallicity = texture(textures[texture_id + 3], in_texture).x;
@@ -109,7 +109,7 @@ void main() {
 
 	float D = normal_distribution(corrected_normal, halfway_dir, alpha);
 	float G = geometry_smith(corrected_normal, view_dir, light_dir, k);
-	vec3 F = fresnel_schlick(max(dot(halfway_dir, view_dir), 0.0), F0);
+	vec3 F = fresnel_schlick(clamp(dot(halfway_dir, view_dir), 0.0, 1.0), F0);
 
 	vec3 numerator = D * G * F;
 	float denominator = 4.0 * max(dot(corrected_normal, view_dir), 0.0) * max(dot(corrected_normal, light_dir), 0.0)  + 0.0001;
@@ -122,6 +122,5 @@ void main() {
     }
 
     vec3 color = outward_radiance + vec3(0.03) * albedo;
-    vec3 tonemapped_color = pow(color / (color + vec3(1.0)), vec3(1.0 / 2.2)); 
-    out_color = vec4(tonemapped_color, 1.0);
+    out_color = vec4(color, 1.0);
 }
