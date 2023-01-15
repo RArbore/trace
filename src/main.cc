@@ -23,33 +23,35 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 
     RasterScene scene {};
 
-    uint16_t model_id = context.load_model("pico", scene);
-    scene.add_object(glm::mat4(1), model_id);
-    scene.add_light({1.0, 1.0, 1.0, 20.0});
-    scene.add_light({0.0, 0.0, 10.0, 100.0});
+    const uint16_t model_id = context.load_model("pico", scene);
+    for (float x = -0.25f; x <= 0.25f; x += 0.05f)
+	for (float y = -0.25f; y <= 0.25f; y += 0.05f)
+	    scene.add_object(glm::translate(glm::mat4(1), glm::vec3(x, y, 0.0f)), model_id);
+    scene.add_light({0.0, 0.5, 0.5, 10.0});
     
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors_lights(scene);
     
     const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
-    context.perspective_matrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 1000.0f);
+    context.perspective_matrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.01f, 1000.0f);
     context.perspective_matrix[1][1] *= -1.0f;
 
     auto system_time = std::chrono::system_clock::now();
-    double rolling_average_dt = 0.0;
+    double elapsed_time_subsecond = 0.0;
+    uint32_t num_frames_subsecond = 0;
     double elapsed_time = 0.0;
     double camera_theta = M_PI / 4.0, camera_phi = M_PI / 4.0;
     float camera_radius = 4.0f;
     const double sensitivity = 100.0;
-    const uint32_t frames_per_fps_print = 2500;
     while (context.active) {
 	const auto current_time = std::chrono::system_clock::now();
 	const std::chrono::duration<double> dt_chrono = current_time - system_time;
 	const double dt = dt_chrono.count();
 	system_time = current_time;
-	rolling_average_dt += dt;
-
 	elapsed_time += dt;
+	elapsed_time_subsecond += dt;
+	++num_frames_subsecond;
+
 	context.camera_position = camera_radius * glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta));
 	context.camera_matrix = glm::lookAt(context.camera_position, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	context.perspective_camera_matrix = context.perspective_matrix * context.camera_matrix;
@@ -74,9 +76,10 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	
 	context.render(scene);
 	
-	if (context.current_frame % frames_per_fps_print == 0) {
-	    printf("FPS: %f\n", (float) frames_per_fps_print / rolling_average_dt);
-	    rolling_average_dt = 0.0;
+	if (elapsed_time_subsecond >= 1.0f) {
+	    printf("FPS: %f\n", (float) num_frames_subsecond / elapsed_time_subsecond);
+	    elapsed_time_subsecond = 0.0;
+	    num_frames_subsecond = 0;
 	}
     }
 
