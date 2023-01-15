@@ -12,6 +12,8 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <sstream>
+
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
@@ -87,6 +89,9 @@ auto RenderContext::render_imgui(RasterScene &scene) noexcept -> void {
 
 	update_vulkan_objects_for_scene(scene);
     }
+    std::ostringstream fps_label;
+    fps_label << "FPS: " << last_fpss.back();
+    ImGui::PlotLines(fps_label.str().c_str(), last_fpss.data(), (int32_t) last_fpss.size());
     
     ImGui::Render();
 }

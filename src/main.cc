@@ -43,14 +43,14 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
     context.perspective_matrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.01f, 1000.0f);
     context.perspective_matrix[1][1] *= -1.0f;
+    context.camera_position = glm::vec3(3.0f, 3.0f, 4.0f);
 
     auto system_time = std::chrono::system_clock::now();
     double elapsed_time_subsecond = 0.0;
     uint32_t num_frames_subsecond = 0;
     double elapsed_time = 0.0;
-    double camera_theta = M_PI / 4.0, camera_phi = M_PI / 4.0;
-    float camera_radius = 4.0f;
-    const double sensitivity = 100.0;
+    double camera_theta = 3.0 * M_PI / 4.0, camera_phi = 5.0 * M_PI / 4.0;
+    const double sensitivity = 100.0, move_speed = 5.0;
     while (context.active) {
 	const auto current_time = std::chrono::system_clock::now();
 	const std::chrono::duration<double> dt_chrono = current_time - system_time;
@@ -60,22 +60,36 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	elapsed_time_subsecond += dt;
 	++num_frames_subsecond;
 
-	context.camera_position = camera_radius * glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta));
-	context.camera_matrix = glm::lookAt(context.camera_position, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::vec3 view_dir = glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta));
+	context.camera_matrix = glm::lookAt(context.camera_position, context.camera_position + view_dir, glm::vec3(0.0f, 0.0f, 1.0f));
 	context.perspective_camera_matrix = context.perspective_matrix * context.camera_matrix;
 	if (!context.is_using_imgui()) {
 	    const double mouse_dx = context.mouse_x - context.last_mouse_x;
 	    const double mouse_dy = context.mouse_y - context.last_mouse_y;
 	    if (context.pressed_buttons[GLFW_MOUSE_BUTTON_LEFT] == GLFW_PRESS) {
 		camera_phi -= mouse_dx / sensitivity;
-		camera_theta -= mouse_dy / sensitivity;
+		camera_theta += mouse_dy / sensitivity;
 		camera_theta = glm::clamp(camera_theta, 0.01, M_PI - 0.01);
 		if (camera_phi < 0.0) camera_phi += 2.0 * M_PI;
 		if (camera_phi >= 2.0 * M_PI) camera_phi -= 2.0 * M_PI;
 	    }
-	    if (context.pressed_buttons[GLFW_MOUSE_BUTTON_RIGHT] == GLFW_PRESS) {
-		camera_radius += (float) mouse_dy / (float) sensitivity;
-		if (camera_radius < 0.0001) camera_radius = 0.0001f;
+	    if (context.pressed_keys[GLFW_KEY_W] == GLFW_PRESS) {
+		context.camera_position += (float) (dt * move_speed) * glm::vec3(cos(camera_phi), sin(camera_phi), 0.0);
+	    }
+	    if (context.pressed_keys[GLFW_KEY_A] == GLFW_PRESS) {
+		context.camera_position += (float) (dt * move_speed) * glm::vec3(-sin(camera_phi), cos(camera_phi), 0.0);
+	    }
+	    if (context.pressed_keys[GLFW_KEY_S] == GLFW_PRESS) {
+		context.camera_position += (float) (dt * move_speed) * glm::vec3(-cos(camera_phi), -sin(camera_phi), 0.0);
+	    }
+	    if (context.pressed_keys[GLFW_KEY_D] == GLFW_PRESS) {
+		context.camera_position += (float) (dt * move_speed) * glm::vec3(sin(camera_phi), -cos(camera_phi), 0.0);
+	    }
+	    if (context.pressed_keys[GLFW_KEY_LEFT_SHIFT] == GLFW_PRESS) {
+		context.camera_position += (float) (dt * move_speed) * glm::vec3(0.0, 0.0, -1.0);
+	    }
+	    if (context.pressed_keys[GLFW_KEY_SPACE] == GLFW_PRESS) {
+		context.camera_position += (float) (dt * move_speed) * glm::vec3(0.0, 0.0, 1.0);
 	    }
 	}
 
@@ -100,10 +114,14 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	
 	context.render(scene);
 	
-	if (elapsed_time_subsecond >= 1.0f) {
-	    printf("FPS: %f\n", (float) num_frames_subsecond / elapsed_time_subsecond);
+	if (elapsed_time_subsecond >= 0.25f) {
+	    float fps = (float) num_frames_subsecond / (float) elapsed_time_subsecond;
 	    elapsed_time_subsecond = 0.0;
 	    num_frames_subsecond = 0;
+	    for (uint16_t i = 0; i < context.last_fpss.size() - 1; ++i) {
+		context.last_fpss[i] = context.last_fpss[i + 1];
+	    }
+	    context.last_fpss[context.last_fpss.size() - 1] = fps;
 	}
     }
 
