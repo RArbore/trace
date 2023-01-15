@@ -15,6 +15,8 @@
 #include <iostream>
 #include <chrono>
 
+#include <glm/gtx/transform.hpp>
+
 #include "context.h"
 
 auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> int {
@@ -23,11 +25,17 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 
     RasterScene scene {};
 
-    const uint16_t model_id = context.load_model("pico", scene);
-    for (float x = -0.25f; x <= 0.25f; x += 0.05f)
-	for (float y = -0.25f; y <= 0.25f; y += 0.05f)
-	    scene.add_object(glm::translate(glm::mat4(1), glm::vec3(x, y, 0.0f)), model_id);
-    scene.add_light({0.0, 0.5, 0.5, 10.0});
+    const uint16_t model_id_stone_lion = context.load_model("stone_lion", scene);
+    for (int16_t x = -5; x <= 5; ++x)
+	for (int16_t y = -5; y <= 5; ++y)
+	    scene.add_object(glm::translate(glm::mat4(1), glm::vec3(x * 1.2f, y * 1.2f, 0.0f)), model_id_stone_lion);
+
+    const uint16_t model_id_pico = context.load_model("pico", scene);
+    for (int16_t x = -5; x <= 5; ++x)
+	for (int16_t y = -5; y <= 5; ++y)
+	    scene.add_object(glm::translate(glm::mat4(1), glm::vec3(x * 0.05f, y * 0.05f, 0.7f)), model_id_pico);
+
+    scene.add_light({0.0, 2.0, 2.0, 10.0});
     
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors_lights(scene);
@@ -71,6 +79,22 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	    }
 	}
 
+	uint32_t idx = 0;
+	for (int16_t x = -5; x <= 5; ++x) {
+	    for (int16_t y = -5; y <= 5; ++y) {
+		scene.transforms[model_id_stone_lion][idx] = glm::rotate(scene.transforms[model_id_stone_lion][idx], (float) dt, glm::vec3(x, y, 1.0f));
+		++idx;
+	    }
+	}
+
+	idx = 0;
+	for (int16_t x = -5; x <= 5; ++x) {
+	    for (int16_t y = -5; y <= 5; ++y) {
+		scene.transforms[model_id_pico][idx] = glm::rotate(scene.transforms[model_id_pico][idx], (float) dt, glm::vec3(y, -x, 1.0f));
+		++idx;
+	    }
+	}
+	
 	context.ringbuffer_copy_scene_instances_into_buffer(scene);
 	context.ringbuffer_copy_scene_lights_into_buffer(scene);
 	
