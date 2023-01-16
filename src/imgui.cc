@@ -86,8 +86,16 @@ auto RenderContext::render_imgui(RasterScene &scene) noexcept -> void {
     if (ImGui::Button("Load model")) {
 	uint16_t model_id = load_model(imgui_data.model_name.data(), scene);
 	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(imgui_data.model_position[0], imgui_data.model_position[1], imgui_data.model_position[2])), model_id);
-
 	update_vulkan_objects_for_scene(scene);
+    }
+    ImGui::InputFloat("Intensity of light", &imgui_data.light_intensity);
+    ImGui::InputFloat("X position of light", &imgui_data.light_position[0]);
+    ImGui::InputFloat("Y position of light", &imgui_data.light_position[1]);
+    ImGui::InputFloat("Z position of light", &imgui_data.light_position[2]);
+    if (ImGui::Button("Add light")) {
+	scene.add_light({imgui_data.light_position[0], imgui_data.light_position[1], imgui_data.light_position[2], imgui_data.light_intensity});
+	update_vulkan_objects_for_scene(scene);
+	update_descriptors_lights(scene);
     }
     std::ostringstream fps_label;
     fps_label << "FPS: " << last_fpss.back();

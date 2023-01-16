@@ -15,12 +15,12 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
-#include <unordered_map>
 #include <numeric>
 #include <cstring>
 #include <vector>
 #include <array>
 #include <tuple>
+#include <map>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -39,6 +39,8 @@ struct SwapchainSupport {
 struct ImGuiData {
     std::array<char, 100> model_name;
     std::array<float, 3> model_position;
+    float light_intensity;
+    std::array<float, 3> light_position;
 };
 
 struct RenderContext {
@@ -64,7 +66,7 @@ struct RenderContext {
     std::vector<VkImageView> swapchain_image_views;
     std::vector<VkFramebuffer> swapchain_framebuffers;
 
-    std::unordered_map<std::string, VkShaderModule> shader_modules;
+    std::map<std::string, VkShaderModule> shader_modules;
     VkPipelineLayout raster_pipeline_layout;
     VkRenderPass raster_render_pass;
     VkPipeline raster_pipeline;
@@ -85,6 +87,7 @@ struct RenderContext {
     VkDescriptorPool descriptor_pool, imgui_descriptor_pool;
     VkDescriptorSetLayout raster_descriptor_set_layout;
     std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> raster_descriptor_sets;
+    std::multimap<uint32_t, std::tuple<VkWriteDescriptorSet, VkDescriptorBufferInfo, VkDescriptorImageInfo>> raster_descriptor_set_writes;
 
     VmaAllocator allocator;
     std::vector<std::pair<Buffer, std::size_t>> buffer_cleanup_queue;

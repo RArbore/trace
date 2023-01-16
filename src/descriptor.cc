@@ -154,20 +154,23 @@ auto RenderContext::update_descriptors_textures(const RasterScene &scene, uint32
     descriptor_image_info.imageView = scene.textures[update_texture].second;
     descriptor_image_info.sampler = sampler;
 
-    VkWriteDescriptorSet write_descriptor_set[FRAMES_IN_FLIGHT];
     for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
-	write_descriptor_set[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	write_descriptor_set[i].dstSet = raster_descriptor_sets[i];
-	write_descriptor_set[i].dstBinding = 1;
-	write_descriptor_set[i].dstArrayElement = update_texture;
-	write_descriptor_set[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	write_descriptor_set[i].descriptorCount = 1;
-	write_descriptor_set[i].pImageInfo = &descriptor_image_info;
-	write_descriptor_set[i].pBufferInfo = NULL;
-	write_descriptor_set[i].pTexelBufferView = NULL;
-	write_descriptor_set[i].pNext = NULL;
+	std::tuple<VkWriteDescriptorSet, VkDescriptorBufferInfo, VkDescriptorImageInfo> entry {};
+	std::get<2>(entry) = descriptor_image_info;
+	auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
+
+	VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
+	write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write_descriptor_set.dstSet = raster_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
+	write_descriptor_set.dstBinding = 1;
+	write_descriptor_set.dstArrayElement = update_texture;
+	write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	write_descriptor_set.descriptorCount = 1;
+	write_descriptor_set.pImageInfo = &std::get<2>(it->second);
+	write_descriptor_set.pBufferInfo = NULL;
+	write_descriptor_set.pTexelBufferView = NULL;
+	write_descriptor_set.pNext = NULL;
     }
-    vkUpdateDescriptorSets(device, FRAMES_IN_FLIGHT, write_descriptor_set, 0, NULL);
 }
 
 auto RenderContext::update_descriptors_lights(const RasterScene &scene) noexcept -> void {
@@ -176,18 +179,21 @@ auto RenderContext::update_descriptors_lights(const RasterScene &scene) noexcept
     descriptor_buffer_info.offset = 0;
     descriptor_buffer_info.range = VK_WHOLE_SIZE;
 
-    VkWriteDescriptorSet write_descriptor_set[FRAMES_IN_FLIGHT];
     for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
-	write_descriptor_set[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	write_descriptor_set[i].dstSet = raster_descriptor_sets[i];
-	write_descriptor_set[i].dstBinding = 0;
-	write_descriptor_set[i].dstArrayElement = 0;
-	write_descriptor_set[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	write_descriptor_set[i].descriptorCount = 1;
-	write_descriptor_set[i].pImageInfo = NULL;
-	write_descriptor_set[i].pBufferInfo = &descriptor_buffer_info;
-	write_descriptor_set[i].pTexelBufferView = NULL;
-	write_descriptor_set[i].pNext = NULL;
+	std::tuple<VkWriteDescriptorSet, VkDescriptorBufferInfo, VkDescriptorImageInfo> entry {};
+	std::get<1>(entry) = descriptor_buffer_info;
+	auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
+
+	VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
+	write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write_descriptor_set.dstSet = raster_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
+	write_descriptor_set.dstBinding = 0;
+	write_descriptor_set.dstArrayElement = 0;
+	write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	write_descriptor_set.descriptorCount = 1;
+	write_descriptor_set.pImageInfo = NULL;
+	write_descriptor_set.pBufferInfo = &std::get<1>(it->second);
+	write_descriptor_set.pTexelBufferView = NULL;
+	write_descriptor_set.pNext = NULL;
     }
-    vkUpdateDescriptorSets(device, FRAMES_IN_FLIGHT, write_descriptor_set, 0, NULL);
 }

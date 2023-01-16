@@ -89,6 +89,15 @@ auto RenderContext::render(RasterScene &scene) noexcept -> void {
     ASSERT(acquire_next_image_result == VK_SUCCESS || acquire_next_image_result == VK_SUBOPTIMAL_KHR, "Unable to acquire next image.");
     vkResetFences(device, 1, &in_flight_fences[flight_index]);
 
+    {
+	auto it = raster_descriptor_set_writes.find(current_frame);
+	while (it != raster_descriptor_set_writes.end()) {
+            vkUpdateDescriptorSets(device, 1, &std::get<0>(it->second), 0, NULL);
+	    raster_descriptor_set_writes.erase(it);
+	    it = raster_descriptor_set_writes.find(current_frame);
+	}
+    }
+
     vkResetCommandBuffer(raster_command_buffers[flight_index], 0);
     record_raster_command_buffer(raster_command_buffers[flight_index], image_index, scene);
 
