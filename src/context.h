@@ -28,6 +28,12 @@
 #include "scene.h"
 #include "util.h"
 
+#define VKFN_MEMBER(fn)				\
+    PFN_ ## fn fn;
+
+#define VKFN_INIT(fn)				\
+    fn = (PFN_ ## fn) vkGetDeviceProcAddr(device, #fn);
+
 static constexpr uint32_t FRAMES_IN_FLIGHT = 2;
 
 struct SwapchainSupport {
@@ -195,6 +201,12 @@ struct RenderContext {
     auto render_imgui(RasterScene &scene) noexcept -> void;
     auto render_draw_data_wrapper_imgui(VkCommandBuffer command_buffer) noexcept -> void;
     auto is_using_imgui() noexcept -> bool;
+
+    VKFN_MEMBER(vkGetAccelerationStructureBuildSizesKHR)
+
+    auto init_vk_funcs() noexcept -> void {
+	VKFN_INIT(vkGetAccelerationStructureBuildSizesKHR)
+    }
 };
 
 #endif

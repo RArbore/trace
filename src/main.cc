@@ -89,13 +89,13 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	    }
 	}
 
-	uint32_t idx = 0;
+	/*uint32_t idx = 0;
 	for (int16_t x = -5; x <= 5; ++x) {
 	    for (int16_t y = -5; y <= 5; ++y) {
 		scene.transforms[model_id_pico][idx] = glm::rotate(scene.transforms[model_id_pico][idx], (float) dt, glm::vec3(y, -x, 1.0f));
 		++idx;
 	    }
-	}
+	}*/
 	
 	context.ringbuffer_copy_scene_instances_into_buffer(scene);
 	context.ringbuffer_copy_scene_lights_into_buffer(scene);

@@ -297,6 +297,7 @@ auto RenderContext::create_device() noexcept -> void {
 
     ASSERT(vkCreateDevice(physical_device, &device_create_info, NULL, &device), "Couldn't create logical device.");
     vkGetDeviceQueue(device, queue_family, 0, &queue);
+    init_vk_funcs();
 }
 
 auto RenderContext::cleanup_instance() noexcept -> void {

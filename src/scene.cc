@@ -309,4 +309,18 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     build_range_info.primitiveCount = the_model.num_triangles();
     build_range_info.primitiveOffset = 0;
     build_range_info.transformOffset = 0;
+
+    VkAccelerationStructureBuildGeometryInfoKHR build_geometry_info {};
+    build_geometry_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+    build_geometry_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    build_geometry_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+    build_geometry_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+    build_geometry_info.geometryCount = 1;
+    build_geometry_info.pGeometries = &geometry;
+
+    const uint32_t max_primitive_counts[] = {the_model.num_triangles()};
+
+    VkAccelerationStructureBuildSizesInfoKHR build_sizes_info {};
+    build_sizes_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
+    vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &build_geometry_info, max_primitive_counts, &build_sizes_info);
 }
