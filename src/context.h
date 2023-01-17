@@ -29,10 +29,10 @@
 #include "util.h"
 
 #define VKFN_MEMBER(fn)				\
-    PFN_ ## fn fn;
+    PFN_ ## fn fn
 
 #define VKFN_INIT(fn)				\
-    fn = (PFN_ ## fn) vkGetDeviceProcAddr(device, #fn);
+    fn = (PFN_ ## fn) vkGetDeviceProcAddr(device, #fn)
 
 static constexpr uint32_t FRAMES_IN_FLIGHT = 2;
 
@@ -99,6 +99,7 @@ struct RenderContext {
     std::vector<std::pair<Buffer, std::size_t>> buffer_cleanup_queue;
 
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR ray_tracing_properties;
+    VkPhysicalDeviceAccelerationStructurePropertiesKHR acceleration_structure_properties;
 
     ImGuiData imgui_data;
 
@@ -157,7 +158,8 @@ struct RenderContext {
 
     auto choose_swapchain_options(const SwapchainSupport &support) noexcept -> std::tuple<VkSurfaceFormatKHR, VkPresentModeKHR, VkExtent2D>;
 
-    auto create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Buffer;
+    auto create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags = 0, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Buffer;
+    auto create_buffer_with_alignment(VkDeviceSize size, VkDeviceSize alignment, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags = 0, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Buffer;
     auto cleanup_buffer(Buffer buffer) noexcept -> void;
     auto future_cleanup_buffer(Buffer buffer) noexcept -> void;
     auto create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mip_levels, uint32_t array_layers, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Image;
@@ -202,10 +204,43 @@ struct RenderContext {
     auto render_draw_data_wrapper_imgui(VkCommandBuffer command_buffer) noexcept -> void;
     auto is_using_imgui() noexcept -> bool;
 
-    VKFN_MEMBER(vkGetAccelerationStructureBuildSizesKHR)
+    VkCommandBuffer inefficient_one_time_command_buffer = VK_NULL_HANDLE;
+    auto inefficient_run_commands(auto F) noexcept -> void {
+	if (inefficient_one_time_command_buffer == VK_NULL_HANDLE) {
+	    VkCommandBufferAllocateInfo allocate_info {};
+	    allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	    allocate_info.commandPool = command_pool;
+	    allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	    allocate_info.commandBufferCount = 1;
+	    
+	    ASSERT(vkAllocateCommandBuffers(device, &allocate_info, &inefficient_one_time_command_buffer), "Unable to create one-time command buffer.");
+	}
 
+	VkCommandBufferBeginInfo begin_info {};
+	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	
+	ASSERT(vkBeginCommandBuffer(inefficient_one_time_command_buffer, &begin_info), "Unable to begin recording one-time command buffer.");
+	F(inefficient_one_time_command_buffer);
+	ASSERT(vkEndCommandBuffer(inefficient_one_time_command_buffer), "Something went wrong recording into one-time rcommand buffer.");
+
+	VkSubmitInfo submit_info {};
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers = &inefficient_one_time_command_buffer;
+
+	vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
+	vkQueueWaitIdle(queue);
+    }
+    
+    VKFN_MEMBER(vkGetAccelerationStructureBuildSizesKHR);
+    VKFN_MEMBER(vkCreateAccelerationStructureKHR);
+    VKFN_MEMBER(vkCmdBuildAccelerationStructuresKHR);
+    
     auto init_vk_funcs() noexcept -> void {
-	VKFN_INIT(vkGetAccelerationStructureBuildSizesKHR)
+	VKFN_INIT(vkGetAccelerationStructureBuildSizesKHR);
+	VKFN_INIT(vkCreateAccelerationStructureKHR);
+	VKFN_INIT(vkCmdBuildAccelerationStructuresKHR);
     }
 };
 

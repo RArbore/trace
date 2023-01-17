@@ -48,6 +48,26 @@ auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, V
     return {buffer, allocation, size, usage, memory_flags, vma_flags};
 }
 
+auto RenderContext::create_buffer_with_alignment(VkDeviceSize size, VkDeviceSize alignment, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags) noexcept -> Buffer {
+    VkBufferCreateInfo create_info {};
+    create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    create_info.size = size;
+    create_info.usage = usage;
+    create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VmaAllocationCreateInfo alloc_info {};
+    alloc_info.flags = vma_flags;
+    alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+    alloc_info.requiredFlags = memory_flags;
+
+    VkBuffer buffer = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
+
+    if (size > 0)
+	ASSERT(vmaCreateBufferWithAlignment(allocator, &create_info, &alloc_info, alignment, &buffer, &allocation, nullptr), "Unable to create buffer.");
+    return {buffer, allocation, size, usage, memory_flags, vma_flags};
+}
+
 auto RenderContext::cleanup_buffer(Buffer buffer) noexcept -> void {
     vmaDestroyBuffer(allocator, buffer.buffer, buffer.allocation);
 }

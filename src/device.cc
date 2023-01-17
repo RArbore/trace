@@ -237,6 +237,8 @@ auto RenderContext::create_physical_device() noexcept -> void {
     device_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
     device_properties.pNext = &ray_tracing_properties;
     ray_tracing_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+    ray_tracing_properties.pNext = &acceleration_structure_properties;
+    acceleration_structure_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR;
     vkGetPhysicalDeviceProperties2(physical_device, &device_properties);
     std::cout << "INFO: Using device " << device_properties.properties.deviceName << ".\n";
 }

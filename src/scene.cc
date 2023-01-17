@@ -25,12 +25,12 @@ auto RenderContext::allocate_vulkan_objects_for_scene(RasterScene &scene) noexce
     std::size_t vertex_idx = 0;
     const std::size_t vertex_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &vertex_idx](const std::size_t &accum, const Model &model) { scene.model_vertices_offsets[vertex_idx++] = accum; return accum + model.vertex_buffer_size(); });
     scene.vertices_buf_contents_size = vertex_size;
-    scene.vertices_buf = create_buffer(vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    scene.vertices_buf = create_buffer(vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     std::size_t index_idx = 0;
     const std::size_t index_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &index_idx](const std::size_t &accum, const Model &model) { scene.model_indices_offsets[index_idx++] = accum; return accum + model.index_buffer_size(); });
     scene.indices_buf_contents_size = index_size;
-    scene.indices_buf = create_buffer(index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    scene.indices_buf = create_buffer(index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     const std::size_t instance_size = scene.num_objects * sizeof(glm::mat4);
     scene.instances_buf_contents_size = instance_size;
@@ -295,7 +295,6 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     geometry_triangles_data.vertexStride = sizeof(Model::Vertex);
     geometry_triangles_data.indexType = VK_INDEX_TYPE_UINT32;
     geometry_triangles_data.indexData.deviceAddress = index_buffer_address;
-    //triangles.transformData = {};
     geometry_triangles_data.maxVertex = the_model.num_vertices();
 
     VkAccelerationStructureGeometryKHR geometry {};
@@ -309,6 +308,7 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     build_range_info.primitiveCount = the_model.num_triangles();
     build_range_info.primitiveOffset = 0;
     build_range_info.transformOffset = 0;
+    VkAccelerationStructureBuildRangeInfoKHR *build_range_infos[] = {&build_range_info}; 
 
     VkAccelerationStructureBuildGeometryInfoKHR build_geometry_info {};
     build_geometry_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
@@ -323,4 +323,25 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     VkAccelerationStructureBuildSizesInfoKHR build_sizes_info {};
     build_sizes_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
     vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &build_geometry_info, max_primitive_counts, &build_sizes_info);
+
+    VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
+    Buffer build_scratch_buffer = create_buffer_with_alignment(build_sizes_info.buildScratchSize, alignment, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    Buffer acceleration_structure_buffer = create_buffer_with_alignment(build_sizes_info.accelerationStructureSize, alignment, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR);
+
+    VkAccelerationStructureCreateInfoKHR bottom_level_create_info {};
+    bottom_level_create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+    bottom_level_create_info.buffer = acceleration_structure_buffer.buffer;
+    bottom_level_create_info.offset = 0;
+    bottom_level_create_info.size = build_sizes_info.accelerationStructureSize;
+    bottom_level_create_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+
+    VkAccelerationStructureKHR bottom_level_acceleration_structure;
+    ASSERT(vkCreateAccelerationStructureKHR(device, &bottom_level_create_info, NULL, &bottom_level_acceleration_structure), "Unable to create bottom level acceleration structure.");
+
+    build_geometry_info.dstAccelerationStructure = bottom_level_acceleration_structure;
+    build_geometry_info.scratchData.deviceAddress = get_device_address(build_scratch_buffer);
+
+    inefficient_run_commands([&](VkCommandBuffer cmd) {
+	vkCmdBuildAccelerationStructuresKHR(cmd, 1, &build_geometry_info, (const VkAccelerationStructureBuildRangeInfoKHR* const*) build_range_infos);
+    });
 }
