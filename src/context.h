@@ -92,6 +92,8 @@ struct RenderContext {
     VmaAllocator allocator;
     std::vector<std::pair<Buffer, std::size_t>> buffer_cleanup_queue;
 
+    VkPhysicalDeviceRayTracingPipelinePropertiesKHR ray_tracing_properties;
+
     ImGuiData imgui_data;
 
     double mouse_x;
@@ -183,6 +185,9 @@ struct RenderContext {
 
     auto update_descriptors_textures(const RasterScene &scene, uint32_t update_texture) noexcept -> void;
     auto update_descriptors_lights(const RasterScene &scene) noexcept -> void;
+
+    auto get_device_address(const Buffer &buffer) noexcept -> VkDeviceAddress;
+    auto build_acceleration_structure_for_scene(RasterScene &scene) noexcept -> void;
 
     auto init_imgui() noexcept -> void;
     auto cleanup_imgui() noexcept -> void;

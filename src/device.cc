@@ -21,8 +21,13 @@ static const char* validation_layers[] = {
 #endif
 
 static const char* device_extensions[] = {
-    "VK_KHR_swapchain",
-    "VK_EXT_descriptor_indexing",
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+    VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+    VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+    VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+    VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+    VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
 };
 
 auto RenderContext::create_instance() noexcept -> void {
@@ -119,9 +124,21 @@ auto RenderContext::physical_check_swapchain_support(VkPhysicalDevice specific_p
 }
 
 auto RenderContext::physical_check_features_support(VkPhysicalDevice physical) noexcept -> int32_t {
+    VkPhysicalDeviceBufferDeviceAddressFeatures buffer_device_address_features {};
+    buffer_device_address_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+    buffer_device_address_features.pNext = NULL;
+
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_features {};
+    acceleration_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    acceleration_features.pNext = &buffer_device_address_features;
+
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_features {};
+    ray_tracing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+    ray_tracing_features.pNext = &acceleration_features;
+
     VkPhysicalDeviceVulkan11Features vulkan_11_features {};
     vulkan_11_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-    vulkan_11_features.pNext = NULL;
+    vulkan_11_features.pNext = &ray_tracing_features;
 
     VkPhysicalDeviceDescriptorIndexingFeatures indexing_features {};
     indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
@@ -136,7 +153,11 @@ auto RenderContext::physical_check_features_support(VkPhysicalDevice physical) n
     
     if (indexing_features.descriptorBindingPartiallyBound &&
 	indexing_features.runtimeDescriptorArray &&
-	vulkan_11_features.shaderDrawParameters
+	vulkan_11_features.shaderDrawParameters &&
+	ray_tracing_features.rayTracingPipeline &&
+	acceleration_features.accelerationStructure &&
+	acceleration_features.descriptorBindingAccelerationStructureUpdateAfterBind &&
+	buffer_device_address_features.bufferDeviceAddress
 	) {
 	return 0;
     }
@@ -212,9 +233,12 @@ auto RenderContext::create_physical_device() noexcept -> void {
     ASSERT(best_physical != -1, "No physical device is suitable.");
     physical_device = possible[best_physical];
 
-    VkPhysicalDeviceProperties device_properties;
-    vkGetPhysicalDeviceProperties(physical_device, &device_properties);
-    std::cout << "INFO: Using device " << device_properties.deviceName << ".\n";
+    VkPhysicalDeviceProperties2 device_properties;
+    device_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+    device_properties.pNext = &ray_tracing_properties;
+    ray_tracing_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+    vkGetPhysicalDeviceProperties2(physical_device, &device_properties);
+    std::cout << "INFO: Using device " << device_properties.properties.deviceName << ".\n";
 }
 
 auto RenderContext::create_device() noexcept -> void {
@@ -229,10 +253,26 @@ auto RenderContext::create_device() noexcept -> void {
     queue_create_info.queueCount = 1;
     queue_create_info.pQueuePriorities = &queue_priority;
 
+    VkPhysicalDeviceBufferDeviceAddressFeatures buffer_device_address_features {};
+    buffer_device_address_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+    buffer_device_address_features.bufferDeviceAddress = VK_TRUE; 
+    buffer_device_address_features.pNext = NULL;
+
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_features {};
+    acceleration_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    acceleration_features.accelerationStructure = VK_TRUE;
+    acceleration_features.descriptorBindingAccelerationStructureUpdateAfterBind = VK_TRUE;
+    acceleration_features.pNext = &buffer_device_address_features;
+
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_features {};
+    ray_tracing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+    ray_tracing_features.rayTracingPipeline = VK_TRUE;
+    ray_tracing_features.pNext = &acceleration_features;
+
     VkPhysicalDeviceVulkan11Features vulkan_11_features {};
     vulkan_11_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
     vulkan_11_features.shaderDrawParameters = VK_TRUE;
-    vulkan_11_features.pNext = NULL;
+    vulkan_11_features.pNext = &ray_tracing_features;
 
     VkPhysicalDeviceDescriptorIndexingFeatures indexing_features {};
     indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
