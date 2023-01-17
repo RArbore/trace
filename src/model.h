@@ -57,6 +57,10 @@ struct Model {
 	return (uint32_t) indices.size();
     }
 
+    auto num_triangles() const noexcept -> uint32_t {
+	return (uint32_t) indices.size() / 3;
+    }
+
     auto dump_vertices(char *dst) const noexcept -> void {
 	memcpy(dst, vertices.data(), vertices.size() * sizeof(Vertex));
     }

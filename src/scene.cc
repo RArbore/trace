@@ -18,6 +18,128 @@
 
 #include "context.h"
 
+auto RenderContext::allocate_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void {
+    scene.model_vertices_offsets.resize(scene.models.size());
+    scene.model_indices_offsets.resize(scene.models.size());
+    
+    std::size_t vertex_idx = 0;
+    const std::size_t vertex_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &vertex_idx](const std::size_t &accum, const Model &model) { scene.model_vertices_offsets[vertex_idx++] = accum; return accum + model.vertex_buffer_size(); });
+    scene.vertices_buf_contents_size = vertex_size;
+    scene.vertices_buf = create_buffer(vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    std::size_t index_idx = 0;
+    const std::size_t index_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &index_idx](const std::size_t &accum, const Model &model) { scene.model_indices_offsets[index_idx++] = accum; return accum + model.index_buffer_size(); });
+    scene.indices_buf_contents_size = index_size;
+    scene.indices_buf = create_buffer(index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    const std::size_t instance_size = scene.num_objects * sizeof(glm::mat4);
+    scene.instances_buf_contents_size = instance_size;
+    scene.instances_buf = create_buffer(instance_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    const std::size_t indirect_draw_size = scene.num_models * sizeof(VkDrawIndexedIndirectCommand);
+    scene.indirect_draw_buf_contents_size = indirect_draw_size;
+    scene.indirect_draw_buf = create_buffer(indirect_draw_size, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    const std::size_t lights_size = scene.num_lights * sizeof(glm::vec4);
+    scene.lights_buf_contents_size = lights_size;
+    scene.lights_buf = create_buffer(lights_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    ringbuffer_copy_scene_vertices_into_buffer(scene);
+    ringbuffer_copy_scene_indices_into_buffer(scene);
+    ringbuffer_copy_scene_instances_into_buffer(scene);
+    ringbuffer_copy_scene_indirect_draw_into_buffer(scene);
+    ringbuffer_copy_scene_lights_into_buffer(scene);
+}
+
+auto RenderContext::update_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void {
+    scene.model_vertices_offsets.resize(scene.models.size());
+    scene.model_indices_offsets.resize(scene.models.size());
+    
+    std::size_t vertex_idx = 0;
+    const std::size_t vertex_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &vertex_idx](const std::size_t &accum, const Model &model) { scene.model_vertices_offsets[vertex_idx++] = accum; return accum + model.vertex_buffer_size(); });
+    scene.vertices_buf_contents_size = vertex_size;
+
+    std::size_t index_idx = 0;
+    const std::size_t index_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &index_idx](const std::size_t &accum, const Model &model) { scene.model_indices_offsets[index_idx++] = accum; return accum + model.index_buffer_size(); });
+    scene.indices_buf_contents_size = index_size;
+
+    const std::size_t instance_size = scene.num_objects * sizeof(glm::mat4);
+    scene.instances_buf_contents_size = instance_size;
+
+    const std::size_t indirect_draw_size = scene.num_models * sizeof(VkDrawIndexedIndirectCommand);
+    scene.indirect_draw_buf_contents_size = indirect_draw_size;
+
+    const std::size_t lights_size = scene.num_lights * sizeof(glm::vec4);
+    scene.lights_buf_contents_size = lights_size;
+
+    ringbuffer_copy_scene_vertices_into_buffer(scene);
+    ringbuffer_copy_scene_indices_into_buffer(scene);
+    ringbuffer_copy_scene_instances_into_buffer(scene);
+    ringbuffer_copy_scene_indirect_draw_into_buffer(scene);
+    ringbuffer_copy_scene_lights_into_buffer(scene);
+}
+
+auto RenderContext::cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void {
+    cleanup_buffer(scene.vertices_buf);
+    cleanup_buffer(scene.indices_buf);
+    cleanup_buffer(scene.instances_buf);
+    cleanup_buffer(scene.indirect_draw_buf);
+    cleanup_buffer(scene.lights_buf);
+    for (auto image : scene.textures) {
+	cleanup_image_view(image.second);
+	cleanup_image(image.first);
+    }
+}
+
+auto RenderContext::ringbuffer_copy_scene_vertices_into_buffer(RasterScene &scene) noexcept -> void {
+    char *data_vertex = (char *) ringbuffer_claim_buffer(main_ring_buffer, scene.vertices_buf_contents_size);
+    for (const Model &model : scene.models) {
+	model.dump_vertices(data_vertex);
+	data_vertex += model.vertex_buffer_size();
+    }
+    ringbuffer_submit_buffer(main_ring_buffer, scene.vertices_buf);
+}
+
+auto RenderContext::ringbuffer_copy_scene_indices_into_buffer(RasterScene &scene) noexcept -> void {
+    char *data_index = (char *) ringbuffer_claim_buffer(main_ring_buffer, scene.indices_buf_contents_size);
+    for (const Model &model : scene.models) {
+	model.dump_indices(data_index);
+	data_index += model.index_buffer_size();
+    }
+    ringbuffer_submit_buffer(main_ring_buffer, scene.indices_buf);
+}
+
+auto RenderContext::ringbuffer_copy_scene_instances_into_buffer(RasterScene &scene) noexcept -> void {
+    glm::mat4 *data_instance = (glm::mat4 *) ringbuffer_claim_buffer(main_ring_buffer, scene.instances_buf_contents_size);
+    for (auto transforms : scene.transforms) {
+	memcpy(data_instance, transforms.data(), transforms.size() * sizeof(glm::mat4));
+	data_instance += transforms.size();
+    }
+    ringbuffer_submit_buffer(main_ring_buffer, scene.instances_buf);
+}
+
+auto RenderContext::ringbuffer_copy_scene_indirect_draw_into_buffer(RasterScene &scene) noexcept -> void {
+    VkDrawIndexedIndirectCommand *data_indirect_draw  = (VkDrawIndexedIndirectCommand *) ringbuffer_claim_buffer(main_ring_buffer, scene.indirect_draw_buf_contents_size);
+    uint32_t num_instances_so_far = 0;
+    for (std::size_t i = 0; i < scene.num_models; ++i) {
+	const std::size_t vertex_buffer_model_offset = scene.model_vertices_offsets[i];
+	const std::size_t index_buffer_model_offset = scene.model_indices_offsets[i];
+	data_indirect_draw[i].indexCount = scene.models[i].num_indices();
+	data_indirect_draw[i].instanceCount = (uint32_t) scene.transforms[i].size();
+	data_indirect_draw[i].firstIndex = (uint32_t) index_buffer_model_offset / sizeof(uint32_t);
+	data_indirect_draw[i].vertexOffset = (int32_t) vertex_buffer_model_offset / sizeof(Model::Vertex);
+	data_indirect_draw[i].firstInstance = num_instances_so_far;
+	num_instances_so_far += (uint32_t) scene.transforms[i].size();
+    }
+    ringbuffer_submit_buffer(main_ring_buffer, scene.indirect_draw_buf);
+}
+
+auto RenderContext::ringbuffer_copy_scene_lights_into_buffer(RasterScene &scene) noexcept -> void {
+    glm::vec4 *data_light = (glm::vec4 *) ringbuffer_claim_buffer(main_ring_buffer, scene.lights_buf_contents_size);
+    memcpy(data_light, scene.lights.data(), scene.num_lights * sizeof(glm::vec4));
+    ringbuffer_submit_buffer(main_ring_buffer, scene.lights_buf);
+}
+
 auto RenderContext::load_model(std::string_view model_name, RasterScene &scene) noexcept -> uint16_t {
     auto it = scene.loaded_models.find(std::string(model_name));
     if (it != scene.loaded_models.end())
@@ -174,5 +296,17 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     geometry_triangles_data.indexType = VK_INDEX_TYPE_UINT32;
     geometry_triangles_data.indexData.deviceAddress = index_buffer_address;
     //triangles.transformData = {};
-    geometry_triangles_data.maxVertex = (uint32_t) the_model.vertices.size();
+    geometry_triangles_data.maxVertex = the_model.num_vertices();
+
+    VkAccelerationStructureGeometryKHR geometry {};
+    geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+    geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+    geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+    geometry.geometry.triangles = geometry_triangles_data;
+
+    VkAccelerationStructureBuildRangeInfoKHR build_range_info {};
+    build_range_info.firstVertex = 0;
+    build_range_info.primitiveCount = the_model.num_triangles();
+    build_range_info.primitiveOffset = 0;
+    build_range_info.transformOffset = 0;
 }
