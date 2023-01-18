@@ -345,3 +345,10 @@ auto RenderContext::get_device_address(const Buffer &buffer) noexcept -> VkDevic
     buffer_device_address_info.buffer = buffer.buffer;
     return vkGetBufferDeviceAddress(device, &buffer_device_address_info);
 }
+
+auto RenderContext::get_device_address(const VkAccelerationStructureKHR &acceleration_structure) noexcept -> VkDeviceAddress {
+    VkAccelerationStructureDeviceAddressInfoKHR acceleration_structure_device_address_info {};
+    acceleration_structure_device_address_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
+    acceleration_structure_device_address_info.accelerationStructure = acceleration_structure;
+    return vkGetAccelerationStructureDeviceAddressKHR(device, &acceleration_structure_device_address_info);
+}

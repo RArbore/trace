@@ -195,6 +195,7 @@ struct RenderContext {
     auto update_descriptors_lights(const RasterScene &scene) noexcept -> void;
 
     auto get_device_address(const Buffer &buffer) noexcept -> VkDeviceAddress;
+    auto get_device_address(const VkAccelerationStructureKHR &acceleration_structure) noexcept -> VkDeviceAddress;
     auto build_acceleration_structure_for_scene(RasterScene &scene) noexcept -> void;
 
     auto init_imgui() noexcept -> void;
@@ -236,11 +237,13 @@ struct RenderContext {
     VKFN_MEMBER(vkGetAccelerationStructureBuildSizesKHR);
     VKFN_MEMBER(vkCreateAccelerationStructureKHR);
     VKFN_MEMBER(vkCmdBuildAccelerationStructuresKHR);
+    VKFN_MEMBER(vkGetAccelerationStructureDeviceAddressKHR);
     
     auto init_vk_funcs() noexcept -> void {
 	VKFN_INIT(vkGetAccelerationStructureBuildSizesKHR);
 	VKFN_INIT(vkCreateAccelerationStructureKHR);
 	VKFN_INIT(vkCmdBuildAccelerationStructuresKHR);
+	VKFN_INIT(vkGetAccelerationStructureDeviceAddressKHR);
     }
 };
 

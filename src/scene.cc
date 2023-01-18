@@ -281,6 +281,14 @@ auto RenderContext::load_texture(std::string_view texture_filepath, bool srgb) n
     return {dst, create_image_view(dst.image, format, subresource_range)};
 }
 
+auto glm4x4_to_vk_transform(const glm::mat4 &in, VkTransformMatrixKHR &out) noexcept -> void {
+    for (uint16_t i = 0; i < 4; ++i) {
+	out.matrix[0][i] = in[i][0];
+	out.matrix[1][i] = in[i][1];
+	out.matrix[2][i] = in[i][2];
+    }
+}
+
 auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) noexcept -> void {
     auto &the_model = scene.models[0];
     auto &the_instance = scene.transforms[0][0];
@@ -344,4 +352,12 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     inefficient_run_commands([&](VkCommandBuffer cmd) {
 	vkCmdBuildAccelerationStructuresKHR(cmd, 1, &build_geometry_info, (const VkAccelerationStructureBuildRangeInfoKHR* const*) build_range_infos);
     });
+
+    VkAccelerationStructureInstanceKHR bottom_level_instance {};
+    glm4x4_to_vk_transform(the_instance, bottom_level_instance.transform);
+    bottom_level_instance.instanceCustomIndex = 0;
+    bottom_level_instance.mask = 0xFF;
+    bottom_level_instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+    bottom_level_instance.instanceShaderBindingTableRecordOffset = 0;
+    bottom_level_instance.accelerationStructureReference = get_device_address(bottom_level_acceleration_structure);
 }
