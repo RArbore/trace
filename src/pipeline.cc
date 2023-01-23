@@ -46,8 +46,8 @@ auto RenderContext::cleanup_shaders() noexcept -> void {
 }
 
 auto RenderContext::create_raster_pipeline() noexcept -> void {
-    VkShaderModule vertex_shader = shader_modules["simple_vertex"];
-    VkShaderModule fragment_shader = shader_modules["simple_fragment"];
+    VkShaderModule vertex_shader = shader_modules["pbr_vertex"];
+    VkShaderModule fragment_shader = shader_modules["pbr_fragment"];
 
     VkPipelineShaderStageCreateInfo vertex_shader_stage_create_info {};
     vertex_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
