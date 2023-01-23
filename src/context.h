@@ -206,6 +206,7 @@ struct RenderContext {
     auto is_using_imgui() noexcept -> bool;
 
     VkCommandBuffer inefficient_one_time_command_buffer = VK_NULL_HANDLE;
+    auto inefficient_upload_to_buffer(void *data, std::size_t size, Buffer buffer) noexcept -> void;
     auto inefficient_run_commands(auto F) noexcept -> void {
 	if (inefficient_one_time_command_buffer == VK_NULL_HANDLE) {
 	    VkCommandBufferAllocateInfo allocate_info {};

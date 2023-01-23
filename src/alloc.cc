@@ -352,3 +352,22 @@ auto RenderContext::get_device_address(const VkAccelerationStructureKHR &acceler
     acceleration_structure_device_address_info.accelerationStructure = acceleration_structure;
     return vkGetAccelerationStructureDeviceAddressKHR(device, &acceleration_structure_device_address_info);
 }
+
+auto RenderContext::inefficient_upload_to_buffer(void *data, std::size_t size, Buffer buffer) noexcept -> void {
+    Buffer cpu_visible = create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+    
+    char *buffer_data;
+    vmaMapMemory(allocator, cpu_visible.allocation, (void **) &buffer_data);
+    memcpy(buffer_data, data, size);
+    vmaUnmapMemory(allocator, cpu_visible.allocation);
+    
+    inefficient_run_commands([&](VkCommandBuffer cmd){
+	VkBufferCopy copy_region {};
+	copy_region.srcOffset = 0;
+	copy_region.dstOffset = 0;
+	copy_region.size = size;
+	vkCmdCopyBuffer(cmd, cpu_visible.buffer, buffer.buffer, 1, &copy_region);
+    });
+    
+    cleanup_buffer(cpu_visible);
+}

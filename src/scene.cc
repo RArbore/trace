@@ -360,4 +360,7 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     bottom_level_instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
     bottom_level_instance.instanceShaderBindingTableRecordOffset = 0;
     bottom_level_instance.accelerationStructureReference = get_device_address(bottom_level_acceleration_structure);
+
+    Buffer instances_buffer = create_buffer(sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR);
+    inefficient_upload_to_buffer(&bottom_level_instance, sizeof(VkAccelerationStructureInstanceKHR), instances_buffer);
 }
