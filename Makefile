@@ -32,7 +32,7 @@ $(OBJS): build/%.o: src/%.cc $(HEADERS)
 	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
 
 $(SPIRVS): build/%.spv: shaders/%.glsl
-	$(GLSL) $< -o $@
+	$(GLSL) --target-spv=spv1.5 $< -o $@
 
 build/imgui/imgui.o: imgui/imgui.cpp
 	$(CXX) $(IMGUI_FLAGS) $< -o $@

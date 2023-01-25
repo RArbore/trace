@@ -35,6 +35,7 @@ auto RenderContext::create_shaders() noexcept -> void {
 	    create_info.pCode = (uint32_t*) result.data();
 
 	    ASSERT(vkCreateShaderModule(device, &create_info, NULL, &shader_modules[filename.stem()]), "Unable to create shader module.");
+	    std::cout << "INFO: Loaded shader " << filename << ".\n";
 	}
     }
 }

@@ -22,8 +22,8 @@ layout(location = 2) in vec2 in_texture;
 layout(location = 3) in flat uint in_model_info;
 
 layout (push_constant) uniform PushConstants {
-    mat4 perspective_camera;
-    vec3 camera_position;
+    mat4 perspective;
+    mat4 camera;
 };
 
 layout(location = 0) out vec4 out_color;
@@ -89,7 +89,8 @@ void main() {
 
     vec3 corrected_normal = normalize(TBN * tangent_normal);
 
-    vec3 view_dir = normalize(camera_position - in_position);
+    vec3 cam_pos = (inverse(camera) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+    vec3 view_dir = normalize(cam_pos - in_position);
     vec3 F0_dieletric = vec3(0.04); 
     vec3 F0 = mix(F0_dieletric, albedo, metallicity);
     float alpha = roughness * roughness;

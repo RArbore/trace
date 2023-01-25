@@ -66,7 +66,6 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 
 	const glm::vec3 view_dir = glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta));
 	context.camera_matrix = glm::lookAt(context.camera_position, context.camera_position + view_dir, glm::vec3(0.0f, 0.0f, 1.0f));
-	context.perspective_camera_matrix = context.perspective_matrix * context.camera_matrix;
 	if (!context.is_using_imgui()) {
 	    const double mouse_dx = context.mouse_x - context.last_mouse_x;
 	    const double mouse_dy = context.mouse_y - context.last_mouse_y;

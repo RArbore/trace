@@ -60,7 +60,6 @@ struct RenderContext {
 
     glm::mat4 perspective_matrix;
     glm::mat4 camera_matrix;
-    glm::mat4 perspective_camera_matrix;
     glm::vec3 camera_position;
     
     VkInstance instance;
