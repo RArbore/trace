@@ -224,6 +224,14 @@ auto RenderContext::cleanup_raster_pipeline() noexcept -> void {
     vkDestroyPipelineLayout(device, raster_pipeline_layout, NULL);
 }
 
+auto RenderContext::create_ray_trace_pipeline() noexcept -> void {
+
+}
+
+auto RenderContext::cleanup_ray_trace_pipeline() noexcept -> void {
+
+}
+
 auto RenderContext::create_framebuffers() noexcept -> void {
     swapchain_framebuffers.resize(swapchain_images.size());
 

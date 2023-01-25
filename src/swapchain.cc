@@ -112,6 +112,27 @@ auto RenderContext::cleanup_swapchain() noexcept -> void {
     vkDestroySwapchainKHR(device, swapchain, NULL);
 }
 
+auto RenderContext::create_ray_trace_images() noexcept -> void {
+    VkImageSubresourceRange subresource_range {};
+    subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresource_range.baseMipLevel = 0;
+    subresource_range.levelCount = 1;
+    subresource_range.baseArrayLayer = 0;
+    subresource_range.layerCount = 1;
+
+    for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+	ray_trace_images[i] = create_image(0, VK_FORMAT_R8G8B8A8_UNORM, swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	ray_trace_image_views[i] = create_image_view(ray_trace_images[i].image, VK_FORMAT_R8G8B8A8_UNORM, subresource_range);
+    }
+}
+
+auto RenderContext::cleanup_ray_trace_images() noexcept -> void {
+    for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+	vkDestroyImageView(device, ray_trace_image_views[i], NULL);
+	vkDestroyImage(device, ray_trace_images[i].image, NULL);
+    }
+}
+
 auto RenderContext::recreate_swapchain() noexcept -> void {
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
@@ -124,7 +145,9 @@ auto RenderContext::recreate_swapchain() noexcept -> void {
     cleanup_framebuffers();
     cleanup_depth_resources();
     cleanup_swapchain();
+    cleanup_ray_trace_images();
     
+    create_ray_trace_images();
     create_swapchain();
     create_depth_resources();
     create_framebuffers();

@@ -73,6 +73,8 @@ struct RenderContext {
     std::vector<VkImage> swapchain_images;
     std::vector<VkImageView> swapchain_image_views;
     std::vector<VkFramebuffer> swapchain_framebuffers;
+    std::array<Image, FRAMES_IN_FLIGHT> ray_trace_images;
+    std::array<VkImageView, FRAMES_IN_FLIGHT> ray_trace_image_views;
 
     std::map<std::string, VkShaderModule> shader_modules;
     VkPipelineLayout raster_pipeline_layout;
@@ -125,8 +127,10 @@ struct RenderContext {
     auto create_device() noexcept -> void;
     auto create_allocator() noexcept -> void;
     auto create_swapchain() noexcept -> void;
+    auto create_ray_trace_images() noexcept -> void;
     auto create_shaders() noexcept -> void;
     auto create_raster_pipeline() noexcept -> void;
+    auto create_ray_trace_pipeline() noexcept -> void;
     auto create_framebuffers() noexcept -> void;
     auto create_sampler() noexcept -> void;
     auto create_descriptor_pool() noexcept -> void;
@@ -145,8 +149,10 @@ struct RenderContext {
     auto cleanup_device() noexcept -> void;
     auto cleanup_allocator() noexcept -> void;
     auto cleanup_swapchain() noexcept -> void;
+    auto cleanup_ray_trace_images() noexcept -> void;
     auto cleanup_shaders() noexcept -> void;
     auto cleanup_raster_pipeline() noexcept -> void;
+    auto cleanup_ray_trace_pipeline() noexcept -> void;
     auto cleanup_framebuffers() noexcept -> void;
     auto cleanup_sampler() noexcept -> void;
     auto cleanup_descriptor_pool() noexcept -> void;
@@ -166,7 +172,7 @@ struct RenderContext {
     auto choose_swapchain_options(const SwapchainSupport &support) noexcept -> std::tuple<VkSurfaceFormatKHR, VkPresentModeKHR, VkExtent2D>;
 
     auto create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags = 0, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Buffer;
-    auto create_buffer_with_alignment(VkDeviceSize size, VkDeviceSize alignment, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags = 0, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Buffer;
+    auto create_buffer_with_alignment(VkDeviceSize size, VkDeviceSize alignment, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Buffer;
     auto cleanup_buffer(Buffer buffer) noexcept -> void;
     auto future_cleanup_buffer(Buffer buffer) noexcept -> void;
     auto create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mip_levels, uint32_t array_layers, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Image;

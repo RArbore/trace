@@ -95,14 +95,14 @@ auto RenderContext::create_descriptor_set_layout() noexcept -> void {
     lights_buffer_layout_binding.descriptorCount = 1;
     lights_buffer_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     lights_buffer_layout_binding.pImmutableSamplers = NULL;
-    lights_buffer_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    lights_buffer_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
     
     VkDescriptorSetLayoutBinding bindless_textures_layout_binding {};
     bindless_textures_layout_binding.binding = 1;
     bindless_textures_layout_binding.descriptorCount = MAX_MODELS;
     bindless_textures_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     bindless_textures_layout_binding.pImmutableSamplers = NULL;
-    bindless_textures_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindless_textures_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
     
     VkDescriptorSetLayoutBinding bindings[] = {lights_buffer_layout_binding, bindless_textures_layout_binding};
     

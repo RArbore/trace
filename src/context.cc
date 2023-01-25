@@ -41,6 +41,7 @@ auto RenderContext::init() noexcept -> void {
     create_device();
     create_allocator();
     create_swapchain();
+    create_ray_trace_images();
     create_shaders();
     create_descriptor_pool();
     create_descriptor_set_layout();
@@ -167,6 +168,7 @@ auto RenderContext::cleanup() noexcept -> void {
     cleanup_raster_pipeline();
     cleanup_sampler();
     cleanup_shaders();
+    cleanup_ray_trace_images();
     cleanup_swapchain();
     cleanup_allocator();
     cleanup_device();
