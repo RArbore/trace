@@ -244,50 +244,50 @@ auto RenderContext::update_descriptors_lights(const RasterScene &scene) noexcept
     }
 }
 
-auto RenderContext::update_descriptors_ray_trace(const RasterScene &scene) noexcept -> void {
+auto RenderContext::update_descriptors_tlas(const RasterScene &scene) noexcept -> void {
     VkWriteDescriptorSetAccelerationStructureKHR descriptor_acceleration_structure_info {};
     descriptor_acceleration_structure_info.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
     descriptor_acceleration_structure_info.accelerationStructureCount = 1;
     descriptor_acceleration_structure_info.pAccelerationStructures = &scene.tlas;
 
     for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+	DescriptorWriteInfo entry {};
+	std::get<3>(entry) = descriptor_acceleration_structure_info;
+	auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
+	
+	VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
+	write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write_descriptor_set.dstSet = ray_trace_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
+	write_descriptor_set.dstBinding = 0;
+	write_descriptor_set.dstArrayElement = 0;
+	write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+	write_descriptor_set.descriptorCount = 1;
+	write_descriptor_set.pImageInfo = NULL;
+	write_descriptor_set.pBufferInfo = NULL;
+	write_descriptor_set.pTexelBufferView = NULL;
+	write_descriptor_set.pNext = &std::get<3>(it->second);
+    }
+}
+
+auto RenderContext::update_descriptors_ray_trace_images() noexcept -> void {
+    for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
 	VkDescriptorImageInfo descriptor_image_info {};
 	descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 	descriptor_image_info.imageView = ray_trace_image_views[i];
 
-	{
-	    DescriptorWriteInfo entry {};
-	    std::get<3>(entry) = descriptor_acceleration_structure_info;
-	    auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
-	    
-	    VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
-	    write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	    write_descriptor_set.dstSet = ray_trace_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
-	    write_descriptor_set.dstBinding = 0;
-	    write_descriptor_set.dstArrayElement = 0;
-	    write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-	    write_descriptor_set.descriptorCount = 1;
-	    write_descriptor_set.pImageInfo = NULL;
-	    write_descriptor_set.pBufferInfo = NULL;
-	    write_descriptor_set.pTexelBufferView = NULL;
-	    write_descriptor_set.pNext = &std::get<3>(it->second);
-	}
-
-	{
-	    DescriptorWriteInfo entry {};
-	    std::get<2>(entry) = descriptor_image_info;
-	    auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
-	    
-	    VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
-	    write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	    write_descriptor_set.dstSet = ray_trace_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
-	    write_descriptor_set.dstBinding = 1;
-	    write_descriptor_set.dstArrayElement = 0;
-	    write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	    write_descriptor_set.descriptorCount = 1;
-	    write_descriptor_set.pImageInfo = &std::get<2>(it->second);
-	    write_descriptor_set.pBufferInfo = NULL;
-	    write_descriptor_set.pTexelBufferView = NULL;
-	}
+	DescriptorWriteInfo entry {};
+	std::get<2>(entry) = descriptor_image_info;
+	auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
+	
+	VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
+	write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write_descriptor_set.dstSet = ray_trace_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
+	write_descriptor_set.dstBinding = 1;
+	write_descriptor_set.dstArrayElement = 0;
+	write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	write_descriptor_set.descriptorCount = 1;
+	write_descriptor_set.pImageInfo = &std::get<2>(it->second);
+	write_descriptor_set.pBufferInfo = NULL;
+	write_descriptor_set.pTexelBufferView = NULL;
     }
 }

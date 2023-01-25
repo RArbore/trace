@@ -152,5 +152,7 @@ auto RenderContext::recreate_swapchain() noexcept -> void {
     create_depth_resources();
     create_framebuffers();
 
+    update_descriptors_ray_trace_images();
+
     recreate_imgui();
 }

@@ -206,7 +206,8 @@ struct RenderContext {
 
     auto update_descriptors_textures(const RasterScene &scene, uint32_t update_texture) noexcept -> void;
     auto update_descriptors_lights(const RasterScene &scene) noexcept -> void;
-    auto update_descriptors_ray_trace(const RasterScene &scene) noexcept -> void;
+    auto update_descriptors_tlas(const RasterScene &scene) noexcept -> void;
+    auto update_descriptors_ray_trace_images() noexcept -> void;
 
     auto get_device_address(const Buffer &buffer) noexcept -> VkDeviceAddress;
     auto get_device_address(const VkAccelerationStructureKHR &acceleration_structure) noexcept -> VkDeviceAddress;
