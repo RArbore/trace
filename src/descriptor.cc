@@ -128,15 +128,22 @@ auto RenderContext::cleanup_descriptor_set_layout() noexcept -> void {
     vkDestroyDescriptorSetLayout(device, raster_descriptor_set_layout, NULL);
 }
 
-auto RenderContext::create_rt_descriptor_set_layout() noexcept -> void {
+auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
     VkDescriptorSetLayoutBinding tlas_layout_binding {};
     tlas_layout_binding.binding = 0;
     tlas_layout_binding.descriptorCount = 1;
     tlas_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     tlas_layout_binding.pImmutableSamplers = NULL;
     tlas_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+
+    VkDescriptorSetLayoutBinding out_image_layout_binding {};
+    out_image_layout_binding.binding = 1;
+    out_image_layout_binding.descriptorCount = 1;
+    out_image_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    out_image_layout_binding.pImmutableSamplers = NULL;
+    out_image_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
     
-    VkDescriptorSetLayoutBinding bindings[] = {tlas_layout_binding};
+    VkDescriptorSetLayoutBinding bindings[] = {tlas_layout_binding, out_image_layout_binding};
     
     VkDescriptorSetLayoutCreateInfo layout_create_info {};
     layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -147,7 +154,7 @@ auto RenderContext::create_rt_descriptor_set_layout() noexcept -> void {
     ASSERT(vkCreateDescriptorSetLayout(device, &layout_create_info, NULL, &ray_trace_descriptor_set_layout), "Unable to create descriptor set layout.");
 }
 
-auto RenderContext::cleanup_rt_descriptor_set_layout() noexcept -> void {
+auto RenderContext::cleanup_ray_trace_descriptor_set_layout() noexcept -> void {
     vkDestroyDescriptorSetLayout(device, ray_trace_descriptor_set_layout, NULL);
 }
 
@@ -172,7 +179,7 @@ auto RenderContext::create_descriptor_sets() noexcept -> void {
     ASSERT(vkAllocateDescriptorSets(device, &allocate_info, raster_descriptor_sets.data()), "Unable to allocate descriptor sets.");
 }
 
-auto RenderContext::create_rt_descriptor_sets() noexcept -> void {
+auto RenderContext::create_ray_trace_descriptor_sets() noexcept -> void {
     std::array<VkDescriptorSetLayout, FRAMES_IN_FLIGHT> layouts;
     std::array<uint32_t, FRAMES_IN_FLIGHT> max_variable_count;
     layouts.fill(ray_trace_descriptor_set_layout);
@@ -237,27 +244,50 @@ auto RenderContext::update_descriptors_lights(const RasterScene &scene) noexcept
     }
 }
 
-auto RenderContext::update_descriptors_tlas(const RasterScene &scene) noexcept -> void {
+auto RenderContext::update_descriptors_ray_trace(const RasterScene &scene) noexcept -> void {
     VkWriteDescriptorSetAccelerationStructureKHR descriptor_acceleration_structure_info {};
     descriptor_acceleration_structure_info.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
     descriptor_acceleration_structure_info.accelerationStructureCount = 1;
     descriptor_acceleration_structure_info.pAccelerationStructures = &scene.tlas;
 
     for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
-	DescriptorWriteInfo entry {};
-	std::get<3>(entry) = descriptor_acceleration_structure_info;
-	auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
+	VkDescriptorImageInfo descriptor_image_info {};
+	descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	descriptor_image_info.imageView = ray_trace_image_views[i];
 
-	VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
-        write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	write_descriptor_set.dstSet = ray_trace_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
-	write_descriptor_set.dstBinding = 0;
-	write_descriptor_set.dstArrayElement = 0;
-	write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-	write_descriptor_set.descriptorCount = 1;
-	write_descriptor_set.pImageInfo = NULL;
-	write_descriptor_set.pBufferInfo = NULL;
-	write_descriptor_set.pTexelBufferView = NULL;
-	write_descriptor_set.pNext = &std::get<3>(it->second);
+	{
+	    DescriptorWriteInfo entry {};
+	    std::get<3>(entry) = descriptor_acceleration_structure_info;
+	    auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
+	    
+	    VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
+	    write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	    write_descriptor_set.dstSet = ray_trace_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
+	    write_descriptor_set.dstBinding = 0;
+	    write_descriptor_set.dstArrayElement = 0;
+	    write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+	    write_descriptor_set.descriptorCount = 1;
+	    write_descriptor_set.pImageInfo = NULL;
+	    write_descriptor_set.pBufferInfo = NULL;
+	    write_descriptor_set.pTexelBufferView = NULL;
+	    write_descriptor_set.pNext = &std::get<3>(it->second);
+	}
+
+	{
+	    DescriptorWriteInfo entry {};
+	    std::get<2>(entry) = descriptor_image_info;
+	    auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
+	    
+	    VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
+	    write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	    write_descriptor_set.dstSet = ray_trace_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
+	    write_descriptor_set.dstBinding = 1;
+	    write_descriptor_set.dstArrayElement = 0;
+	    write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	    write_descriptor_set.descriptorCount = 1;
+	    write_descriptor_set.pImageInfo = &std::get<2>(it->second);
+	    write_descriptor_set.pBufferInfo = NULL;
+	    write_descriptor_set.pTexelBufferView = NULL;
+	}
     }
 }

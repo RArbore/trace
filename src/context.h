@@ -136,8 +136,8 @@ struct RenderContext {
     auto create_descriptor_pool() noexcept -> void;
     auto create_descriptor_set_layout() noexcept -> void;
     auto create_descriptor_sets() noexcept -> void;
-    auto create_rt_descriptor_set_layout() noexcept -> void;
-    auto create_rt_descriptor_sets() noexcept -> void;
+    auto create_ray_trace_descriptor_set_layout() noexcept -> void;
+    auto create_ray_trace_descriptor_sets() noexcept -> void;
     auto create_command_pool() noexcept -> void;
     auto create_depth_resources() noexcept -> void;
     auto create_command_buffers() noexcept -> void;
@@ -157,7 +157,7 @@ struct RenderContext {
     auto cleanup_sampler() noexcept -> void;
     auto cleanup_descriptor_pool() noexcept -> void;
     auto cleanup_descriptor_set_layout() noexcept -> void;
-    auto cleanup_rt_descriptor_set_layout() noexcept -> void;
+    auto cleanup_ray_trace_descriptor_set_layout() noexcept -> void;
     auto cleanup_command_pool() noexcept -> void;
     auto cleanup_depth_resources() noexcept -> void;
     auto cleanup_sync_objects() noexcept -> void;
@@ -206,7 +206,7 @@ struct RenderContext {
 
     auto update_descriptors_textures(const RasterScene &scene, uint32_t update_texture) noexcept -> void;
     auto update_descriptors_lights(const RasterScene &scene) noexcept -> void;
-    auto update_descriptors_tlas(const RasterScene &scene) noexcept -> void;
+    auto update_descriptors_ray_trace(const RasterScene &scene) noexcept -> void;
 
     auto get_device_address(const Buffer &buffer) noexcept -> VkDeviceAddress;
     auto get_device_address(const VkAccelerationStructureKHR &acceleration_structure) noexcept -> VkDeviceAddress;
