@@ -49,6 +49,8 @@ struct ImGuiData {
     std::array<float, 3> light_position;
 };
 
+using DescriptorWriteInfo = std::tuple<VkWriteDescriptorSet, VkDescriptorBufferInfo, VkDescriptorImageInfo, VkWriteDescriptorSetAccelerationStructureKHR>;
+
 struct RenderContext {
     GLFWwindow *window;
     bool active = true, resized = false;
@@ -95,7 +97,7 @@ struct RenderContext {
     VkDescriptorSetLayout ray_trace_descriptor_set_layout;
     std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> raster_descriptor_sets;
     std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> ray_trace_descriptor_sets;
-    std::multimap<uint32_t, std::tuple<VkWriteDescriptorSet, VkDescriptorBufferInfo, VkDescriptorImageInfo>> raster_descriptor_set_writes;
+    std::multimap<uint32_t, DescriptorWriteInfo> raster_descriptor_set_writes;
 
     VmaAllocator allocator;
     std::vector<std::pair<Buffer, std::size_t>> buffer_cleanup_queue;
@@ -198,6 +200,7 @@ struct RenderContext {
 
     auto update_descriptors_textures(const RasterScene &scene, uint32_t update_texture) noexcept -> void;
     auto update_descriptors_lights(const RasterScene &scene) noexcept -> void;
+    auto update_descriptors_tlas(const RasterScene &scene) noexcept -> void;
 
     auto get_device_address(const Buffer &buffer) noexcept -> VkDeviceAddress;
     auto get_device_address(const VkAccelerationStructureKHR &acceleration_structure) noexcept -> VkDeviceAddress;

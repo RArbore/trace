@@ -412,4 +412,6 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     inefficient_run_commands([&](VkCommandBuffer cmd) {
 	vkCmdBuildAccelerationStructuresKHR(cmd, 1, &tlas_build_geometry_info, (const VkAccelerationStructureBuildRangeInfoKHR* const*) tlas_build_range_infos);
     });
+
+    scene.tlas = top_level_acceleration_structure;
 }

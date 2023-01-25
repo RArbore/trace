@@ -194,7 +194,7 @@ auto RenderContext::update_descriptors_textures(const RasterScene &scene, uint32
     descriptor_image_info.sampler = sampler;
 
     for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
-	std::tuple<VkWriteDescriptorSet, VkDescriptorBufferInfo, VkDescriptorImageInfo> entry {};
+	DescriptorWriteInfo entry {};
 	std::get<2>(entry) = descriptor_image_info;
 	auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
 
@@ -219,12 +219,12 @@ auto RenderContext::update_descriptors_lights(const RasterScene &scene) noexcept
     descriptor_buffer_info.range = VK_WHOLE_SIZE;
 
     for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
-	std::tuple<VkWriteDescriptorSet, VkDescriptorBufferInfo, VkDescriptorImageInfo> entry {};
+	DescriptorWriteInfo entry {};
 	std::get<1>(entry) = descriptor_buffer_info;
 	auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
 
 	VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
-	write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	write_descriptor_set.dstSet = raster_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
 	write_descriptor_set.dstBinding = 0;
 	write_descriptor_set.dstArrayElement = 0;
@@ -234,5 +234,30 @@ auto RenderContext::update_descriptors_lights(const RasterScene &scene) noexcept
 	write_descriptor_set.pBufferInfo = &std::get<1>(it->second);
 	write_descriptor_set.pTexelBufferView = NULL;
 	write_descriptor_set.pNext = NULL;
+    }
+}
+
+auto RenderContext::update_descriptors_tlas(const RasterScene &scene) noexcept -> void {
+    VkWriteDescriptorSetAccelerationStructureKHR descriptor_acceleration_structure_info {};
+    descriptor_acceleration_structure_info.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+    descriptor_acceleration_structure_info.accelerationStructureCount = 1;
+    descriptor_acceleration_structure_info.pAccelerationStructures = &scene.tlas;
+
+    for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+	DescriptorWriteInfo entry {};
+	std::get<3>(entry) = descriptor_acceleration_structure_info;
+	auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
+
+	VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
+        write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write_descriptor_set.dstSet = ray_trace_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
+	write_descriptor_set.dstBinding = 0;
+	write_descriptor_set.dstArrayElement = 0;
+	write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+	write_descriptor_set.descriptorCount = 1;
+	write_descriptor_set.pImageInfo = NULL;
+	write_descriptor_set.pBufferInfo = NULL;
+	write_descriptor_set.pTexelBufferView = NULL;
+	write_descriptor_set.pNext = &std::get<3>(it->second);
     }
 }

@@ -40,6 +40,8 @@ struct RasterScene {
     std::vector<std::size_t> model_vertices_offsets, model_indices_offsets;
     std::map<std::string, uint16_t> loaded_models;
 
+    VkAccelerationStructureKHR tlas;
+
     auto add_object(const glm::mat4 &&transform, uint16_t model_id) noexcept -> void {
 	transforms[model_id].emplace_back(transform);
 	uint32_t model_info = models[model_id].base_texture_id;
