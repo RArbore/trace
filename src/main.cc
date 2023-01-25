@@ -19,6 +19,12 @@
 
 #include "context.h"
 
+static std::size_t num_heap_allocs = 0;
+void *operator new(size_t size) {
+    num_heap_allocs++;
+    return malloc(size);
+}
+
 auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> int {
     RenderContext context {};
     context.init();
@@ -108,11 +114,16 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	    const float fps = (float) num_frames_subsecond / (float) elapsed_time_subsecond;
 	    elapsed_time_subsecond = 0.0;
 	    num_frames_subsecond = 0;
-	    for (uint16_t i = 0; i < context.last_fpss.size() - 1; ++i) {
-		context.last_fpss[i] = context.last_fpss[i + 1];
+	    for (uint16_t i = 0; i < context.imgui_data.last_fpss.size() - 1; ++i) {
+		context.imgui_data.last_fpss[i] = context.imgui_data.last_fpss[i + 1];
 	    }
-	    context.last_fpss[context.last_fpss.size() - 1] = fps;
+	    context.imgui_data.last_fpss[context.imgui_data.last_fpss.size() - 1] = fps;
 	}
+	for (uint16_t i = 0; i < context.imgui_data.last_heaps.size() - 1; ++i) {
+	    context.imgui_data.last_heaps[i] = context.imgui_data.last_heaps[i + 1];
+	}
+	context.imgui_data.last_heaps[context.imgui_data.last_heaps.size() - 1] = (float) num_heap_allocs;
+	num_heap_allocs = 0;
     }
 
     vkDeviceWaitIdle(context.device);

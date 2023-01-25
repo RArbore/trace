@@ -98,8 +98,11 @@ auto RenderContext::render_imgui(RasterScene &scene) noexcept -> void {
 	update_descriptors_lights(scene);
     }
     std::ostringstream fps_label;
-    fps_label << "FPS: " << last_fpss.back();
-    ImGui::PlotLines(fps_label.str().c_str(), last_fpss.data(), (int32_t) last_fpss.size());
+    fps_label << "FPS: " << imgui_data.last_fpss.back();
+    ImGui::PlotLines(fps_label.str().c_str(), imgui_data.last_fpss.data(), (int32_t) imgui_data.last_fpss.size());
+    std::ostringstream heap_label;
+    heap_label << "HEAP: " << imgui_data.last_heaps.back();
+    ImGui::PlotLines(heap_label.str().c_str(), imgui_data.last_heaps.data(), (int32_t) imgui_data.last_heaps.size());
     
     ImGui::Render();
 }

@@ -47,6 +47,8 @@ struct ImGuiData {
     std::array<float, 3> model_position;
     float light_intensity;
     std::array<float, 3> light_position;
+    std::array<float, 50> last_fpss;
+    std::array<float, 500> last_heaps;
 };
 
 using DescriptorWriteInfo = std::tuple<VkWriteDescriptorSet, VkDescriptorBufferInfo, VkDescriptorImageInfo, VkWriteDescriptorSetAccelerationStructureKHR>;
@@ -113,7 +115,6 @@ struct RenderContext {
     double mouse_y;
     double last_mouse_x;
     double last_mouse_y;
-    std::array<float, 50> last_fpss;
     std::array<bool, GLFW_MOUSE_BUTTON_LAST + 1> pressed_buttons;
     std::array<bool, GLFW_KEY_LAST + 1> pressed_keys;
 
