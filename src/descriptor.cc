@@ -14,7 +14,7 @@
 
 #include "context.h"
 
-static constexpr uint32_t MAX_TEXTURES = 256;
+static constexpr uint32_t MAX_MODELS = 256;
 
 auto RenderContext::create_sampler() noexcept -> void {
     VkPhysicalDeviceProperties physical_device_properties {};
@@ -46,8 +46,9 @@ auto RenderContext::cleanup_sampler() noexcept -> void {
 
 auto RenderContext::create_descriptor_pool() noexcept -> void {
     VkDescriptorPoolSize descriptor_pool_sizes[] = {
-	{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, FRAMES_IN_FLIGHT * MAX_TEXTURES },
+	{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, FRAMES_IN_FLIGHT * MAX_MODELS },
 	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, FRAMES_IN_FLIGHT },
+	{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, FRAMES_IN_FLIGHT * MAX_MODELS },
     };
 
     VkDescriptorPoolCreateInfo descriptor_pool_create_info {};
@@ -98,7 +99,7 @@ auto RenderContext::create_descriptor_set_layout() noexcept -> void {
     
     VkDescriptorSetLayoutBinding bindless_textures_layout_binding {};
     bindless_textures_layout_binding.binding = 1;
-    bindless_textures_layout_binding.descriptorCount = MAX_TEXTURES;
+    bindless_textures_layout_binding.descriptorCount = MAX_MODELS;
     bindless_textures_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     bindless_textures_layout_binding.pImmutableSamplers = NULL;
     bindless_textures_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -127,11 +128,34 @@ auto RenderContext::cleanup_descriptor_set_layout() noexcept -> void {
     vkDestroyDescriptorSetLayout(device, raster_descriptor_set_layout, NULL);
 }
 
+auto RenderContext::create_rt_descriptor_set_layout() noexcept -> void {
+    VkDescriptorSetLayoutBinding tlas_layout_binding {};
+    tlas_layout_binding.binding = 0;
+    tlas_layout_binding.descriptorCount = 1;
+    tlas_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+    tlas_layout_binding.pImmutableSamplers = NULL;
+    tlas_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+    
+    VkDescriptorSetLayoutBinding bindings[] = {tlas_layout_binding};
+    
+    VkDescriptorSetLayoutCreateInfo layout_create_info {};
+    layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+    layout_create_info.bindingCount = sizeof(bindings) / sizeof(bindings[0]);
+    layout_create_info.pBindings = bindings;
+
+    ASSERT(vkCreateDescriptorSetLayout(device, &layout_create_info, NULL, &ray_trace_descriptor_set_layout), "Unable to create descriptor set layout.");
+}
+
+auto RenderContext::cleanup_rt_descriptor_set_layout() noexcept -> void {
+    vkDestroyDescriptorSetLayout(device, ray_trace_descriptor_set_layout, NULL);
+}
+
 auto RenderContext::create_descriptor_sets() noexcept -> void {
     std::array<VkDescriptorSetLayout, FRAMES_IN_FLIGHT> layouts;
     std::array<uint32_t, FRAMES_IN_FLIGHT> max_variable_count;
     layouts.fill(raster_descriptor_set_layout);
-    max_variable_count.fill(MAX_TEXTURES);
+    max_variable_count.fill(MAX_MODELS);
     
     VkDescriptorSetVariableDescriptorCountAllocateInfo variable_count_allocate_info {};
     variable_count_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
@@ -146,6 +170,21 @@ auto RenderContext::create_descriptor_sets() noexcept -> void {
     allocate_info.pSetLayouts = layouts.data();
 
     ASSERT(vkAllocateDescriptorSets(device, &allocate_info, raster_descriptor_sets.data()), "Unable to allocate descriptor sets.");
+}
+
+auto RenderContext::create_rt_descriptor_sets() noexcept -> void {
+    std::array<VkDescriptorSetLayout, FRAMES_IN_FLIGHT> layouts;
+    std::array<uint32_t, FRAMES_IN_FLIGHT> max_variable_count;
+    layouts.fill(ray_trace_descriptor_set_layout);
+    max_variable_count.fill(MAX_MODELS);
+    
+    VkDescriptorSetAllocateInfo allocate_info {};
+    allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocate_info.descriptorPool = descriptor_pool;
+    allocate_info.descriptorSetCount = FRAMES_IN_FLIGHT;
+    allocate_info.pSetLayouts = layouts.data();
+
+    ASSERT(vkAllocateDescriptorSets(device, &allocate_info, ray_trace_descriptor_sets.data()), "Unable to allocate descriptor sets.");
 }
 
 auto RenderContext::update_descriptors_textures(const RasterScene &scene, uint32_t update_texture) noexcept -> void {

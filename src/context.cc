@@ -45,6 +45,8 @@ auto RenderContext::init() noexcept -> void {
     create_descriptor_pool();
     create_descriptor_set_layout();
     create_descriptor_sets();
+    create_rt_descriptor_set_layout();
+    create_rt_descriptor_sets();
     create_raster_pipeline();
     create_sampler();
     create_command_pool();
@@ -161,6 +163,7 @@ auto RenderContext::cleanup() noexcept -> void {
     cleanup_command_pool();
     cleanup_descriptor_pool();
     cleanup_descriptor_set_layout();
+    cleanup_rt_descriptor_set_layout();
     cleanup_raster_pipeline();
     cleanup_sampler();
     cleanup_shaders();

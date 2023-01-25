@@ -92,7 +92,9 @@ struct RenderContext {
     VkSampler sampler;
     VkDescriptorPool descriptor_pool, imgui_descriptor_pool;
     VkDescriptorSetLayout raster_descriptor_set_layout;
+    VkDescriptorSetLayout ray_trace_descriptor_set_layout;
     std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> raster_descriptor_sets;
+    std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> ray_trace_descriptor_sets;
     std::multimap<uint32_t, std::tuple<VkWriteDescriptorSet, VkDescriptorBufferInfo, VkDescriptorImageInfo>> raster_descriptor_set_writes;
 
     VmaAllocator allocator;
@@ -128,6 +130,8 @@ struct RenderContext {
     auto create_descriptor_pool() noexcept -> void;
     auto create_descriptor_set_layout() noexcept -> void;
     auto create_descriptor_sets() noexcept -> void;
+    auto create_rt_descriptor_set_layout() noexcept -> void;
+    auto create_rt_descriptor_sets() noexcept -> void;
     auto create_command_pool() noexcept -> void;
     auto create_depth_resources() noexcept -> void;
     auto create_command_buffers() noexcept -> void;
@@ -145,6 +149,7 @@ struct RenderContext {
     auto cleanup_sampler() noexcept -> void;
     auto cleanup_descriptor_pool() noexcept -> void;
     auto cleanup_descriptor_set_layout() noexcept -> void;
+    auto cleanup_rt_descriptor_set_layout() noexcept -> void;
     auto cleanup_command_pool() noexcept -> void;
     auto cleanup_depth_resources() noexcept -> void;
     auto cleanup_sync_objects() noexcept -> void;
