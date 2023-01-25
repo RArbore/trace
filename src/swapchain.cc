@@ -128,8 +128,8 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 
 auto RenderContext::cleanup_ray_trace_images() noexcept -> void {
     for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
-	vkDestroyImageView(device, ray_trace_image_views[i], NULL);
-	vkDestroyImage(device, ray_trace_images[i].image, NULL);
+	cleanup_image_view(ray_trace_image_views[i]);
+	cleanup_image(ray_trace_images[i]);
     }
 }
 
