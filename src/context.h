@@ -258,12 +258,14 @@ struct RenderContext {
     VKFN_MEMBER(vkCreateAccelerationStructureKHR);
     VKFN_MEMBER(vkCmdBuildAccelerationStructuresKHR);
     VKFN_MEMBER(vkGetAccelerationStructureDeviceAddressKHR);
+    VKFN_MEMBER(vkCreateRayTracingPipelinesKHR);
     
     auto init_vk_funcs() noexcept -> void {
 	VKFN_INIT(vkGetAccelerationStructureBuildSizesKHR);
 	VKFN_INIT(vkCreateAccelerationStructureKHR);
 	VKFN_INIT(vkCmdBuildAccelerationStructuresKHR);
 	VKFN_INIT(vkGetAccelerationStructureDeviceAddressKHR);
+	VKFN_INIT(vkCreateRayTracingPipelinesKHR);
     }
 };
 

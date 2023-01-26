@@ -248,6 +248,8 @@ auto RenderContext::create_ray_trace_pipeline() noexcept -> void {
     rchit_shader_stage_create_info.module = rchit_shader;
     rchit_shader_stage_create_info.pName = "main";
 
+    VkPipelineShaderStageCreateInfo shader_stage_create_infos[] = {rgen_shader_stage_create_info, rmiss_shader_stage_create_info, rchit_shader_stage_create_info};
+
     VkRayTracingShaderGroupCreateInfoKHR shader_group_create_info {};
     shader_group_create_info.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
     shader_group_create_info.anyHitShader = VK_SHADER_UNUSED_KHR;
@@ -267,10 +269,36 @@ auto RenderContext::create_ray_trace_pipeline() noexcept -> void {
     shader_group_create_info.generalShader = VK_SHADER_UNUSED_KHR;
     shader_group_create_info.closestHitShader = 2;
     ray_trace_shader_groups.push_back(shader_group_create_info);
+
+    VkPushConstantRange push_constant_range {};
+    push_constant_range.offset = 0;
+    push_constant_range.size = 128;
+    push_constant_range.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
+
+    VkDescriptorSetLayout descriptor_set_layouts[] = {raster_descriptor_set_layout, ray_trace_descriptor_set_layout};
+
+    VkPipelineLayoutCreateInfo pipeline_layout_create_info {};
+    pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipeline_layout_create_info.pushConstantRangeCount = 1;
+    pipeline_layout_create_info.pPushConstantRanges = &push_constant_range;
+    pipeline_layout_create_info.setLayoutCount = 2;
+    pipeline_layout_create_info.pSetLayouts = descriptor_set_layouts;
+    ASSERT(vkCreatePipelineLayout(device, &pipeline_layout_create_info, NULL, &ray_trace_pipeline_layout), "Unable to create ray trace pipeline layout.");
+    
+    VkRayTracingPipelineCreateInfoKHR ray_trace_pipeline_create_info {};
+    ray_trace_pipeline_create_info.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
+    ray_trace_pipeline_create_info.stageCount = sizeof(shader_stage_create_infos) / sizeof(shader_stage_create_infos[0]);
+    ray_trace_pipeline_create_info.pStages = shader_stage_create_infos;
+    ray_trace_pipeline_create_info.groupCount = (uint32_t) ray_trace_shader_groups.size();
+    ray_trace_pipeline_create_info.pGroups = ray_trace_shader_groups.data();
+    ray_trace_pipeline_create_info.maxPipelineRayRecursionDepth = 1;
+    ray_trace_pipeline_create_info.layout = ray_trace_pipeline_layout;
+    ASSERT(vkCreateRayTracingPipelinesKHR(device, {}, {}, 1, &ray_trace_pipeline_create_info, nullptr, &ray_trace_pipeline), "Unable to create ray trace pipeline.");
 }
 
 auto RenderContext::cleanup_ray_trace_pipeline() noexcept -> void {
-
+    vkDestroyPipeline(device, ray_trace_pipeline, NULL);
+    vkDestroyPipelineLayout(device, ray_trace_pipeline_layout, NULL);
 }
 
 auto RenderContext::create_framebuffers() noexcept -> void {
