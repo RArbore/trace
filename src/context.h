@@ -82,6 +82,10 @@ struct RenderContext {
     VkRenderPass raster_render_pass;
     VkPipeline raster_pipeline;
 
+    std::vector<VkRayTracingShaderGroupCreateInfoKHR> ray_trace_shader_groups;
+    VkPipelineLayout ray_trace_pipeline_layout;
+    VkPipeline ray_trace_pipeline;
+
     Image depth_image;
     VkImageView depth_image_view;
     RingBuffer main_ring_buffer;

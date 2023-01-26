@@ -226,7 +226,47 @@ auto RenderContext::cleanup_raster_pipeline() noexcept -> void {
 }
 
 auto RenderContext::create_ray_trace_pipeline() noexcept -> void {
+    VkShaderModule rgen_shader = shader_modules["pbr_rgen"];
+    VkShaderModule rmiss_shader = shader_modules["pbr_rmiss"];
+    VkShaderModule rchit_shader = shader_modules["pbr_rchit"];
 
+    VkPipelineShaderStageCreateInfo rgen_shader_stage_create_info {};
+    rgen_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    rgen_shader_stage_create_info.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+    rgen_shader_stage_create_info.module = rgen_shader;
+    rgen_shader_stage_create_info.pName = "main";
+
+    VkPipelineShaderStageCreateInfo rmiss_shader_stage_create_info {};
+    rmiss_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    rmiss_shader_stage_create_info.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
+    rmiss_shader_stage_create_info.module = rmiss_shader;
+    rmiss_shader_stage_create_info.pName = "main";
+
+    VkPipelineShaderStageCreateInfo rchit_shader_stage_create_info {};
+    rchit_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    rchit_shader_stage_create_info.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+    rchit_shader_stage_create_info.module = rchit_shader;
+    rchit_shader_stage_create_info.pName = "main";
+
+    VkRayTracingShaderGroupCreateInfoKHR shader_group_create_info {};
+    shader_group_create_info.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+    shader_group_create_info.anyHitShader = VK_SHADER_UNUSED_KHR;
+    shader_group_create_info.closestHitShader = VK_SHADER_UNUSED_KHR;
+    shader_group_create_info.generalShader = VK_SHADER_UNUSED_KHR;
+    shader_group_create_info.intersectionShader = VK_SHADER_UNUSED_KHR;
+    
+    shader_group_create_info.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+    shader_group_create_info.generalShader = 0;
+    ray_trace_shader_groups.push_back(shader_group_create_info);
+    
+    shader_group_create_info.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+    shader_group_create_info.generalShader = 1;
+    ray_trace_shader_groups.push_back(shader_group_create_info);
+
+    shader_group_create_info.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+    shader_group_create_info.generalShader = VK_SHADER_UNUSED_KHR;
+    shader_group_create_info.closestHitShader = 2;
+    ray_trace_shader_groups.push_back(shader_group_create_info);
 }
 
 auto RenderContext::cleanup_ray_trace_pipeline() noexcept -> void {
