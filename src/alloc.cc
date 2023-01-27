@@ -28,7 +28,7 @@ auto RenderContext::cleanup_allocator() noexcept -> void {
     vmaDestroyAllocator(allocator);
 }
 
-auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags) noexcept -> Buffer {
+auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags, const char *name) noexcept -> Buffer {
     VkBufferCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     create_info.size = size;
@@ -39,6 +39,11 @@ auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, V
     alloc_info.flags = vma_flags;
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
     alloc_info.requiredFlags = memory_flags;
+    alloc_info.pUserData = (void *) name;
+
+#ifndef RELEASE
+    if (name) std::cout << "DEBUG: Creating buffer named " << name << " with size " << size << ".\n";
+#endif
 
     VkBuffer buffer = VK_NULL_HANDLE;
     VmaAllocation allocation = VK_NULL_HANDLE;
@@ -48,7 +53,7 @@ auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, V
     return {buffer, allocation, size, usage, memory_flags, vma_flags};
 }
 
-auto RenderContext::create_buffer_with_alignment(VkDeviceSize size, VkDeviceSize alignment, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags) noexcept -> Buffer {
+auto RenderContext::create_buffer_with_alignment(VkDeviceSize size, VkDeviceSize alignment, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags, const char *name) noexcept -> Buffer {
     VkBufferCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     create_info.size = size;
@@ -59,6 +64,11 @@ auto RenderContext::create_buffer_with_alignment(VkDeviceSize size, VkDeviceSize
     alloc_info.flags = vma_flags;
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
     alloc_info.requiredFlags = memory_flags;
+    alloc_info.pUserData = (void *) name;
+
+#ifndef RELEASE
+    if (name) std::cout << "DEBUG: Creating buffer named " << name << " with size " << size << ".\n";
+#endif
 
     VkBuffer buffer = VK_NULL_HANDLE;
     VmaAllocation allocation = VK_NULL_HANDLE;
@@ -69,6 +79,13 @@ auto RenderContext::create_buffer_with_alignment(VkDeviceSize size, VkDeviceSize
 }
 
 auto RenderContext::cleanup_buffer(Buffer buffer) noexcept -> void {
+#ifndef RELEASE
+    VmaAllocationInfo allocation_info;
+    if (!buffer.allocation)
+	std::cout << "DEBUG: About to crash in cleanup_buffer. Buffer: " << buffer.buffer << "   Allocation: " << buffer.allocation << "   Size: " << buffer.size << ".\n";
+    vmaGetAllocationInfo(allocator, buffer.allocation, &allocation_info);
+    if (allocation_info.pUserData) std::cout << "DEBUG: Cleaning up buffer named " << (const char *) allocation_info.pUserData << ".\n";
+#endif
     vmaDestroyBuffer(allocator, buffer.buffer, buffer.allocation);
 }
 
@@ -76,7 +93,7 @@ auto RenderContext::future_cleanup_buffer(Buffer buffer) noexcept -> void {
     buffer_cleanup_queue.push_back({buffer, current_frame});
 }
 
-auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mip_levels, uint32_t array_layers, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags) noexcept -> Image {
+auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mip_levels, uint32_t array_layers, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags, const char *name) noexcept -> Image {
     VkImageCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     create_info.flags = flags;
@@ -97,6 +114,11 @@ auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkEx
     alloc_info.flags = vma_flags;
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
     alloc_info.requiredFlags = memory_flags;
+    alloc_info.pUserData = (void *) name;
+
+#ifndef RELEASE
+    if (name) std::cout << "DEBUG: Creating image named " << name << ".\n";
+#endif
 
     VkImage image;
     VmaAllocation allocation;
@@ -124,6 +146,14 @@ auto RenderContext::create_image_view(VkImage image, VkFormat format, VkImageSub
 }
 
 auto RenderContext::cleanup_image(Image image) noexcept -> void {
+#ifndef RELEASE
+    if (!image.allocation) {
+	std::cout << "DEBUG: About to crash in cleanup_image. Image: " << image.image << "   Allocation: " << image.allocation << "   Width: " << image.extent.width << "   Height: " << image.extent.height << ".\n";
+    }
+    VmaAllocationInfo allocation_info;
+    vmaGetAllocationInfo(allocator, image.allocation, &allocation_info);
+    if (allocation_info.pUserData) std::cout << "DEBUG: Cleaning up image named " << (const char *) allocation_info.pUserData << ".\n";
+#endif
     vmaDestroyImage(allocator, image.image, image.allocation);
 }
 
@@ -132,7 +162,7 @@ auto RenderContext::cleanup_image_view(VkImageView view) noexcept -> void {
 }
 
 auto RenderContext::create_depth_resources() noexcept -> void {
-    depth_image = create_image(0, VK_FORMAT_D32_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    depth_image = create_image(0, VK_FORMAT_D32_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "DEPTH_IMAGE");
     VkImageSubresourceRange subresource_range {}; 
     subresource_range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
     subresource_range.baseMipLevel = 0;
@@ -192,7 +222,7 @@ auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t
     if (ring_buffer.last_id == ring_buffer.elements.size()) {
 	ASSERT(ring_buffer.elements.size() < RingBuffer::MAX_ELEMENTS, "Too many elements in ring buffer.");
 	std::size_t new_element_size = round_up_p2(size);
-	Buffer new_element_buffer = create_buffer(new_element_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+	Buffer new_element_buffer = create_buffer(new_element_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, "CPU_VISIBLE_FOR_RING_BUFFER_UPLOAD");
 	VkSemaphore new_element_semaphore = create_semaphore();
 
 	VkCommandBufferAllocateInfo allocate_info {};
@@ -227,7 +257,7 @@ auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &ds
 
     if (ring_buffer.last_copy_size > dst.size) {
 	future_cleanup_buffer(dst);
-	dst = create_buffer(ring_buffer.last_copy_size * 2, dst.usage, dst.memory_flags, dst.vma_flags);
+	dst = create_buffer(ring_buffer.last_copy_size * 2, dst.usage, dst.memory_flags, dst.vma_flags, "GENERIC_BUFFER_RECREATED_BY_RING_BUFFER_DUE_TO_SIZE");
     }
 
     VkBufferCopy copy_region {};
@@ -354,7 +384,7 @@ auto RenderContext::get_device_address(const VkAccelerationStructureKHR &acceler
 }
 
 auto RenderContext::inefficient_upload_to_buffer(void *data, std::size_t size, Buffer buffer) noexcept -> void {
-    Buffer cpu_visible = create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+    Buffer cpu_visible = create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, "CPU_VISIBLE_FOR_INEFFICIENT_MEMCPY_BUFFER_UPLOAD");
     
     char *buffer_data;
     vmaMapMemory(allocator, cpu_visible.allocation, (void **) &buffer_data);

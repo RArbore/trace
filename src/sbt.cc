@@ -37,7 +37,7 @@ auto RenderContext::create_shader_binding_table() noexcept -> void {
     ASSERT(vkGetRayTracingShaderGroupHandlesKHR(device, ray_trace_pipeline, 0, handle_count, handles_size, handles.data()), "Unable to fetch shader group handles from ray trace pipeline.");
 
     VkDeviceSize sbt_buffer_size = rgen_sbt_region.size + miss_sbt_region.size + hit_sbt_region.size;
-    shader_binding_table_buffer = create_buffer(sbt_buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT);
+    shader_binding_table_buffer = create_buffer(sbt_buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT, 0, "SHADER_BINDING_TABLE_BUFFER");
     VkDeviceAddress sbt_buffer_address = get_device_address(shader_binding_table_buffer);
     rgen_sbt_region.deviceAddress = sbt_buffer_address;
     miss_sbt_region.deviceAddress = sbt_buffer_address + rgen_sbt_region.size;

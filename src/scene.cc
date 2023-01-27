@@ -25,24 +25,24 @@ auto RenderContext::allocate_vulkan_objects_for_scene(RasterScene &scene) noexce
     std::size_t vertex_idx = 0;
     const std::size_t vertex_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &vertex_idx](const std::size_t &accum, const Model &model) { scene.model_vertices_offsets[vertex_idx++] = accum; return accum + model.vertex_buffer_size(); });
     scene.vertices_buf_contents_size = vertex_size;
-    scene.vertices_buf = create_buffer(vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    scene.vertices_buf = create_buffer(vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_VERTICES_BUFFER");
 
     std::size_t index_idx = 0;
     const std::size_t index_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &index_idx](const std::size_t &accum, const Model &model) { scene.model_indices_offsets[index_idx++] = accum; return accum + model.index_buffer_size(); });
     scene.indices_buf_contents_size = index_size;
-    scene.indices_buf = create_buffer(index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    scene.indices_buf = create_buffer(index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_INDICES_BUFFER");
 
     const std::size_t instance_size = scene.num_objects * sizeof(glm::mat4);
     scene.instances_buf_contents_size = instance_size;
-    scene.instances_buf = create_buffer(instance_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    scene.instances_buf = create_buffer(instance_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_INSTANCES_BUFFER");
 
     const std::size_t indirect_draw_size = scene.num_models * sizeof(VkDrawIndexedIndirectCommand);
     scene.indirect_draw_buf_contents_size = indirect_draw_size;
-    scene.indirect_draw_buf = create_buffer(indirect_draw_size, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    scene.indirect_draw_buf = create_buffer(indirect_draw_size, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_INDIRECT_DRAW_BUFFER");
 
     const std::size_t lights_size = scene.num_lights * sizeof(glm::vec4);
     scene.lights_buf_contents_size = lights_size;
-    scene.lights_buf = create_buffer(lights_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    scene.lights_buf = create_buffer(lights_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_LIGHTS_BUFFER");
 
     ringbuffer_copy_scene_vertices_into_buffer(scene);
     ringbuffer_copy_scene_indices_into_buffer(scene);
@@ -89,6 +89,11 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcep
 	cleanup_image_view(image.second);
 	cleanup_image(image.first);
     }
+    vkDestroyAccelerationStructureKHR(device, scene.tlas, NULL);
+    vkDestroyAccelerationStructureKHR(device, scene.blas, NULL);
+    cleanup_buffer(scene.tlas_buffer);
+    cleanup_buffer(scene.tlas_instances_buffer);
+    cleanup_buffer(scene.blas_buffer);
 }
 
 auto RenderContext::ringbuffer_copy_scene_vertices_into_buffer(RasterScene &scene) noexcept -> void {
@@ -265,7 +270,7 @@ auto RenderContext::load_texture(std::string_view texture_filepath, bool srgb) n
 
     VkFormat format = srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
     VkExtent2D extent = {(uint32_t) tex_width, (uint32_t) tex_height};
-    Image dst = create_image(0, format, extent, 1, 1, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    Image dst = create_image(0, format, extent, 1, 1, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "TEXTURE_IMAGE");
 
     void *data_image = ringbuffer_claim_buffer(main_ring_buffer, image_size);
     memcpy(data_image, pixels, image_size);
@@ -333,8 +338,8 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &blas_build_geometry_info, max_primitive_counts, &blas_build_sizes_info);
 
     VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
-    Buffer blas_build_scratch_buffer = create_buffer_with_alignment(blas_build_sizes_info.buildScratchSize, alignment, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    Buffer blas_acceleration_structure_buffer = create_buffer_with_alignment(blas_build_sizes_info.accelerationStructureSize, alignment, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    Buffer blas_build_scratch_buffer = create_buffer_with_alignment(blas_build_sizes_info.buildScratchSize, alignment, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_BLAS_BUILD_SCRATCH_BUFFER");
+    Buffer blas_acceleration_structure_buffer = create_buffer_with_alignment(blas_build_sizes_info.accelerationStructureSize, alignment, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_BLAS_BUFFER");
 
     VkAccelerationStructureCreateInfoKHR bottom_level_create_info {};
     bottom_level_create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
@@ -361,7 +366,7 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     bottom_level_instance.instanceShaderBindingTableRecordOffset = 0;
     bottom_level_instance.accelerationStructureReference = get_device_address(bottom_level_acceleration_structure);
 
-    Buffer instances_buffer = create_buffer(sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT);
+    Buffer instances_buffer = create_buffer(sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT, 0, "SCENE_TLAS_INSTANCES_BUFFER");
     inefficient_upload_to_buffer((void *) &bottom_level_instance, sizeof(VkAccelerationStructureInstanceKHR), instances_buffer);
 
     VkAccelerationStructureGeometryInstancesDataKHR geometry_instances_data {};
@@ -393,8 +398,8 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     tlas_build_sizes_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
     vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &tlas_build_geometry_info, max_instances_counts, &tlas_build_sizes_info);
 
-    Buffer tlas_build_scratch_buffer = create_buffer_with_alignment(tlas_build_sizes_info.buildScratchSize, alignment, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    Buffer tlas_acceleration_structure_buffer = create_buffer_with_alignment(tlas_build_sizes_info.accelerationStructureSize, alignment, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    Buffer tlas_build_scratch_buffer = create_buffer_with_alignment(tlas_build_sizes_info.buildScratchSize, alignment, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_TLAS_BUILD_SCRATCH_BUFFER");
+    Buffer tlas_acceleration_structure_buffer = create_buffer_with_alignment(tlas_build_sizes_info.accelerationStructureSize, alignment, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_TLAS_BUFFER");
     
     VkAccelerationStructureCreateInfoKHR top_level_create_info {};
     top_level_create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
@@ -414,4 +419,10 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     });
 
     scene.tlas = top_level_acceleration_structure;
+    scene.blas = bottom_level_acceleration_structure;
+    scene.tlas_buffer = tlas_acceleration_structure_buffer;
+    scene.blas_buffer = blas_acceleration_structure_buffer;
+    scene.tlas_instances_buffer = instances_buffer;
+    cleanup_buffer(tlas_build_scratch_buffer);
+    cleanup_buffer(blas_build_scratch_buffer);
 }
