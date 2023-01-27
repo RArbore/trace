@@ -51,6 +51,7 @@ auto RenderContext::init() noexcept -> void {
     create_ray_trace_descriptor_sets();
     create_raster_pipeline();
     create_ray_trace_pipeline();
+    create_shader_binding_table();
     create_sampler();
     create_depth_resources();
     create_framebuffers();
@@ -165,8 +166,9 @@ auto RenderContext::cleanup() noexcept -> void {
     cleanup_descriptor_pool();
     cleanup_descriptor_set_layout();
     cleanup_ray_trace_descriptor_set_layout();
-    cleanup_raster_pipeline();
+    cleanup_shader_binding_table();
     cleanup_ray_trace_pipeline();
+    cleanup_raster_pipeline();
     cleanup_sampler();
     cleanup_shaders();
     cleanup_ray_trace_images();

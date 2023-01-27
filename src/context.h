@@ -86,6 +86,12 @@ struct RenderContext {
     VkPipelineLayout ray_trace_pipeline_layout;
     VkPipeline ray_trace_pipeline;
 
+    Buffer shader_binding_table_buffer;
+    VkStridedDeviceAddressRegionKHR rgen_sbt_region;
+    VkStridedDeviceAddressRegionKHR miss_sbt_region;
+    VkStridedDeviceAddressRegionKHR hit_sbt_region;
+    VkStridedDeviceAddressRegionKHR call_sbt_region;
+
     Image depth_image;
     VkImageView depth_image_view;
     RingBuffer main_ring_buffer;
@@ -135,6 +141,7 @@ struct RenderContext {
     auto create_shaders() noexcept -> void;
     auto create_raster_pipeline() noexcept -> void;
     auto create_ray_trace_pipeline() noexcept -> void;
+    auto create_shader_binding_table() noexcept -> void;
     auto create_framebuffers() noexcept -> void;
     auto create_sampler() noexcept -> void;
     auto create_descriptor_pool() noexcept -> void;
@@ -154,6 +161,7 @@ struct RenderContext {
     auto cleanup_allocator() noexcept -> void;
     auto cleanup_swapchain() noexcept -> void;
     auto cleanup_ray_trace_images() noexcept -> void;
+    auto cleanup_shader_binding_table() noexcept -> void;
     auto cleanup_shaders() noexcept -> void;
     auto cleanup_raster_pipeline() noexcept -> void;
     auto cleanup_ray_trace_pipeline() noexcept -> void;
@@ -175,7 +183,7 @@ struct RenderContext {
 
     auto choose_swapchain_options(const SwapchainSupport &support) noexcept -> std::tuple<VkSurfaceFormatKHR, VkPresentModeKHR, VkExtent2D>;
 
-    auto create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags = 0, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Buffer;
+    auto create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Buffer;
     auto create_buffer_with_alignment(VkDeviceSize size, VkDeviceSize alignment, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0) noexcept -> Buffer;
     auto cleanup_buffer(Buffer buffer) noexcept -> void;
     auto future_cleanup_buffer(Buffer buffer) noexcept -> void;
@@ -226,6 +234,26 @@ struct RenderContext {
 
     VkCommandBuffer inefficient_one_time_command_buffer = VK_NULL_HANDLE;
     auto inefficient_upload_to_buffer(void *data, std::size_t size, Buffer buffer) noexcept -> void;
+
+    auto inefficient_upload_to_buffer(auto F, std::size_t size, Buffer buffer) noexcept -> void {
+	Buffer cpu_visible = create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+	
+	char *buffer_data;
+	vmaMapMemory(allocator, cpu_visible.allocation, (void **) &buffer_data);
+	F(buffer_data);
+	vmaUnmapMemory(allocator, cpu_visible.allocation);
+	
+	inefficient_run_commands([&](VkCommandBuffer cmd){
+	    VkBufferCopy copy_region {};
+	    copy_region.srcOffset = 0;
+	    copy_region.dstOffset = 0;
+	    copy_region.size = size;
+	    vkCmdCopyBuffer(cmd, cpu_visible.buffer, buffer.buffer, 1, &copy_region);
+	});
+	
+	cleanup_buffer(cpu_visible);
+    }
+
     auto inefficient_run_commands(auto F) noexcept -> void {
 	if (inefficient_one_time_command_buffer == VK_NULL_HANDLE) {
 	    VkCommandBufferAllocateInfo allocate_info {};
@@ -259,6 +287,7 @@ struct RenderContext {
     VKFN_MEMBER(vkCmdBuildAccelerationStructuresKHR);
     VKFN_MEMBER(vkGetAccelerationStructureDeviceAddressKHR);
     VKFN_MEMBER(vkCreateRayTracingPipelinesKHR);
+    VKFN_MEMBER(vkGetRayTracingShaderGroupHandlesKHR);
     
     auto init_vk_funcs() noexcept -> void {
 	VKFN_INIT(vkGetAccelerationStructureBuildSizesKHR);
@@ -266,6 +295,7 @@ struct RenderContext {
 	VKFN_INIT(vkCmdBuildAccelerationStructuresKHR);
 	VKFN_INIT(vkGetAccelerationStructureDeviceAddressKHR);
 	VKFN_INIT(vkCreateRayTracingPipelinesKHR);
+	VKFN_INIT(vkGetRayTracingShaderGroupHandlesKHR);
     }
 };
 
