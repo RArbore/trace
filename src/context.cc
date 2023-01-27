@@ -41,6 +41,7 @@ auto RenderContext::init() noexcept -> void {
     create_device();
     create_allocator();
     create_swapchain();
+    create_command_pool();
     create_ray_trace_images();
     create_shaders();
     create_descriptor_pool();
@@ -49,8 +50,8 @@ auto RenderContext::init() noexcept -> void {
     create_ray_trace_descriptor_set_layout();
     create_ray_trace_descriptor_sets();
     create_raster_pipeline();
+    create_ray_trace_pipeline();
     create_sampler();
-    create_command_pool();
     create_depth_resources();
     create_framebuffers();
     create_command_buffers();
@@ -161,14 +162,15 @@ auto RenderContext::cleanup() noexcept -> void {
     cleanup_sync_objects();
     cleanup_framebuffers();
     cleanup_depth_resources();
-    cleanup_command_pool();
     cleanup_descriptor_pool();
     cleanup_descriptor_set_layout();
     cleanup_ray_trace_descriptor_set_layout();
     cleanup_raster_pipeline();
+    cleanup_ray_trace_pipeline();
     cleanup_sampler();
     cleanup_shaders();
     cleanup_ray_trace_images();
+    cleanup_command_pool();
     cleanup_swapchain();
     cleanup_allocator();
     cleanup_device();
