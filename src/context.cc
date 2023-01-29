@@ -103,7 +103,7 @@ auto RenderContext::render(RasterScene &scene) noexcept -> void {
     }
 
     vkResetCommandBuffer(raster_command_buffers[flight_index], 0);
-    record_raster_command_buffer(raster_command_buffers[flight_index], image_index, scene);
+    record_raster_command_buffer(raster_command_buffers[flight_index], image_index, flight_index, scene);
 
     const uint16_t num_wait_semaphores = 1 + main_ring_buffer.get_number_occupied(current_frame);
     ring_buffer_semaphore_scratchpad.reserve(num_wait_semaphores);
