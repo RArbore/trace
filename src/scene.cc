@@ -390,8 +390,8 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     tlas_geometry.geometry.instances = geometry_instances_data;
 
     VkAccelerationStructureBuildRangeInfoKHR tlas_build_range_info {};
-    tlas_build_range_info.firstVertex = 1;
-    tlas_build_range_info.primitiveCount = 0;
+    tlas_build_range_info.firstVertex = 0;
+    tlas_build_range_info.primitiveCount = 1;
     tlas_build_range_info.primitiveOffset = 0;
     tlas_build_range_info.transformOffset = 0;
     VkAccelerationStructureBuildRangeInfoKHR *tlas_build_range_infos[] = {&tlas_build_range_info}; 
