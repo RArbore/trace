@@ -44,8 +44,8 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     scene.add_object(glm::mat4(1), model_id_stone_lion);
     scene.add_object(glm::translate(glm::mat4(1), glm::vec3(2.0f, 0.0f, 0.0f)), model_id_stone_lion);
 
-    //const uint16_t model_id_pico = context.load_model("pico", scene);
-    //scene.add_object(glm::scale(glm::translate(glm::mat4(1), glm::vec3(0.0f, 2.0f, 0.0f)), glm::vec3(20.0f, 20.0f, 20.0f)), model_id_pico);
+    const uint16_t model_id_pico = context.load_model("pico", scene);
+    scene.add_object(glm::scale(glm::translate(glm::mat4(1), glm::vec3(0.0f, 2.0f, 0.0f)), glm::vec3(20.0f, 20.0f, 20.0f)), model_id_pico);
 
     scene.add_light({0.0, 2.0, 2.0, 100.0});
     

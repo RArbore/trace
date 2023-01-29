@@ -297,18 +297,29 @@ auto glm4x4_to_vk_transform(const glm::mat4 &in, VkTransformMatrixKHR &out) noex
 }
 
 auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) noexcept -> void {
+    std::vector<VkAccelerationStructureGeometryKHR> blas_geometries;
+    blas_geometries.reserve(scene.num_models);
     std::vector<VkAccelerationStructureBuildRangeInfoKHR> blas_build_range_infos;
+    blas_build_range_infos.reserve(scene.num_models);
     std::vector<VkAccelerationStructureBuildRangeInfoKHR*> ptr_blas_build_range_infos;
+    ptr_blas_build_range_infos.reserve(scene.num_models);
     std::vector<VkAccelerationStructureBuildGeometryInfoKHR> blas_build_geometry_infos;
+    blas_build_geometry_infos.reserve(scene.num_models);
     std::vector<VkAccelerationStructureKHR> bottom_level_acceleration_structures;
+    bottom_level_acceleration_structures.reserve(scene.num_models);
     std::vector<Buffer> bottom_level_acceleration_structure_scratch_buffers;
+    bottom_level_acceleration_structure_scratch_buffers.reserve(scene.num_models);
     std::vector<Buffer> bottom_level_acceleration_structure_buffers;
+    bottom_level_acceleration_structure_buffers.reserve(scene.num_models);
 
     VkDeviceAddress vertex_buffer_address = get_device_address(scene.vertices_buf);
     VkDeviceAddress index_buffer_address = get_device_address(scene.indices_buf);
     VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
 
+    uint32_t cumulative_max_vertex = 0;
     for (uint16_t model_idx = 0; model_idx < scene.num_models; ++model_idx) {
+	cumulative_max_vertex += scene.models[model_idx].num_vertices();
+	
 	VkAccelerationStructureGeometryTrianglesDataKHR geometry_triangles_data {};
 	geometry_triangles_data.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
 	geometry_triangles_data.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
@@ -316,18 +327,21 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
 	geometry_triangles_data.vertexStride = sizeof(Model::Vertex);
 	geometry_triangles_data.indexType = VK_INDEX_TYPE_UINT32;
 	geometry_triangles_data.indexData.deviceAddress = index_buffer_address;
-	geometry_triangles_data.maxVertex = scene.models[model_idx].num_vertices();
+	geometry_triangles_data.maxVertex = cumulative_max_vertex;
+	vertex_buffer_address += scene.models[model_idx].num_vertices() * sizeof(Model::Vertex);
+	index_buffer_address += scene.models[model_idx].num_triangles() * sizeof(uint32_t);
 	
 	VkAccelerationStructureGeometryKHR blas_geometry {};
 	blas_geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
 	blas_geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
 	blas_geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
 	blas_geometry.geometry.triangles = geometry_triangles_data;
+	blas_geometries.push_back(blas_geometry);
 	
 	VkAccelerationStructureBuildRangeInfoKHR blas_build_range_info {};
-	blas_build_range_info.firstVertex = (uint32_t) scene.model_vertices_offsets[model_idx];
+	blas_build_range_info.firstVertex = 0;
 	blas_build_range_info.primitiveCount = scene.models[model_idx].num_triangles();
-	blas_build_range_info.primitiveOffset = (uint32_t) scene.model_indices_offsets[model_idx];
+	blas_build_range_info.primitiveOffset = 0;
 	blas_build_range_info.transformOffset = 0;
 	
 	VkAccelerationStructureBuildGeometryInfoKHR blas_build_geometry_info {};
@@ -336,7 +350,7 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
 	blas_build_geometry_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
 	blas_build_geometry_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 	blas_build_geometry_info.geometryCount = 1;
-	blas_build_geometry_info.pGeometries = &blas_geometry;
+	blas_build_geometry_info.pGeometries = &blas_geometries.back();
 	
 	const uint32_t max_primitive_counts[] = {scene.models[model_idx].num_triangles()};
 	
@@ -412,7 +426,7 @@ auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) n
     tlas_build_geometry_info.geometryCount = 1;
     tlas_build_geometry_info.pGeometries = &tlas_geometry;
     
-    const uint32_t max_instances_counts[] = {1};
+    const uint32_t max_instances_counts[] = {scene.num_objects};
     
     VkAccelerationStructureBuildSizesInfoKHR tlas_build_sizes_info {};
     tlas_build_sizes_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
