@@ -29,5 +29,5 @@ layout (push_constant) uniform PushConstants {
 };
 
 void main() {
-    prd.hit_value = vec3(0.0, 0.0, 0.0);
+    prd.hit_value = gl_WorldRayDirectionEXT * 0.5 + 0.5;
 }

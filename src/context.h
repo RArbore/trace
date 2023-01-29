@@ -55,7 +55,7 @@ using DescriptorWriteInfo = std::tuple<VkWriteDescriptorSet, VkDescriptorBufferI
 
 struct RenderContext {
     GLFWwindow *window;
-    bool active = true, resized = false;
+    bool active = true, resized = false, ray_tracing = false;
     uint32_t current_frame = 0;
 
     glm::mat4 perspective_matrix;
@@ -126,6 +126,7 @@ struct RenderContext {
     double last_mouse_y;
     std::array<bool, GLFW_MOUSE_BUTTON_LAST + 1> pressed_buttons;
     std::array<bool, GLFW_KEY_LAST + 1> pressed_keys;
+    std::array<bool, GLFW_KEY_LAST + 1> last_pressed_keys;
 
     auto init() noexcept -> void;
     auto render(RasterScene &scene) noexcept -> void;
@@ -193,7 +194,7 @@ struct RenderContext {
     auto cleanup_image_view(VkImageView view) noexcept -> void;
 
     auto record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, uint32_t flight_index, const RasterScene &scene) noexcept -> void;
-    auto record_ray_trace_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, uint32_t flight_index, const RasterScene &scene) noexcept -> void;
+    auto record_ray_trace_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, uint32_t flight_index) noexcept -> void;
 
     auto create_semaphore() noexcept -> VkSemaphore;
     auto create_fence() noexcept -> VkFence;
@@ -279,7 +280,7 @@ struct RenderContext {
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers = &inefficient_one_time_command_buffer;
 
-	vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
+	ASSERT(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE), "Unable to submit inefficient command.");
 	vkQueueWaitIdle(queue);
     }
     
@@ -290,6 +291,7 @@ struct RenderContext {
     VKFN_MEMBER(vkCreateRayTracingPipelinesKHR);
     VKFN_MEMBER(vkGetRayTracingShaderGroupHandlesKHR);
     VKFN_MEMBER(vkDestroyAccelerationStructureKHR);
+    VKFN_MEMBER(vkCmdTraceRaysKHR);
     
     auto init_vk_funcs() noexcept -> void {
 	VKFN_INIT(vkGetAccelerationStructureBuildSizesKHR);
@@ -299,6 +301,7 @@ struct RenderContext {
 	VKFN_INIT(vkCreateRayTracingPipelinesKHR);
 	VKFN_INIT(vkGetRayTracingShaderGroupHandlesKHR);
 	VKFN_INIT(vkDestroyAccelerationStructureKHR);
+	VKFN_INIT(vkCmdTraceRaysKHR);
     }
 };
 

@@ -33,7 +33,7 @@ auto RenderContext::create_swapchain() noexcept -> void {
     create_info.imageColorSpace = surface_format.colorSpace;
     create_info.imageExtent = swap_extent;
     create_info.imageArrayLayers = 1;
-    create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     create_info.preTransform = support.capabilities.currentTransform;
     create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -121,7 +121,7 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
     subresource_range.layerCount = 1;
 
     for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
-	ray_trace_images[i] = create_image(0, VK_FORMAT_R8G8B8A8_UNORM, swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "RAY_TRACING_STORAGE_IMAGE");
+	ray_trace_images[i] = create_image(0, VK_FORMAT_R8G8B8A8_UNORM, swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "RAY_TRACING_STORAGE_IMAGE");
 	ray_trace_image_views[i] = create_image_view(ray_trace_images[i].image, VK_FORMAT_R8G8B8A8_UNORM, subresource_range);
     }
 

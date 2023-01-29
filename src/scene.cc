@@ -287,11 +287,23 @@ auto RenderContext::load_texture(std::string_view texture_filepath, bool srgb) n
 }
 
 auto glm4x4_to_vk_transform(const glm::mat4 &in, VkTransformMatrixKHR &out) noexcept -> void {
-    for (uint16_t i = 0; i < 4; ++i) {
+    /*for (uint16_t i = 0; i < 4; ++i) {
 	out.matrix[0][i] = in[i][0];
 	out.matrix[1][i] = in[i][1];
 	out.matrix[2][i] = in[i][2];
-    }
+	}*/
+    out.matrix[0][0] = 1.0f;
+    out.matrix[0][1] = 0.0f;
+    out.matrix[0][2] = 0.0f;
+    out.matrix[0][3] = 0.0f;
+    out.matrix[1][0] = 0.0f;
+    out.matrix[1][1] = 1.0f;
+    out.matrix[1][2] = 0.0f;
+    out.matrix[1][3] = 0.0f;
+    out.matrix[2][0] = 0.0f;
+    out.matrix[2][1] = 0.0f;
+    out.matrix[2][2] = 1.0f;
+    out.matrix[2][3] = 0.0f;
 }
 
 auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) noexcept -> void {

@@ -32,10 +32,16 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 
     RasterScene scene {};
 
-    const uint16_t model_id_pico = context.load_model("pico", scene);
+    /*const uint16_t model_id_pico = context.load_model("pico", scene);
     for (int16_t x = -5; x <= 5; ++x)
 	for (int16_t y = -5; y <= 5; ++y)
-	    scene.add_object(glm::scale(glm::translate(glm::mat4(1), glm::vec3(x * 1.2f, y * 1.2f, 0.7f)), glm::vec3(20.0f, 20.0f, 20.0f)), model_id_pico);
+	scene.add_object(glm::scale(glm::translate(glm::mat4(1), glm::vec3(x * 1.2f, y * 1.2f, 0.7f)), glm::vec3(20.0f, 20.0f, 20.0f)), model_id_pico);*/
+    /*const uint16_t model_id_stone_lion = context.load_model("stone_lion", scene);
+    for (int16_t x = -5; x <= 5; ++x)
+	for (int16_t y = -5; y <= 5; ++y)
+	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(x * 1.2f, y * 1.2f, 0.7f)), model_id_stone_lion);*/
+    const uint16_t model_id_stone_lion = context.load_model("stone_lion", scene);
+    scene.add_object(glm::mat4(1), model_id_stone_lion);
 
     scene.add_light({0.0, 2.0, 2.0, 100.0});
     
@@ -45,7 +51,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     context.update_descriptors_tlas(scene);
     
     //const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
-    context.perspective_matrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.01f, 1000.0f);
+    context.perspective_matrix = glm::perspective(glm::radians(80.0f), 1.0f, 0.01f, 1000.0f);
     context.perspective_matrix[1][1] *= -1.0f;
     context.camera_position = glm::vec3(3.0f, 3.0f, 4.0f);
 
@@ -94,7 +100,11 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	    if (context.pressed_keys[GLFW_KEY_SPACE] == GLFW_PRESS) {
 		context.camera_position += (float) (dt * move_speed) * glm::vec3(0.0, 0.0, 1.0);
 	    }
+	    if (context.pressed_keys[GLFW_KEY_R] == GLFW_PRESS && context.last_pressed_keys[GLFW_KEY_R] != GLFW_PRESS) {
+		context.ray_tracing = !context.ray_tracing;
+	    }
 	}
+	context.last_pressed_keys = context.pressed_keys;
 
 	/*uint32_t idx = 0;
 	for (int16_t x = -5; x <= 5; ++x) {
