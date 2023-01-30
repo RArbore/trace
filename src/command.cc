@@ -39,7 +39,7 @@ auto RenderContext::create_command_buffers() noexcept -> void {
     ASSERT(vkAllocateCommandBuffers(device, &allocate_info, &raster_command_buffers[0]), "Unable to create command buffers.");
 }
 
-auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, uint32_t flight_index, const RasterScene &scene) noexcept -> void {
+auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, uint32_t flight_index, const Scene &scene) noexcept -> void {
     VkCommandBufferBeginInfo begin_info {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 

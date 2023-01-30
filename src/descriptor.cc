@@ -194,7 +194,7 @@ auto RenderContext::create_ray_trace_descriptor_sets() noexcept -> void {
     ASSERT(vkAllocateDescriptorSets(device, &allocate_info, ray_trace_descriptor_sets.data()), "Unable to allocate descriptor sets.");
 }
 
-auto RenderContext::update_descriptors_textures(const RasterScene &scene, uint32_t update_texture) noexcept -> void {
+auto RenderContext::update_descriptors_textures(const Scene &scene, uint32_t update_texture) noexcept -> void {
     VkDescriptorImageInfo descriptor_image_info {};
     descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     descriptor_image_info.imageView = scene.textures[update_texture].second;
@@ -219,7 +219,7 @@ auto RenderContext::update_descriptors_textures(const RasterScene &scene, uint32
     }
 }
 
-auto RenderContext::update_descriptors_lights(const RasterScene &scene) noexcept -> void {
+auto RenderContext::update_descriptors_lights(const Scene &scene) noexcept -> void {
     VkDescriptorBufferInfo descriptor_buffer_info {};
     descriptor_buffer_info.buffer = scene.lights_buf.buffer;
     descriptor_buffer_info.offset = 0;
@@ -244,7 +244,7 @@ auto RenderContext::update_descriptors_lights(const RasterScene &scene) noexcept
     }
 }
 
-auto RenderContext::update_descriptors_tlas(const RasterScene &scene) noexcept -> void {
+auto RenderContext::update_descriptors_tlas(const Scene &scene) noexcept -> void {
     VkWriteDescriptorSetAccelerationStructureKHR descriptor_acceleration_structure_info {};
     descriptor_acceleration_structure_info.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
     descriptor_acceleration_structure_info.accelerationStructureCount = 1;

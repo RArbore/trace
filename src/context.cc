@@ -61,7 +61,7 @@ auto RenderContext::init() noexcept -> void {
     init_imgui();
 }
 
-auto RenderContext::render(RasterScene &scene) noexcept -> void {
+auto RenderContext::render(Scene &scene) noexcept -> void {
     glfwPollEvents();
     if ((pressed_keys[GLFW_KEY_ESCAPE] && !is_using_imgui()) || glfwWindowShouldClose(window)) {
 	active = false;

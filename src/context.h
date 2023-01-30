@@ -129,7 +129,7 @@ struct RenderContext {
     std::array<bool, GLFW_KEY_LAST + 1> last_pressed_keys;
 
     auto init() noexcept -> void;
-    auto render(RasterScene &scene) noexcept -> void;
+    auto render(Scene &scene) noexcept -> void;
     auto cleanup() noexcept -> void;
 
     auto create_instance() noexcept -> void;
@@ -193,7 +193,7 @@ struct RenderContext {
     auto create_image_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
     auto cleanup_image_view(VkImageView view) noexcept -> void;
 
-    auto record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, uint32_t flight_index, const RasterScene &scene) noexcept -> void;
+    auto record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, uint32_t flight_index, const Scene &scene) noexcept -> void;
     auto record_ray_trace_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, uint32_t flight_index) noexcept -> void;
 
     auto create_semaphore() noexcept -> VkSemaphore;
@@ -201,36 +201,37 @@ struct RenderContext {
 
     auto recreate_swapchain() noexcept -> void;
 
-    auto allocate_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void;
-    auto cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void;
-    auto update_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void;
-    auto ringbuffer_copy_scene_vertices_into_buffer(RasterScene &scene) noexcept -> void;
-    auto ringbuffer_copy_scene_indices_into_buffer(RasterScene &scene) noexcept -> void;
-    auto ringbuffer_copy_scene_instances_into_buffer(RasterScene &scene) noexcept -> void;
-    auto ringbuffer_copy_scene_indirect_draw_into_buffer(RasterScene &scene) noexcept -> void;
-    auto ringbuffer_copy_scene_lights_into_buffer(RasterScene &scene) noexcept -> void;
+    auto allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> void;
+    auto cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> void;
+    auto update_vulkan_objects_for_scene(Scene &scene) noexcept -> void;
+    auto ringbuffer_copy_scene_vertices_into_buffer(Scene &scene) noexcept -> void;
+    auto ringbuffer_copy_scene_indices_into_buffer(Scene &scene) noexcept -> void;
+    auto ringbuffer_copy_scene_instances_into_buffer(Scene &scene) noexcept -> void;
+    auto ringbuffer_copy_scene_indirect_draw_into_buffer(Scene &scene) noexcept -> void;
+    auto ringbuffer_copy_scene_lights_into_buffer(Scene &scene) noexcept -> void;
+    auto ringbuffer_copy_scene_ray_trace_objects_into_buffer(Scene &scene) noexcept -> void;
 
     auto ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void *;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst) noexcept -> void;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst) noexcept -> void;
 
-    auto load_model(std::string_view model_name, RasterScene &scene) noexcept -> uint16_t;
+    auto load_model(std::string_view model_name, Scene &scene) noexcept -> uint16_t;
     auto load_obj_model(std::string_view obj_filepath) noexcept -> Model;
     auto load_texture(std::string_view texture_filepath, bool srgb) noexcept -> std::pair<Image, VkImageView>;
 
-    auto update_descriptors_textures(const RasterScene &scene, uint32_t update_texture) noexcept -> void;
-    auto update_descriptors_lights(const RasterScene &scene) noexcept -> void;
-    auto update_descriptors_tlas(const RasterScene &scene) noexcept -> void;
+    auto update_descriptors_textures(const Scene &scene, uint32_t update_texture) noexcept -> void;
+    auto update_descriptors_lights(const Scene &scene) noexcept -> void;
+    auto update_descriptors_tlas(const Scene &scene) noexcept -> void;
     auto update_descriptors_ray_trace_images() noexcept -> void;
 
     auto get_device_address(const Buffer &buffer) noexcept -> VkDeviceAddress;
     auto get_device_address(const VkAccelerationStructureKHR &acceleration_structure) noexcept -> VkDeviceAddress;
-    auto build_acceleration_structure_for_scene(RasterScene &scene) noexcept -> void;
+    auto build_acceleration_structure_for_scene(Scene &scene) noexcept -> void;
 
     auto init_imgui() noexcept -> void;
     auto cleanup_imgui() noexcept -> void;
     auto recreate_imgui() noexcept -> void;
-    auto render_imgui(RasterScene &scene) noexcept -> void;
+    auto render_imgui(Scene &scene) noexcept -> void;
     auto render_draw_data_wrapper_imgui(VkCommandBuffer command_buffer) noexcept -> void;
     auto is_using_imgui() noexcept -> bool;
 

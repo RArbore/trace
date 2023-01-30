@@ -18,19 +18,19 @@
 
 #include "context.h"
 
-auto RenderContext::allocate_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void {
+auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
     scene.model_vertices_offsets.resize(scene.models.size());
     scene.model_indices_offsets.resize(scene.models.size());
     
     std::size_t vertex_idx = 0;
     const std::size_t vertex_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &vertex_idx](const std::size_t &accum, const Model &model) { scene.model_vertices_offsets[vertex_idx++] = accum; return accum + model.vertex_buffer_size(); });
     scene.vertices_buf_contents_size = vertex_size;
-    scene.vertices_buf = create_buffer(vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_VERTICES_BUFFER");
+    scene.vertices_buf = create_buffer(vertex_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_VERTICES_BUFFER");
 
     std::size_t index_idx = 0;
     const std::size_t index_size = std::accumulate(scene.models.begin(), scene.models.end(), 0, [&scene, &index_idx](const std::size_t &accum, const Model &model) { scene.model_indices_offsets[index_idx++] = accum; return accum + model.index_buffer_size(); });
     scene.indices_buf_contents_size = index_size;
-    scene.indices_buf = create_buffer(index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_INDICES_BUFFER");
+    scene.indices_buf = create_buffer(index_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_INDICES_BUFFER");
 
     const std::size_t instance_size = scene.num_objects * sizeof(glm::mat4);
     scene.instances_buf_contents_size = instance_size;
@@ -44,14 +44,19 @@ auto RenderContext::allocate_vulkan_objects_for_scene(RasterScene &scene) noexce
     scene.lights_buf_contents_size = lights_size;
     scene.lights_buf = create_buffer(lights_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_LIGHTS_BUFFER");
 
+    const std::size_t ray_trace_objects_size = scene.num_objects * sizeof(Scene::RayTraceObject);
+    scene.ray_trace_objects_buf_contents_size = ray_trace_objects_size;
+    scene.ray_trace_objects_buf = create_buffer(ray_trace_objects_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_RAY_TRACE_OBJECTS_BUFFER");
+
     ringbuffer_copy_scene_vertices_into_buffer(scene);
     ringbuffer_copy_scene_indices_into_buffer(scene);
     ringbuffer_copy_scene_instances_into_buffer(scene);
     ringbuffer_copy_scene_indirect_draw_into_buffer(scene);
     ringbuffer_copy_scene_lights_into_buffer(scene);
+    ringbuffer_copy_scene_ray_trace_objects_into_buffer(scene);
 }
 
-auto RenderContext::update_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void {
+auto RenderContext::update_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
     scene.model_vertices_offsets.resize(scene.models.size());
     scene.model_indices_offsets.resize(scene.models.size());
     
@@ -72,19 +77,24 @@ auto RenderContext::update_vulkan_objects_for_scene(RasterScene &scene) noexcept
     const std::size_t lights_size = scene.num_lights * sizeof(glm::vec4);
     scene.lights_buf_contents_size = lights_size;
 
+    const std::size_t ray_trace_objects_size = scene.num_objects * sizeof(Scene::RayTraceObject);
+    scene.ray_trace_objects_buf_contents_size = ray_trace_objects_size;
+
     ringbuffer_copy_scene_vertices_into_buffer(scene);
     ringbuffer_copy_scene_indices_into_buffer(scene);
     ringbuffer_copy_scene_instances_into_buffer(scene);
     ringbuffer_copy_scene_indirect_draw_into_buffer(scene);
     ringbuffer_copy_scene_lights_into_buffer(scene);
+    ringbuffer_copy_scene_ray_trace_objects_into_buffer(scene);
 }
 
-auto RenderContext::cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcept -> void {
+auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
     cleanup_buffer(scene.vertices_buf);
     cleanup_buffer(scene.indices_buf);
     cleanup_buffer(scene.instances_buf);
     cleanup_buffer(scene.indirect_draw_buf);
     cleanup_buffer(scene.lights_buf);
+    cleanup_buffer(scene.ray_trace_objects_buf);
     for (auto image : scene.textures) {
 	cleanup_image_view(image.second);
 	cleanup_image(image.first);
@@ -98,7 +108,7 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(RasterScene &scene) noexcep
 	cleanup_buffer(buffer);
 }
 
-auto RenderContext::ringbuffer_copy_scene_vertices_into_buffer(RasterScene &scene) noexcept -> void {
+auto RenderContext::ringbuffer_copy_scene_vertices_into_buffer(Scene &scene) noexcept -> void {
     char *data_vertex = (char *) ringbuffer_claim_buffer(main_ring_buffer, scene.vertices_buf_contents_size);
     for (const Model &model : scene.models) {
 	model.dump_vertices(data_vertex);
@@ -107,7 +117,7 @@ auto RenderContext::ringbuffer_copy_scene_vertices_into_buffer(RasterScene &scen
     ringbuffer_submit_buffer(main_ring_buffer, scene.vertices_buf);
 }
 
-auto RenderContext::ringbuffer_copy_scene_indices_into_buffer(RasterScene &scene) noexcept -> void {
+auto RenderContext::ringbuffer_copy_scene_indices_into_buffer(Scene &scene) noexcept -> void {
     char *data_index = (char *) ringbuffer_claim_buffer(main_ring_buffer, scene.indices_buf_contents_size);
     for (const Model &model : scene.models) {
 	model.dump_indices(data_index);
@@ -116,7 +126,7 @@ auto RenderContext::ringbuffer_copy_scene_indices_into_buffer(RasterScene &scene
     ringbuffer_submit_buffer(main_ring_buffer, scene.indices_buf);
 }
 
-auto RenderContext::ringbuffer_copy_scene_instances_into_buffer(RasterScene &scene) noexcept -> void {
+auto RenderContext::ringbuffer_copy_scene_instances_into_buffer(Scene &scene) noexcept -> void {
     glm::mat4 *data_instance = (glm::mat4 *) ringbuffer_claim_buffer(main_ring_buffer, scene.instances_buf_contents_size);
     for (auto transforms : scene.transforms) {
 	memcpy(data_instance, transforms.data(), transforms.size() * sizeof(glm::mat4));
@@ -125,7 +135,7 @@ auto RenderContext::ringbuffer_copy_scene_instances_into_buffer(RasterScene &sce
     ringbuffer_submit_buffer(main_ring_buffer, scene.instances_buf);
 }
 
-auto RenderContext::ringbuffer_copy_scene_indirect_draw_into_buffer(RasterScene &scene) noexcept -> void {
+auto RenderContext::ringbuffer_copy_scene_indirect_draw_into_buffer(Scene &scene) noexcept -> void {
     VkDrawIndexedIndirectCommand *data_indirect_draw  = (VkDrawIndexedIndirectCommand *) ringbuffer_claim_buffer(main_ring_buffer, scene.indirect_draw_buf_contents_size);
     uint32_t num_instances_so_far = 0;
     for (std::size_t i = 0; i < scene.num_models; ++i) {
@@ -141,13 +151,28 @@ auto RenderContext::ringbuffer_copy_scene_indirect_draw_into_buffer(RasterScene 
     ringbuffer_submit_buffer(main_ring_buffer, scene.indirect_draw_buf);
 }
 
-auto RenderContext::ringbuffer_copy_scene_lights_into_buffer(RasterScene &scene) noexcept -> void {
+auto RenderContext::ringbuffer_copy_scene_lights_into_buffer(Scene &scene) noexcept -> void {
     glm::vec4 *data_light = (glm::vec4 *) ringbuffer_claim_buffer(main_ring_buffer, scene.lights_buf_contents_size);
     memcpy(data_light, scene.lights.data(), scene.num_lights * sizeof(glm::vec4));
     ringbuffer_submit_buffer(main_ring_buffer, scene.lights_buf);
 }
 
-auto RenderContext::load_model(std::string_view model_name, RasterScene &scene) noexcept -> uint16_t {
+auto RenderContext::ringbuffer_copy_scene_ray_trace_objects_into_buffer(Scene &scene) noexcept -> void {
+    Scene::RayTraceObject *data_ray_trace_object = (Scene::RayTraceObject *) ringbuffer_claim_buffer(main_ring_buffer, scene.ray_trace_objects_buf_contents_size);
+    VkDeviceAddress vertex_buffer_address = get_device_address(scene.vertices_buf);
+    VkDeviceAddress index_buffer_address = get_device_address(scene.indices_buf);
+    for (std::size_t i = 0; i < scene.num_models; ++i) {
+	for (std::size_t j = 0; j < scene.transforms[i].size(); ++j) {
+	    data_ray_trace_object->vertex_address = vertex_buffer_address + scene.model_vertices_offsets[i];
+	    data_ray_trace_object->index_address = index_buffer_address + scene.model_indices_offsets[i];
+	    data_ray_trace_object->model_id = i;
+	    ++data_ray_trace_object;
+	}
+    }
+    ringbuffer_submit_buffer(main_ring_buffer, scene.ray_trace_objects_buf);
+}
+
+auto RenderContext::load_model(std::string_view model_name, Scene &scene) noexcept -> uint16_t {
     auto it = scene.loaded_models.find(std::string(model_name));
     if (it != scene.loaded_models.end())
 	return it->second;
@@ -296,7 +321,7 @@ auto glm4x4_to_vk_transform(const glm::mat4 &in, VkTransformMatrixKHR &out) noex
     }
 }
 
-auto RenderContext::build_acceleration_structure_for_scene(RasterScene &scene) noexcept -> void {
+auto RenderContext::build_acceleration_structure_for_scene(Scene &scene) noexcept -> void {
     std::vector<VkAccelerationStructureGeometryKHR> blas_geometries;
     blas_geometries.reserve(scene.num_models);
     std::vector<VkAccelerationStructureBuildRangeInfoKHR> blas_build_range_infos;

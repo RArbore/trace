@@ -30,7 +30,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     context.init();
     context.update_descriptors_ray_trace_images();
 
-    RasterScene scene {};
+    Scene scene {};
 
     /*const uint16_t model_id_pico = context.load_model("pico", scene);
     for (int16_t x = -5; x <= 5; ++x)

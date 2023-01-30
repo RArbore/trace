@@ -74,7 +74,7 @@ auto RenderContext::recreate_imgui() noexcept -> void {
     ImGui_ImplVulkan_SetMinImageCount((uint32_t) swapchain_images.size());
 }
 
-auto RenderContext::render_imgui(RasterScene &scene) noexcept -> void {
+auto RenderContext::render_imgui(Scene &scene) noexcept -> void {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();

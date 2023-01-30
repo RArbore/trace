@@ -64,8 +64,8 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     VkPipelineShaderStageCreateInfo shader_stage_create_infos[] = {vertex_shader_stage_create_info, fragment_shader_stage_create_info};
 
-    auto binding_descriptions = RasterScene::binding_descriptions();
-    auto attribute_descriptions = RasterScene::attribute_descriptions();
+    auto binding_descriptions = Scene::binding_descriptions();
+    auto attribute_descriptions = Scene::attribute_descriptions();
 
     VkPipelineVertexInputStateCreateInfo vertex_input_create_info {};
     vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;

@@ -23,8 +23,14 @@
 #include "model.h"
 #include "util.h"
 
-struct RasterScene {
+struct Scene {
     static const uint32_t MAX_LIGHTS = 512;
+
+    struct RayTraceObject {
+	uint64_t vertex_address;
+	uint64_t index_address;
+	uint64_t model_id;
+    };
     
     std::vector<Model> models;
     std::vector<std::vector<glm::mat4>> transforms;
@@ -35,8 +41,8 @@ struct RasterScene {
     uint16_t num_textures;
     uint16_t num_lights;
 
-    Buffer vertices_buf, indices_buf, instances_buf, indirect_draw_buf, lights_buf;
-    std::size_t vertices_buf_contents_size, indices_buf_contents_size, instances_buf_contents_size, indirect_draw_buf_contents_size, lights_buf_contents_size;
+    Buffer vertices_buf, indices_buf, instances_buf, indirect_draw_buf, lights_buf, ray_trace_objects_buf;
+    std::size_t vertices_buf_contents_size, indices_buf_contents_size, instances_buf_contents_size, indirect_draw_buf_contents_size, lights_buf_contents_size, ray_trace_objects_buf_contents_size;
     std::vector<std::size_t> model_vertices_offsets, model_indices_offsets;
     std::map<std::string, uint16_t> loaded_models;
 
