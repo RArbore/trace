@@ -70,5 +70,5 @@ void main() {
 
     vec3 barycentrics = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
   
-    prd.hit_value = vec3(1.0, 0.0, 0.0) + vec3(-1.0, 0.0, 1.0) * float(obj.model_id);
+    prd.hit_value = barycentrics;
 }

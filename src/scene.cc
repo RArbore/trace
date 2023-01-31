@@ -354,7 +354,7 @@ auto RenderContext::build_acceleration_structure_for_scene(Scene &scene) noexcep
 	geometry_triangles_data.indexData.deviceAddress = index_buffer_address;
 	geometry_triangles_data.maxVertex = cumulative_max_vertex;
 	vertex_buffer_address += scene.models[model_idx].num_vertices() * sizeof(Model::Vertex);
-	index_buffer_address += scene.models[model_idx].num_triangles() * sizeof(uint32_t);
+	index_buffer_address += scene.models[model_idx].num_triangles() * sizeof(uint32_t) * 3;
 	
 	VkAccelerationStructureGeometryKHR blas_geometry {};
 	blas_geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
