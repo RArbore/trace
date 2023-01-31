@@ -53,6 +53,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     context.update_descriptors_lights(scene);
     context.build_acceleration_structure_for_scene(scene);
     context.update_descriptors_tlas(scene);
+    context.update_descriptors_ray_trace_objects(scene);
     
     //const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
     context.perspective_matrix = glm::perspective(glm::radians(80.0f), 1.0f, 0.01f, 1000.0f);

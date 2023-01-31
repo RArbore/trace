@@ -95,14 +95,14 @@ auto RenderContext::create_descriptor_set_layout() noexcept -> void {
     lights_buffer_layout_binding.descriptorCount = 1;
     lights_buffer_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     lights_buffer_layout_binding.pImmutableSamplers = NULL;
-    lights_buffer_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+    lights_buffer_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
     
     VkDescriptorSetLayoutBinding bindless_textures_layout_binding {};
     bindless_textures_layout_binding.binding = 1;
     bindless_textures_layout_binding.descriptorCount = MAX_MODELS;
     bindless_textures_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     bindless_textures_layout_binding.pImmutableSamplers = NULL;
-    bindless_textures_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+    bindless_textures_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
     
     VkDescriptorSetLayoutBinding bindings[] = {lights_buffer_layout_binding, bindless_textures_layout_binding};
     
@@ -134,16 +134,23 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
     tlas_layout_binding.descriptorCount = 1;
     tlas_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     tlas_layout_binding.pImmutableSamplers = NULL;
-    tlas_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+    tlas_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
 
     VkDescriptorSetLayoutBinding out_image_layout_binding {};
     out_image_layout_binding.binding = 1;
     out_image_layout_binding.descriptorCount = 1;
     out_image_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     out_image_layout_binding.pImmutableSamplers = NULL;
-    out_image_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+    out_image_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
+
+    VkDescriptorSetLayoutBinding ray_trace_objects_layout_binding {};
+    ray_trace_objects_layout_binding.binding = 2;
+    ray_trace_objects_layout_binding.descriptorCount = 1;
+    ray_trace_objects_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    ray_trace_objects_layout_binding.pImmutableSamplers = NULL;
+    ray_trace_objects_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
     
-    VkDescriptorSetLayoutBinding bindings[] = {tlas_layout_binding, out_image_layout_binding};
+    VkDescriptorSetLayoutBinding bindings[] = {tlas_layout_binding, out_image_layout_binding, ray_trace_objects_layout_binding};
     
     VkDescriptorSetLayoutCreateInfo layout_create_info {};
     layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -291,5 +298,30 @@ auto RenderContext::update_descriptors_ray_trace_images() noexcept -> void {
 	write_descriptor_set.pImageInfo = &std::get<2>(it->second);
 	write_descriptor_set.pBufferInfo = NULL;
 	write_descriptor_set.pTexelBufferView = NULL;
+    }
+}
+
+auto RenderContext::update_descriptors_ray_trace_objects(const Scene &scene) noexcept -> void {
+    VkDescriptorBufferInfo descriptor_buffer_info {};
+    descriptor_buffer_info.buffer = scene.ray_trace_objects_buf.buffer;
+    descriptor_buffer_info.offset = 0;
+    descriptor_buffer_info.range = VK_WHOLE_SIZE;
+
+    for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+	DescriptorWriteInfo entry {};
+	std::get<1>(entry) = descriptor_buffer_info;
+	const auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
+
+	VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
+        write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write_descriptor_set.dstSet = ray_trace_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
+	write_descriptor_set.dstBinding = 2;
+	write_descriptor_set.dstArrayElement = 0;
+	write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	write_descriptor_set.descriptorCount = 1;
+	write_descriptor_set.pImageInfo = NULL;
+	write_descriptor_set.pBufferInfo = &std::get<1>(it->second);
+	write_descriptor_set.pTexelBufferView = NULL;
+	write_descriptor_set.pNext = NULL;
     }
 }
