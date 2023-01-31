@@ -411,16 +411,17 @@ auto RenderContext::build_acceleration_structure_for_scene(Scene &scene) noexcep
     });
     
     std::vector<VkAccelerationStructureInstanceKHR> bottom_level_instances;
+    VkAccelerationStructureInstanceKHR bottom_level_instance {};
+    bottom_level_instance.instanceCustomIndex = 0;
     for (uint16_t model_idx = 0; model_idx < scene.num_models; ++model_idx) {
 	for (uint32_t transform_idx = 0; transform_idx < (uint32_t) scene.transforms[model_idx].size(); ++transform_idx) {
-	    VkAccelerationStructureInstanceKHR bottom_level_instance {};
 	    glm4x4_to_vk_transform(scene.transforms[model_idx][transform_idx], bottom_level_instance.transform);
-	    bottom_level_instance.instanceCustomIndex = 0;
 	    bottom_level_instance.mask = 0xFF;
 	    bottom_level_instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
 	    bottom_level_instance.instanceShaderBindingTableRecordOffset = 0;
 	    bottom_level_instance.accelerationStructureReference = get_device_address(bottom_level_acceleration_structures[model_idx]);
 	    bottom_level_instances.push_back(bottom_level_instance);
+	    ++bottom_level_instance.instanceCustomIndex;
 	}
     }
     
