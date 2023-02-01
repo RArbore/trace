@@ -74,11 +74,33 @@ void main() {
     vec3 obj_position = v0.position * barycentrics.x + v1.position * barycentrics.y + v2.position * barycentrics.z;
     vec3 world_position = vec3(gl_ObjectToWorldEXT * vec4(obj_position, 1.0));
 
-    vec3 normal = v0.normal * barycentrics.x + v1.normal * barycentrics.y + v2.normal * barycentrics.z;
-    vec3 world_normal = normalize(vec3(normal * gl_WorldToObjectEXT));
+    vec3 obj_flat_normal = v0.normal * barycentrics.x + v1.normal * barycentrics.y + v2.normal * barycentrics.z;
+    vec3 world_flat_normal = normalize(vec3(obj_flat_normal * gl_WorldToObjectEXT));
 
     vec2 texcoord = v0.texcoord * barycentrics.x + v1.texcoord * barycentrics.y + v2.texcoord * barycentrics.z;
   
     uint texture_base_id = uint(obj.model_id) * 4;
-    prd.hit_value = texture(textures[texture_base_id], texcoord).xyz;
+    vec3 albedo = texture(textures[texture_base_id], texcoord).xyz;
+    vec3 bump_normal = texture(textures[texture_base_id + 1], texcoord).xyz;
+    float roughness = texture(textures[texture_base_id + 2], texcoord).x;
+    float metallicity = texture(textures[texture_base_id + 3], texcoord).x;
+
+    vec3 N = world_flat_normal;
+    vec3 triangle_edge1 = v1.position - v0.position;
+    vec3 triangle_edge2 = v2.position - v0.position;
+    vec2 delta_texcoord1 = v1.texcoord - v0.texcoord;
+    vec2 delta_texcoord2 = v2.texcoord - v0.texcoord;
+    float det = 1.0 / (delta_texcoord1.x * delta_texcoord2.y - delta_texcoord2.x * delta_texcoord1.y);
+    vec3 obj_T = vec3(
+		      det * (delta_texcoord2.y * triangle_edge1.x - delta_texcoord1.y * triangle_edge2.x),
+		      det * (delta_texcoord2.y * triangle_edge1.y - delta_texcoord1.y * triangle_edge2.y),
+		      det * (delta_texcoord2.y * triangle_edge1.z - delta_texcoord1.y * triangle_edge2.z)
+		      );
+    vec3 T = vec3(gl_ObjectToWorldEXT * vec4(obj_T, 1.0));
+    vec3 B = cross(N, T);
+    mat3 TBN = mat3(T, B, N);
+
+    vec3 normal = normalize(TBN * (bump_normal * 2.0 - 1.0));
+
+    prd.hit_value = normal * 0.5 + 0.5;
 }
