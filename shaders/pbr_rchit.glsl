@@ -19,6 +19,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 #extension GL_EXT_buffer_reference2 : require
 #extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_nonuniform_qualifier : enable
 
 struct hit_payload {
     vec3 hit_value;
@@ -33,7 +34,7 @@ struct obj_desc {
 struct vertex {
     vec3 position;
     vec3 normal;
-    vec2 texcoords;
+    vec2 texcoord;
 };
 
 layout(location = 0) rayPayloadInEXT hit_payload prd;
@@ -69,6 +70,15 @@ void main() {
     vertex v2 = vertices.v[index.z];
 
     vec3 barycentrics = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
+
+    vec3 obj_position = v0.position * barycentrics.x + v1.position * barycentrics.y + v2.position * barycentrics.z;
+    vec3 world_position = vec3(gl_ObjectToWorldEXT * vec4(obj_position, 1.0));
+
+    vec3 normal = v0.normal * barycentrics.x + v1.normal * barycentrics.y + v2.normal * barycentrics.z;
+    vec3 world_normal = normalize(vec3(normal * gl_WorldToObjectEXT));
+
+    vec2 texcoord = v0.texcoord * barycentrics.x + v1.texcoord * barycentrics.y + v2.texcoord * barycentrics.z;
   
-    prd.hit_value = barycentrics;
+    uint texture_base_id = uint(obj.model_id) * 4;
+    prd.hit_value = texture(textures[texture_base_id], texcoord).xyz;
 }
