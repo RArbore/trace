@@ -22,7 +22,10 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 
 struct hit_payload {
-    vec3 hit_value;
+    vec3 albedo;
+    vec3 normal;
+    float roughness;
+    float metallicity;
 };
 
 struct obj_desc {
@@ -102,5 +105,8 @@ void main() {
 
     vec3 normal = normalize(TBN * (bump_normal * 2.0 - 1.0));
 
-    prd.hit_value = normal * 0.5 + 0.5;
+    prd.albedo = albedo;
+    prd.normal = normal;
+    prd.roughness = roughness;
+    prd.metallicity = metallicity;
 }

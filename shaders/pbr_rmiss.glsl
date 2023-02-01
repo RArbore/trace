@@ -18,7 +18,10 @@
 #extension GL_EXT_ray_tracing : require
 
 struct hit_payload {
-    vec3 hit_value;
+    vec3 albedo;
+    vec3 normal;
+    float roughness;
+    float metallicity;
 };
 
 layout(location = 0) rayPayloadInEXT hit_payload prd;
@@ -29,5 +32,8 @@ layout (push_constant) uniform PushConstants {
 };
 
 void main() {
-    prd.hit_value = vec3(0.0);
+    prd.albedo = vec3(0.0);
+    prd.normal = vec3(0.0);
+    prd.roughness = 0.0;
+    prd.metallicity = 0.0;
 }
