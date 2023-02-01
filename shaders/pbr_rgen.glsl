@@ -22,10 +22,15 @@ struct hit_payload {
     vec3 normal;
     float roughness;
     float metallicity;
+    vec3 hit_position;
 };
 
 layout(location = 0) rayPayloadEXT hit_payload prd;
 
+const uint MAX_LIGHTS = 512;
+layout(set = 0, binding = 0) uniform lights_uniform {
+    vec4 lights[MAX_LIGHTS];
+};
 layout(set = 1, binding = 0) uniform accelerationStructureEXT tlas;
 layout(set = 1, binding = 1, rgba8) uniform writeonly image2D image;
 
@@ -58,6 +63,32 @@ void main() {
 		10000.0,              // ray max range
 		0                     // payload (location = 0)
 		);
+
+    hit_payload first_hit = prd;
+
+    uint light_id = 0;
+    vec3 light_position = lights[light_id].xyz;
+    float light_intensity = lights[light_id].w;
+    vec3 light_dir = normalize(light_position - first_hit.hit_position);
+    float light_dist = length(light_position - first_hit.hit_position);
+    traceRayEXT(tlas,
+		gl_RayFlagsOpaqueEXT,
+		0xFF,
+		0,
+		0,
+		0,
+		first_hit.hit_position,
+		0.001,
+		light_dir,
+		light_dist,
+		0
+		);
+
+    bool occluded = length(prd.normal) > 0.0;
     
-    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(vec3(prd.normal * 0.5 + 0.5), 1.0));
+    if (occluded) {
+	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.albedo * 0.05, 1.0));
+    } else {
+	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.albedo, 1.0));
+    }
 }

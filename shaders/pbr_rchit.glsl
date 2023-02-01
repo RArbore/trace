@@ -26,6 +26,7 @@ struct hit_payload {
     vec3 normal;
     float roughness;
     float metallicity;
+    vec3 hit_position;
 };
 
 struct obj_desc {
@@ -47,10 +48,6 @@ layout (push_constant) uniform PushConstants {
     mat4 camera;
 };
 
-const uint MAX_LIGHTS = 512;
-layout(set = 0, binding = 0) uniform lights_uniform {
-    vec4 lights[MAX_LIGHTS];
-};
 layout(set = 0, binding = 1) uniform sampler2D textures[];
 layout(set = 1, binding = 2, scalar) buffer objects_buf { obj_desc i[]; } objects;
 
@@ -109,4 +106,5 @@ void main() {
     prd.normal = normal;
     prd.roughness = roughness;
     prd.metallicity = metallicity;
+    prd.hit_position = world_position;
 }

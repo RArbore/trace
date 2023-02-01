@@ -22,6 +22,7 @@ struct hit_payload {
     vec3 normal;
     float roughness;
     float metallicity;
+    vec3 hit_position;
 };
 
 layout(location = 0) rayPayloadInEXT hit_payload prd;
@@ -36,4 +37,5 @@ void main() {
     prd.normal = vec3(0.0);
     prd.roughness = 0.0;
     prd.metallicity = 0.0;
+    prd.hit_position = vec3(0.0);
 }

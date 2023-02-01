@@ -32,22 +32,16 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 
     Scene scene {};
 
-    /*const uint16_t model_id_pico = context.load_model("pico", scene);
-    for (int16_t x = -5; x <= 5; ++x)
-	for (int16_t y = -5; y <= 5; ++y)
-	scene.add_object(glm::scale(glm::translate(glm::mat4(1), glm::vec3(x * 1.2f, y * 1.2f, 0.7f)), glm::vec3(20.0f, 20.0f, 20.0f)), model_id_pico);*/
-    /*const uint16_t model_id_stone_lion = context.load_model("stone_lion", scene);
-    for (int16_t x = -5; x <= 5; ++x)
-	for (int16_t y = -5; y <= 5; ++y)
-	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(x * 1.2f, y * 1.2f, 0.7f)), model_id_stone_lion);*/
-    const uint16_t model_id_stone_lion = context.load_model("stone_lion", scene);
-    scene.add_object(glm::mat4(1), model_id_stone_lion);
-    scene.add_object(glm::translate(glm::mat4(1), glm::vec3(2.0f, 0.0f, 0.0f)), model_id_stone_lion);
-
     const uint16_t model_id_pico = context.load_model("pico", scene);
-    scene.add_object(glm::rotate(glm::scale(glm::translate(glm::mat4(1), glm::vec3(0.0f, 2.0f, 0.0f)), glm::vec3(20.0f, 20.0f, 20.0f)), 1.57f, glm::vec3(0.0f, 0.0f, 1.0f)), model_id_pico);
+    for (int16_t x = -5; x <= 5; ++x)
+	for (int16_t y = -5; y <= 5; ++y)
+	scene.add_object(glm::scale(glm::translate(glm::mat4(1), glm::vec3(x * 1.2f, y * 1.2f, 0.7f)), glm::vec3(20.0f, 20.0f, 20.0f)), model_id_pico);
+    const uint16_t model_id_stone_lion = context.load_model("stone_lion", scene);
+    for (int16_t x = -5; x <= 5; ++x)
+	for (int16_t y = -5; y <= 5; ++y)
+	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(x * 1.2f, y * 1.2f, -0.7f)), model_id_stone_lion);
 
-    scene.add_light({0.0, 2.0, 2.0, 100.0});
+    scene.add_light({0.0, 10.0, 0.0, 100.0});
     
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors_lights(scene);
