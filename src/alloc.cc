@@ -237,7 +237,7 @@ auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t
 	return NULL;
     for (ring_buffer.last_id = 0; ring_buffer.last_id < ring_buffer.elements.size(); ++ring_buffer.last_id) {
 	auto &element = ring_buffer.elements[ring_buffer.last_id];
-	if (element.size >= size && element.occupied == RingBuffer::NOT_OCCUPIED) {
+	if (element.buffer.size >= size && element.occupied == RingBuffer::NOT_OCCUPIED) {
 	    break;
 	}
     }
@@ -258,7 +258,6 @@ auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t
 
 	ring_buffer.elements.push_back({
 		new_element_buffer,
-		new_element_size,
 		RingBuffer::NOT_OCCUPIED,
 		new_element_command_buffer,
 		new_element_semaphore
