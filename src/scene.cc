@@ -313,6 +313,38 @@ auto RenderContext::load_texture(std::string_view texture_filepath, bool srgb) n
     return {dst, create_image_view(dst.image, format, subresource_range)};
 }
 
+auto RenderContext::load_custom_material(uint8_t red_albedo, uint8_t green_albedo, uint8_t blue_albedo, uint8_t roughness, uint8_t metallicity) noexcept -> std::array<std::pair<Image, VkImageView>, 4> {
+    std::size_t image_size = 4;
+    std::array<uint8_t, 16> contents = {
+	red_albedo, green_albedo, blue_albedo, 255,
+	0, 0, 255, 255,
+	roughness, roughness, roughness, 255,
+	metallicity, metallicity, metallicity, 255
+    };
+    std::array<std::pair<Image, VkImageView>, 4> ret;
+
+    for (uint16_t i = 0; i < 4; ++i) {
+	VkFormat format = !i ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+	VkExtent2D extent = {1, 1};
+	Image dst = create_image(0, format, extent, 1, 1, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "CUSTOM_MATERIAL_IMAGE");
+
+	void *data_image = ringbuffer_claim_buffer(main_ring_buffer, image_size);
+	memcpy(data_image, &contents[i * 4], image_size);
+	ringbuffer_submit_buffer(main_ring_buffer, dst);
+	
+	VkImageSubresourceRange subresource_range {};
+	subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	subresource_range.baseMipLevel = 0;
+	subresource_range.levelCount = 1;
+	subresource_range.baseArrayLayer = 0;
+	subresource_range.layerCount = 1;
+	
+	ret[i] = {dst, create_image_view(dst.image, format, subresource_range)};
+    }
+
+    return ret;
+}
+
 auto glm4x4_to_vk_transform(const glm::mat4 &in, VkTransformMatrixKHR &out) noexcept -> void {
     for (uint16_t i = 0; i < 4; ++i) {
 	out.matrix[0][i] = in[i][0];

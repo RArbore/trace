@@ -218,6 +218,7 @@ struct RenderContext {
     auto load_model(std::string_view model_name, Scene &scene) noexcept -> uint16_t;
     auto load_obj_model(std::string_view obj_filepath) noexcept -> Model;
     auto load_texture(std::string_view texture_filepath, bool srgb) noexcept -> std::pair<Image, VkImageView>;
+    auto load_custom_material(uint8_t red_albedo, uint8_t green_albedo, uint8_t blue_albedo, uint8_t roughness, uint8_t metallicity) noexcept -> std::array<std::pair<Image, VkImageView>, 4>;
 
     auto update_descriptors_textures(const Scene &scene, uint32_t update_texture) noexcept -> void;
     auto update_descriptors_lights(const Scene &scene) noexcept -> void;
