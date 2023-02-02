@@ -313,11 +313,33 @@ auto RenderContext::load_texture(std::string_view texture_filepath, bool srgb) n
     return {dst, create_image_view(dst.image, format, subresource_range)};
 }
 
+auto RenderContext::load_custom_model(const std::vector<Model::Vertex> &vertices, const std::vector<uint32_t> &indices, uint8_t red_albedo, uint8_t green_albedo, uint8_t blue_albedo, uint8_t roughness, uint8_t metallicity, Scene &scene) noexcept -> uint16_t {
+    const uint16_t model_id = scene.num_models;
+    const uint16_t base_texture_id = scene.num_textures;
+
+    const auto mat = load_custom_material(red_albedo, green_albedo, blue_albedo, roughness, metallicity);
+    scene.textures.emplace_back(mat[0]);
+    scene.textures.emplace_back(mat[1]);
+    scene.textures.emplace_back(mat[2]);
+    scene.textures.emplace_back(mat[3]);
+    update_descriptors_textures(scene, base_texture_id);
+    update_descriptors_textures(scene, base_texture_id + 1);
+    update_descriptors_textures(scene, base_texture_id + 2);
+    update_descriptors_textures(scene, base_texture_id + 3);
+    
+    scene.models.emplace_back(vertices, indices, base_texture_id);
+
+    scene.num_models += 1;
+    scene.num_textures += 4;
+    scene.transforms.emplace_back();
+    return model_id;
+}
+
 auto RenderContext::load_custom_material(uint8_t red_albedo, uint8_t green_albedo, uint8_t blue_albedo, uint8_t roughness, uint8_t metallicity) noexcept -> std::array<std::pair<Image, VkImageView>, 4> {
     std::size_t image_size = 4;
     std::array<uint8_t, 16> contents = {
 	red_albedo, green_albedo, blue_albedo, 255,
-	0, 0, 255, 255,
+	128, 128, 255, 255,
 	roughness, roughness, roughness, 255,
 	metallicity, metallicity, metallicity, 255
     };

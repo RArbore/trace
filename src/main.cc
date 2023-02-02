@@ -45,6 +45,26 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     const uint16_t model_id_dragon = context.load_model("dragon", scene);
     scene.add_object(glm::scale(glm::mat4(1), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_dragon);
     scene.add_light({3.0, 0.0, 3.0, 50.0});
+
+    const uint16_t model_id_floor = context.load_custom_model(
+							      {
+								  {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+								  {{1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+								  {{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+								  {{1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+							      },
+							      {
+								  0, 1, 2,
+								  1, 3, 2,
+							      },
+							      255,
+							      255,
+							      255,
+							      0,
+							      0,
+							      scene
+							      );
+    scene.add_object(glm::scale(glm::mat4(1), glm::vec3(10.0f, 10.0f, 1.0f)), model_id_floor);
     
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors_lights(scene);
