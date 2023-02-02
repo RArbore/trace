@@ -215,8 +215,8 @@ struct RenderContext {
     auto ringbuffer_copy_scene_ray_trace_objects_into_buffer(Scene &scene) noexcept -> void;
 
     auto ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void *;
-    auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst) noexcept -> void;
-    auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst) noexcept -> void;
+    auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;
+    auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;
 
     auto load_model(std::string_view model_name, Scene &scene, const uint8_t *custom_mat = NULL) noexcept -> uint16_t;
     auto load_obj_model(std::string_view obj_filepath) noexcept -> Model;

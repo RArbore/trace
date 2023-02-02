@@ -272,7 +272,7 @@ auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t
     return mapped_memory;
 }
 
-auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst) noexcept -> void {
+auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst, VkSemaphore *additional_semaphores, uint32_t num_semaphores) noexcept -> void {
     if (ring_buffer.last_copy_size == 0)
 	return;
     vmaUnmapMemory(allocator, ring_buffer.elements[ring_buffer.last_id].buffer.allocation);
@@ -316,13 +316,16 @@ auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &ds
 	prev_semaphore = create_semaphore();
 	ring_buffer.upload_buffer_semaphores[dst.buffer] = prev_semaphore;
     }
-    VkSemaphore signal_semaphores[] = {prev_semaphore, signal_semaphore};
-    submit_info.signalSemaphoreCount = 2;
-    submit_info.pSignalSemaphores = signal_semaphores;
+    std::vector<VkSemaphore> signal_semaphores = {prev_semaphore, signal_semaphore};
+    for (uint32_t i = 0; i < num_semaphores; ++i) {
+	signal_semaphores.push_back(additional_semaphores[i]);
+    }
+    submit_info.signalSemaphoreCount = (uint32_t) signal_semaphores.size();
+    submit_info.pSignalSemaphores = signal_semaphores.data();
     vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
 }
 
-auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst) noexcept -> void {
+auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst, VkSemaphore *additional_semaphores, uint32_t num_semaphores) noexcept -> void {
     vmaUnmapMemory(allocator, ring_buffer.elements[ring_buffer.last_id].buffer.allocation);
 
     VkImageMemoryBarrier image_memory_barrier {};
@@ -385,9 +388,12 @@ auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst)
 	prev_semaphore = create_semaphore();
 	ring_buffer.upload_image_semaphores[dst.image] = prev_semaphore;
     }
-    VkSemaphore signal_semaphores[] = {prev_semaphore, signal_semaphore};
-    submit_info.signalSemaphoreCount = 2;
-    submit_info.pSignalSemaphores = signal_semaphores;
+    std::vector<VkSemaphore> signal_semaphores = {prev_semaphore, signal_semaphore};
+    for (uint32_t i = 0; i < num_semaphores; ++i) {
+	signal_semaphores.push_back(additional_semaphores[i]);
+    }
+    submit_info.signalSemaphoreCount = (uint32_t) signal_semaphores.size();
+    submit_info.pSignalSemaphores = signal_semaphores.data();
     vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
 }
 

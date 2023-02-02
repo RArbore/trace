@@ -49,11 +49,11 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 
     const uint8_t mat_red[] = {220, 80, 100, 255, 0};
     const uint16_t model_id_red_dragon = context.load_model("dragon", scene, &mat_red[0]);
-    scene.add_object(glm::scale(glm::rotate(glm::translate(glm::mat4(1), glm::vec3(0.0f, 5.5f, 0.0f)), 1.0f, glm::vec3(0.0f, 0.0f, -0.5f)), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_red_dragon);
+    scene.add_object(glm::scale(glm::rotate(glm::translate(glm::mat4(1), glm::vec3(0.0f, 5.5f, 0.0f)), -1.0f, glm::vec3(0.0f, 0.0f, 1.0f)), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_red_dragon);
 
     const uint8_t mat_blue[] = {150, 220, 255, 75, 255};
     const uint16_t model_id_blue_dragon = context.load_model("dragon", scene, &mat_blue[0]);
-    scene.add_object(glm::scale(glm::rotate(glm::translate(glm::mat4(1), glm::vec3(0.0f, -5.5f, 0.0f)), 1.0f, glm::vec3(0.0f, 0.0f, 0.5f)), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_blue_dragon);
+    scene.add_object(glm::scale(glm::rotate(glm::translate(glm::mat4(1), glm::vec3(0.0f, -5.5f, 0.0f)), 1.0f, glm::vec3(0.0f, 0.0f, 1.0f)), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_blue_dragon);
 
     const uint16_t model_id_floor = context.load_custom_model(
 							      {
@@ -141,13 +141,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	}
 	context.last_pressed_keys = context.pressed_keys;
 
-	/*uint32_t idx = 0;
-	for (int16_t x = -5; x <= 5; ++x) {
-	    for (int16_t y = -5; y <= 5; ++y) {
-		scene.transforms[model_id_pico][idx] = glm::rotate(scene.transforms[model_id_pico][idx], (float) dt, glm::vec3(y, -x, 1.0f));
-		++idx;
-	    }
-	}*/
+	scene.transforms[model_id_dragon][0] = glm::scale(glm::rotate(glm::translate(glm::mat4(1), glm::vec3(-2.5f, 0.0f, 0.0f)), (float) elapsed_time, glm::vec3(0.0f, 0.0f, 1.0f)), glm::vec3(0.05f, 0.05f, 0.05f));
 	
 	context.ringbuffer_copy_scene_instances_into_buffer(scene);
 	context.ringbuffer_copy_scene_lights_into_buffer(scene);
