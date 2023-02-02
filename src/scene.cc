@@ -100,10 +100,10 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> v
 	cleanup_image(image.first);
     }
     vkDestroyAccelerationStructureKHR(device, scene.tlas, NULL);
-    for (auto blas : scene.blass)
-	vkDestroyAccelerationStructureKHR(device, blas, NULL);
     cleanup_buffer(scene.tlas_buffer);
     cleanup_buffer(scene.tlas_instances_buffer);
+    for (auto blas : scene.blass)
+	vkDestroyAccelerationStructureKHR(device, blas, NULL);
     for (auto buffer : scene.blas_buffers)
 	cleanup_buffer(buffer);
 }
@@ -223,6 +223,8 @@ auto RenderContext::load_model(std::string_view model_name, Scene &scene, const 
 	scene.num_models += 1;
 	scene.num_textures += 4;
 	scene.transforms.emplace_back();
+	scene.blass.push_back(VK_NULL_HANDLE);
+	scene.blas_buffers.emplace_back();
 	scene.models.back().base_texture_id = base_texture_id;
 
 	update_descriptors_textures(scene, base_texture_id);
@@ -343,6 +345,8 @@ auto RenderContext::load_custom_model(const std::vector<Model::Vertex> &vertices
     scene.num_models += 1;
     scene.num_textures += 4;
     scene.transforms.emplace_back();
+    scene.blass.push_back(VK_NULL_HANDLE);
+    scene.blas_buffers.emplace_back();
     return model_id;
 }
 
@@ -389,7 +393,7 @@ auto glm4x4_to_vk_transform(const glm::mat4 &in, VkTransformMatrixKHR &out) noex
     }
 }
 
-auto RenderContext::build_bottom_level_acceleration_structure_for_model(uint16_t model_idx, Scene &scene) noexcept -> std::pair<VkAccelerationStructureKHR, Buffer> {
+auto RenderContext::build_bottom_level_acceleration_structure_for_model(uint16_t model_idx, Scene &scene) noexcept -> void {
     const VkDeviceAddress vertex_buffer_address = get_device_address(scene.vertices_buf);
     const VkDeviceAddress index_buffer_address = get_device_address(scene.indices_buf);
     const VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
@@ -451,20 +455,13 @@ auto RenderContext::build_bottom_level_acceleration_structure_for_model(uint16_t
     });
 
     cleanup_buffer(blas_build_scratch_buffer);
-    return {bottom_level_acceleration_structure, blas_acceleration_structure_buffer};
+    scene.blass[model_idx] = bottom_level_acceleration_structure;
+    scene.blas_buffers[model_idx] = blas_acceleration_structure_buffer;
 }
 
 auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scene) noexcept -> void {
     const VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
 
-    std::vector<VkAccelerationStructureKHR> bottom_level_acceleration_structures;
-    std::vector<Buffer> bottom_level_acceleration_structure_buffers;
-    for (uint16_t model_idx = 0; model_idx < scene.num_models; ++model_idx) {
-	auto [blas, buffer] = build_bottom_level_acceleration_structure_for_model(model_idx, scene);
-	bottom_level_acceleration_structures.push_back(blas);
-	bottom_level_acceleration_structure_buffers.push_back(buffer);
-    }
-    
     std::vector<VkAccelerationStructureInstanceKHR> bottom_level_instances;
     VkAccelerationStructureInstanceKHR bottom_level_instance {};
     bottom_level_instance.instanceCustomIndex = 0;
@@ -474,7 +471,7 @@ auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scen
 	    bottom_level_instance.mask = 0xFF;
 	    bottom_level_instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
 	    bottom_level_instance.instanceShaderBindingTableRecordOffset = 0;
-	    bottom_level_instance.accelerationStructureReference = get_device_address(bottom_level_acceleration_structures[model_idx]);
+	    bottom_level_instance.accelerationStructureReference = get_device_address(scene.blass[model_idx]);
 	    bottom_level_instances.push_back(bottom_level_instance);
 	    ++bottom_level_instance.instanceCustomIndex;
 	}
@@ -534,9 +531,7 @@ auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scen
     });
 
     scene.tlas = top_level_acceleration_structure;
-    scene.blass = bottom_level_acceleration_structures;
     scene.tlas_buffer = tlas_acceleration_structure_buffer;
-    scene.blas_buffers = bottom_level_acceleration_structure_buffers;
     scene.tlas_instances_buffer = instances_buffer;
     cleanup_buffer(tlas_build_scratch_buffer);
 }

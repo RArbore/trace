@@ -77,6 +77,10 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors_lights(scene);
+    context.build_bottom_level_acceleration_structure_for_model(model_id_dragon, scene);
+    context.build_bottom_level_acceleration_structure_for_model(model_id_red_dragon, scene);
+    context.build_bottom_level_acceleration_structure_for_model(model_id_blue_dragon, scene);
+    context.build_bottom_level_acceleration_structure_for_model(model_id_floor, scene);
     context.build_top_level_acceleration_structure_for_scene(scene);
     context.update_descriptors_tlas(scene);
     context.update_descriptors_ray_trace_objects(scene);

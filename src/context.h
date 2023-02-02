@@ -114,6 +114,9 @@ struct RenderContext {
 
     VmaAllocator allocator;
     std::vector<std::pair<Buffer, std::size_t>> buffer_cleanup_queue;
+#ifndef RELEASE
+    std::map<const char *, uint16_t> allocated_tags;
+#endif
 
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR ray_tracing_properties;
     VkPhysicalDeviceAccelerationStructurePropertiesKHR acceleration_structure_properties;
@@ -229,7 +232,7 @@ struct RenderContext {
 
     auto get_device_address(const Buffer &buffer) noexcept -> VkDeviceAddress;
     auto get_device_address(const VkAccelerationStructureKHR &acceleration_structure) noexcept -> VkDeviceAddress;
-    auto build_bottom_level_acceleration_structure_for_model(uint16_t model_idx, Scene &scene) noexcept -> std::pair<VkAccelerationStructureKHR, Buffer>;
+    auto build_bottom_level_acceleration_structure_for_model(uint16_t model_idx, Scene &scene) noexcept -> void;
     auto build_top_level_acceleration_structure_for_scene(Scene &scene) noexcept -> void;
 
     auto init_imgui() noexcept -> void;

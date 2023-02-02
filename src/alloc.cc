@@ -25,6 +25,13 @@ auto RenderContext::create_allocator() noexcept -> void {
 }
 
 auto RenderContext::cleanup_allocator() noexcept -> void {
+#ifndef RELEASE
+    for (auto [tag, num_alive] : allocated_tags) {
+	if (num_alive) {
+	    std::cout << "DEBUG: About to crash in cleanup_allocator. Allocation with tag " << tag << " is still alive " << num_alive << " times.\n";
+	}
+    }
+#endif
     vmaDestroyAllocator(allocator);
 }
 
@@ -42,7 +49,10 @@ auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, V
     alloc_info.pUserData = (void *) name;
 
 #ifndef RELEASE
-    if (name) std::cout << "DEBUG: Creating buffer named " << name << " with size " << size << ".\n";
+    if (name) {
+	std::cout << "DEBUG: Creating buffer named " << name << " with size " << size << ".\n";
+	++allocated_tags[name];
+    }
 #endif
 
     VkBuffer buffer = VK_NULL_HANDLE;
@@ -67,7 +77,10 @@ auto RenderContext::create_buffer_with_alignment(VkDeviceSize size, VkDeviceSize
     alloc_info.pUserData = (void *) name;
 
 #ifndef RELEASE
-    if (name) std::cout << "DEBUG: Creating buffer named " << name << " with size " << size << ".\n";
+    if (name) {
+	std::cout << "DEBUG: Creating buffer named " << name << " with size " << size << ".\n";
+	++allocated_tags[name];
+    }
 #endif
 
     VkBuffer buffer = VK_NULL_HANDLE;
@@ -84,7 +97,10 @@ auto RenderContext::cleanup_buffer(Buffer buffer) noexcept -> void {
     if (!buffer.allocation)
 	std::cout << "DEBUG: About to crash in cleanup_buffer. Buffer: " << buffer.buffer << "   Allocation: " << buffer.allocation << "   Size: " << buffer.size << ".\n";
     vmaGetAllocationInfo(allocator, buffer.allocation, &allocation_info);
-    if (allocation_info.pUserData) std::cout << "DEBUG: Cleaning up buffer named " << (const char *) allocation_info.pUserData << ".\n";
+    if (allocation_info.pUserData) {
+	std::cout << "DEBUG: Cleaning up buffer named " << (const char *) allocation_info.pUserData << ".\n";
+	--allocated_tags[(const char *) allocation_info.pUserData];
+    }
 #endif
     vmaDestroyBuffer(allocator, buffer.buffer, buffer.allocation);
 }
@@ -117,7 +133,10 @@ auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkEx
     alloc_info.pUserData = (void *) name;
 
 #ifndef RELEASE
-    if (name) std::cout << "DEBUG: Creating image named " << name << ".\n";
+    if (name) {
+	std::cout << "DEBUG: Creating image named " << name << ".\n";
+	++allocated_tags[name];
+    }
 #endif
 
     VkImage image;
@@ -152,7 +171,10 @@ auto RenderContext::cleanup_image(Image image) noexcept -> void {
     }
     VmaAllocationInfo allocation_info;
     vmaGetAllocationInfo(allocator, image.allocation, &allocation_info);
-    if (allocation_info.pUserData) std::cout << "DEBUG: Cleaning up image named " << (const char *) allocation_info.pUserData << ".\n";
+    if (allocation_info.pUserData) {
+	std::cout << "DEBUG: Cleaning up image named " << (const char *) allocation_info.pUserData << ".\n";
+	--allocated_tags[(const char *) allocation_info.pUserData];
+    }
 #endif
     vmaDestroyImage(allocator, image.image, image.allocation);
 }
