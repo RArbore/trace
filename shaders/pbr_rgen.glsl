@@ -58,7 +58,7 @@ void main() {
 		0,                    // sbtRecordStride
 		0,                    // missIndex
 		cam_pos,              // ray origin
-		0.0001,               // ray min range
+		0.001,               // ray min range
 		ray_dir,              // ray direction
 		10000.0,              // ray max range
 		0                     // payload (location = 0)
@@ -71,14 +71,15 @@ void main() {
     float light_intensity = lights[light_id].w;
     vec3 light_dir = normalize(light_position - first_hit.hit_position);
     float light_dist = length(light_position - first_hit.hit_position);
+    vec3 hit_position = first_hit.hit_position - ray_dir * 0.01;
     traceRayEXT(tlas,
 		gl_RayFlagsOpaqueEXT,
 		0xFF,
 		0,
 		0,
 		0,
-		first_hit.hit_position,
-		0.0001,
+		hit_position,
+		0.001,
 		light_dir,
 		light_dist,
 		0
