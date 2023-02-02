@@ -32,7 +32,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 
     Scene scene {};
 
-    const uint16_t model_id_pico = context.load_model("pico", scene);
+    /*const uint16_t model_id_pico = context.load_model("pico", scene);
     for (int16_t x = -5; x <= 5; ++x)
 	for (int16_t y = -5; y <= 5; ++y)
 	scene.add_object(glm::scale(glm::translate(glm::mat4(1), glm::vec3(x * 1.2f, y * 1.2f, 0.7f)), glm::vec3(20.0f, 20.0f, 20.0f)), model_id_pico);
@@ -40,8 +40,11 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     for (int16_t x = -5; x <= 5; ++x)
 	for (int16_t y = -5; y <= 5; ++y)
 	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(x * 1.2f, y * 1.2f, -0.7f)), model_id_stone_lion);
+    scene.add_light({0.0, 10.0, 0.0, 100.0});*/
 
-    scene.add_light({0.0, 10.0, 0.0, 100.0});
+    const uint16_t model_id_dragon = context.load_model("dragon", scene);
+    scene.add_object(glm::scale(glm::mat4(1), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_dragon);
+    scene.add_light({3.0, 0.0, 3.0, 50.0});
     
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors_lights(scene);

@@ -103,6 +103,9 @@ auto RenderContext::render_imgui(Scene &scene) noexcept -> void {
     std::ostringstream heap_label;
     heap_label << "HEAP: " << imgui_data.last_heaps.back();
     ImGui::PlotLines(heap_label.str().c_str(), imgui_data.last_heaps.data(), (int32_t) imgui_data.last_heaps.size());
+    std::ostringstream pos_label;
+    pos_label << "POSITION: " << camera_position.x << " " << camera_position.y << " " << camera_position.z;
+    ImGui::Text(pos_label.str().c_str());
     
     ImGui::Render();
 }

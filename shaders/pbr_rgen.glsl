@@ -58,7 +58,7 @@ void main() {
 		0,                    // sbtRecordStride
 		0,                    // missIndex
 		cam_pos,              // ray origin
-		0.001,                // ray min range
+		0.0001,               // ray min range
 		ray_dir,              // ray direction
 		10000.0,              // ray max range
 		0                     // payload (location = 0)
@@ -78,7 +78,7 @@ void main() {
 		0,
 		0,
 		first_hit.hit_position,
-		0.001,
+		0.0001,
 		light_dir,
 		light_dist,
 		0
@@ -86,9 +86,10 @@ void main() {
 
     bool occluded = length(prd.normal) > 0.0;
     
+    vec3 color = first_hit.albedo;
     if (occluded) {
-	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.albedo * 0.05, 1.0));
+	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(color * 0.05, 1.0));
     } else {
-	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.albedo, 1.0));
+	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(color, 1.0));
     }
 }
