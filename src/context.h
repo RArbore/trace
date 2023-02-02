@@ -229,7 +229,8 @@ struct RenderContext {
 
     auto get_device_address(const Buffer &buffer) noexcept -> VkDeviceAddress;
     auto get_device_address(const VkAccelerationStructureKHR &acceleration_structure) noexcept -> VkDeviceAddress;
-    auto build_acceleration_structure_for_scene(Scene &scene) noexcept -> void;
+    auto build_bottom_level_acceleration_structure_for_model(uint16_t model_idx, Scene &scene) noexcept -> std::pair<VkAccelerationStructureKHR, Buffer>;
+    auto build_top_level_acceleration_structure_for_scene(Scene &scene) noexcept -> void;
 
     auto init_imgui() noexcept -> void;
     auto cleanup_imgui() noexcept -> void;

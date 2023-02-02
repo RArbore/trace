@@ -389,94 +389,81 @@ auto glm4x4_to_vk_transform(const glm::mat4 &in, VkTransformMatrixKHR &out) noex
     }
 }
 
-auto RenderContext::build_acceleration_structure_for_scene(Scene &scene) noexcept -> void {
-    std::vector<VkAccelerationStructureGeometryKHR> blas_geometries;
-    blas_geometries.reserve(scene.num_models);
-    std::vector<VkAccelerationStructureBuildRangeInfoKHR> blas_build_range_infos;
-    blas_build_range_infos.reserve(scene.num_models);
-    std::vector<VkAccelerationStructureBuildRangeInfoKHR*> ptr_blas_build_range_infos;
-    ptr_blas_build_range_infos.reserve(scene.num_models);
-    std::vector<VkAccelerationStructureBuildGeometryInfoKHR> blas_build_geometry_infos;
-    blas_build_geometry_infos.reserve(scene.num_models);
-    std::vector<VkAccelerationStructureKHR> bottom_level_acceleration_structures;
-    bottom_level_acceleration_structures.reserve(scene.num_models);
-    std::vector<Buffer> bottom_level_acceleration_structure_scratch_buffers;
-    bottom_level_acceleration_structure_scratch_buffers.reserve(scene.num_models);
-    std::vector<Buffer> bottom_level_acceleration_structure_buffers;
-    bottom_level_acceleration_structure_buffers.reserve(scene.num_models);
+auto RenderContext::build_bottom_level_acceleration_structure_for_model(uint16_t model_idx, Scene &scene) noexcept -> std::pair<VkAccelerationStructureKHR, Buffer> {
+    const VkDeviceAddress vertex_buffer_address = get_device_address(scene.vertices_buf);
+    const VkDeviceAddress index_buffer_address = get_device_address(scene.indices_buf);
+    const VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
 
-    VkDeviceAddress vertex_buffer_address = get_device_address(scene.vertices_buf);
-    VkDeviceAddress index_buffer_address = get_device_address(scene.indices_buf);
-    VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
-
-    uint32_t cumulative_max_vertex = 0;
-    for (uint16_t model_idx = 0; model_idx < scene.num_models; ++model_idx) {
-	cumulative_max_vertex += scene.models[model_idx].num_vertices();
-	
-	VkAccelerationStructureGeometryTrianglesDataKHR geometry_triangles_data {};
-	geometry_triangles_data.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
-	geometry_triangles_data.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-	geometry_triangles_data.vertexData.deviceAddress = vertex_buffer_address;
-	geometry_triangles_data.vertexStride = sizeof(Model::Vertex);
-	geometry_triangles_data.indexType = VK_INDEX_TYPE_UINT32;
-	geometry_triangles_data.indexData.deviceAddress = index_buffer_address;
-	geometry_triangles_data.maxVertex = cumulative_max_vertex;
-	vertex_buffer_address += scene.models[model_idx].num_vertices() * sizeof(Model::Vertex);
-	index_buffer_address += scene.models[model_idx].num_triangles() * sizeof(uint32_t) * 3;
-	
-	VkAccelerationStructureGeometryKHR blas_geometry {};
-	blas_geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
-	blas_geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-	blas_geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
-	blas_geometry.geometry.triangles = geometry_triangles_data;
-	blas_geometries.push_back(blas_geometry);
-	
-	VkAccelerationStructureBuildRangeInfoKHR blas_build_range_info {};
-	blas_build_range_info.firstVertex = 0;
-	blas_build_range_info.primitiveCount = scene.models[model_idx].num_triangles();
-	blas_build_range_info.primitiveOffset = 0;
-	blas_build_range_info.transformOffset = 0;
-	
-	VkAccelerationStructureBuildGeometryInfoKHR blas_build_geometry_info {};
-	blas_build_geometry_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
-	blas_build_geometry_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-	blas_build_geometry_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
-	blas_build_geometry_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-	blas_build_geometry_info.geometryCount = 1;
-	blas_build_geometry_info.pGeometries = &blas_geometries.back();
-	
-	const uint32_t max_primitive_counts[] = {scene.models[model_idx].num_triangles()};
-	
-	VkAccelerationStructureBuildSizesInfoKHR blas_build_sizes_info {};
-	blas_build_sizes_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
-	vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &blas_build_geometry_info, max_primitive_counts, &blas_build_sizes_info);
-	
-	Buffer blas_build_scratch_buffer = create_buffer_with_alignment(blas_build_sizes_info.buildScratchSize, alignment, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_BLAS_BUILD_SCRATCH_BUFFER");
-	Buffer blas_acceleration_structure_buffer = create_buffer_with_alignment(blas_build_sizes_info.accelerationStructureSize, alignment, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_BLAS_BUFFER");
-	
-	VkAccelerationStructureCreateInfoKHR bottom_level_create_info {};
-	bottom_level_create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
-	bottom_level_create_info.buffer = blas_acceleration_structure_buffer.buffer;
-	bottom_level_create_info.offset = 0;
-	bottom_level_create_info.size = blas_build_sizes_info.accelerationStructureSize;
-	bottom_level_create_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-	
-	VkAccelerationStructureKHR bottom_level_acceleration_structure;
-	ASSERT(vkCreateAccelerationStructureKHR(device, &bottom_level_create_info, NULL, &bottom_level_acceleration_structure), "Unable to create bottom level acceleration structure.");
-	
-	blas_build_geometry_info.dstAccelerationStructure = bottom_level_acceleration_structure;
-	blas_build_geometry_info.scratchData.deviceAddress = get_device_address(blas_build_scratch_buffer);
-	blas_build_range_infos.push_back(blas_build_range_info);
-	ptr_blas_build_range_infos.push_back(&blas_build_range_infos.back());
-	blas_build_geometry_infos.push_back(blas_build_geometry_info);
-	bottom_level_acceleration_structures.push_back(bottom_level_acceleration_structure);
-	bottom_level_acceleration_structure_scratch_buffers.push_back(blas_build_scratch_buffer);
-	bottom_level_acceleration_structure_buffers.push_back(blas_acceleration_structure_buffer);
-    }
+    VkAccelerationStructureGeometryTrianglesDataKHR geometry_triangles_data {};
+    geometry_triangles_data.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+    geometry_triangles_data.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
+    geometry_triangles_data.vertexData.deviceAddress = vertex_buffer_address + scene.model_vertices_offsets[model_idx];
+    geometry_triangles_data.vertexStride = sizeof(Model::Vertex);
+    geometry_triangles_data.indexType = VK_INDEX_TYPE_UINT32;
+    geometry_triangles_data.indexData.deviceAddress = index_buffer_address + scene.model_indices_offsets[model_idx];
+    geometry_triangles_data.maxVertex = scene.models[model_idx].num_vertices();
     
+    VkAccelerationStructureGeometryKHR blas_geometry {};
+    blas_geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+    blas_geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+    blas_geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+    blas_geometry.geometry.triangles = geometry_triangles_data;
+    
+    VkAccelerationStructureBuildRangeInfoKHR blas_build_range_info {};
+    blas_build_range_info.firstVertex = 0;
+    blas_build_range_info.primitiveCount = scene.models[model_idx].num_triangles();
+    blas_build_range_info.primitiveOffset = 0;
+    blas_build_range_info.transformOffset = 0;
+    VkAccelerationStructureBuildRangeInfoKHR *blas_build_range_infos[] = {&blas_build_range_info};
+    
+    VkAccelerationStructureBuildGeometryInfoKHR blas_build_geometry_info {};
+    blas_build_geometry_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+    blas_build_geometry_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    blas_build_geometry_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+    blas_build_geometry_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+    blas_build_geometry_info.geometryCount = 1;
+    blas_build_geometry_info.pGeometries = &blas_geometry;
+    
+    const uint32_t max_primitive_counts[] = {scene.models[model_idx].num_triangles()};
+    
+    VkAccelerationStructureBuildSizesInfoKHR blas_build_sizes_info {};
+    blas_build_sizes_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
+    vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &blas_build_geometry_info, max_primitive_counts, &blas_build_sizes_info);
+    
+    Buffer blas_build_scratch_buffer = create_buffer_with_alignment(blas_build_sizes_info.buildScratchSize, alignment, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_BLAS_BUILD_SCRATCH_BUFFER");
+    Buffer blas_acceleration_structure_buffer = create_buffer_with_alignment(blas_build_sizes_info.accelerationStructureSize, alignment, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_BLAS_BUFFER");
+    
+    VkAccelerationStructureCreateInfoKHR bottom_level_create_info {};
+    bottom_level_create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+    bottom_level_create_info.buffer = blas_acceleration_structure_buffer.buffer;
+    bottom_level_create_info.offset = 0;
+    bottom_level_create_info.size = blas_build_sizes_info.accelerationStructureSize;
+    bottom_level_create_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    
+    VkAccelerationStructureKHR bottom_level_acceleration_structure;
+    ASSERT(vkCreateAccelerationStructureKHR(device, &bottom_level_create_info, NULL, &bottom_level_acceleration_structure), "Unable to create bottom level acceleration structure.");
+    
+    blas_build_geometry_info.dstAccelerationStructure = bottom_level_acceleration_structure;
+    blas_build_geometry_info.scratchData.deviceAddress = get_device_address(blas_build_scratch_buffer);
+
     inefficient_run_commands([&](VkCommandBuffer cmd) {
-	vkCmdBuildAccelerationStructuresKHR(cmd, scene.num_models, blas_build_geometry_infos.data(), (const VkAccelerationStructureBuildRangeInfoKHR* const*) ptr_blas_build_range_infos.data());
+	vkCmdBuildAccelerationStructuresKHR(cmd, 1, &blas_build_geometry_info, (const VkAccelerationStructureBuildRangeInfoKHR* const*) blas_build_range_infos);
     });
+
+    cleanup_buffer(blas_build_scratch_buffer);
+    return {bottom_level_acceleration_structure, blas_acceleration_structure_buffer};
+}
+
+auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scene) noexcept -> void {
+    const VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
+
+    std::vector<VkAccelerationStructureKHR> bottom_level_acceleration_structures;
+    std::vector<Buffer> bottom_level_acceleration_structure_buffers;
+    for (uint16_t model_idx = 0; model_idx < scene.num_models; ++model_idx) {
+	auto [blas, buffer] = build_bottom_level_acceleration_structure_for_model(model_idx, scene);
+	bottom_level_acceleration_structures.push_back(blas);
+	bottom_level_acceleration_structure_buffers.push_back(buffer);
+    }
     
     std::vector<VkAccelerationStructureInstanceKHR> bottom_level_instances;
     VkAccelerationStructureInstanceKHR bottom_level_instance {};
@@ -552,6 +539,4 @@ auto RenderContext::build_acceleration_structure_for_scene(Scene &scene) noexcep
     scene.blas_buffers = bottom_level_acceleration_structure_buffers;
     scene.tlas_instances_buffer = instances_buffer;
     cleanup_buffer(tlas_build_scratch_buffer);
-    for (auto buffer : bottom_level_acceleration_structure_scratch_buffers)
-	cleanup_buffer(buffer);
 }
