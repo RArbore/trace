@@ -172,9 +172,9 @@ auto RenderContext::ringbuffer_copy_scene_ray_trace_objects_into_buffer(Scene &s
     ringbuffer_submit_buffer(main_ring_buffer, scene.ray_trace_objects_buf);
 }
 
-auto RenderContext::load_model(std::string_view model_name, Scene &scene) noexcept -> uint16_t {
+auto RenderContext::load_model(std::string_view model_name, Scene &scene, const uint8_t *custom_mat) noexcept -> uint16_t {
     auto it = scene.loaded_models.find(std::string(model_name));
-    if (it != scene.loaded_models.end())
+    if (!custom_mat && it != scene.loaded_models.end())
 	return it->second;
     
     const std::string obj_filepath =
@@ -208,10 +208,18 @@ auto RenderContext::load_model(std::string_view model_name, Scene &scene) noexce
 	const uint16_t base_texture_id = scene.num_textures;
 
 	scene.models.emplace_back(load_obj_model(obj_filepath));
-	scene.textures.emplace_back(load_texture(color_filepath, true));
-	scene.textures.emplace_back(load_texture(normal_filepath, false));
-	scene.textures.emplace_back(load_texture(rough_filepath, false));
-	scene.textures.emplace_back(load_texture(metal_filepath, false));
+	if (custom_mat) {
+	    auto mat = load_custom_material(custom_mat[0], custom_mat[1], custom_mat[2], custom_mat[3], custom_mat[4], 0xD);
+	    scene.textures.emplace_back(mat[0]);
+	    scene.textures.emplace_back(load_texture(normal_filepath, false));
+	    scene.textures.emplace_back(mat[2]);
+	    scene.textures.emplace_back(mat[3]);
+	} else {
+	    scene.textures.emplace_back(load_texture(color_filepath, true));
+	    scene.textures.emplace_back(load_texture(normal_filepath, false));
+	    scene.textures.emplace_back(load_texture(rough_filepath, false));
+	    scene.textures.emplace_back(load_texture(metal_filepath, false));
+	}
 	scene.num_models += 1;
 	scene.num_textures += 4;
 	scene.transforms.emplace_back();
@@ -221,8 +229,9 @@ auto RenderContext::load_model(std::string_view model_name, Scene &scene) noexce
 	update_descriptors_textures(scene, base_texture_id + 1);
 	update_descriptors_textures(scene, base_texture_id + 2);
 	update_descriptors_textures(scene, base_texture_id + 3);
-
-	scene.loaded_models.insert({std::string(model_name), model_id});
+	
+	if (!custom_mat)
+	    scene.loaded_models.insert({std::string(model_name), model_id});
 
 	std::cout << "INFO: Loaded model " << obj_filepath << ", with " << scene.models.back().vertices.size() << " vertices and " << scene.models.back().indices.size() << " indices.\n";
 	std::cout << "INFO: Used PBR color texture at " << color_filepath << ".\n";
@@ -247,6 +256,7 @@ auto RenderContext::load_obj_model(std::string_view obj_filepath) noexcept -> Mo
 
     std::unordered_map<Model::Vertex, uint32_t> unique_vertices;
 
+    uint32_t count = 0;
     for (const auto& shape : shapes) {
 	for (const auto& index : shape.mesh.indices) {
 	    Model::Vertex vertex {};
@@ -273,7 +283,7 @@ auto RenderContext::load_obj_model(std::string_view obj_filepath) noexcept -> Mo
 		    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
 		};
 	    } else {
-		vertex.texture = {0.0f, 0.0f};
+		vertex.texture = {((float) count) / 1000.0f, ((float) count) / 1000.0f}; // Random texcoords for gradients in fragment shader
 	    }
 	    
 	    model.vertices.push_back(vertex);
@@ -282,6 +292,7 @@ auto RenderContext::load_obj_model(std::string_view obj_filepath) noexcept -> Mo
 		model.vertices.push_back(vertex);
 	    }
 	    model.indices.push_back(unique_vertices[vertex]);
+	    ++count;
 	}
     }
     
@@ -335,7 +346,7 @@ auto RenderContext::load_custom_model(const std::vector<Model::Vertex> &vertices
     return model_id;
 }
 
-auto RenderContext::load_custom_material(uint8_t red_albedo, uint8_t green_albedo, uint8_t blue_albedo, uint8_t roughness, uint8_t metallicity) noexcept -> std::array<std::pair<Image, VkImageView>, 4> {
+auto RenderContext::load_custom_material(uint8_t red_albedo, uint8_t green_albedo, uint8_t blue_albedo, uint8_t roughness, uint8_t metallicity, uint8_t mask) noexcept -> std::array<std::pair<Image, VkImageView>, 4> {
     std::size_t image_size = 4;
     std::array<uint8_t, 16> contents = {
 	red_albedo, green_albedo, blue_albedo, 255,
@@ -346,6 +357,9 @@ auto RenderContext::load_custom_material(uint8_t red_albedo, uint8_t green_albed
     std::array<std::pair<Image, VkImageView>, 4> ret;
 
     for (uint16_t i = 0; i < 4; ++i) {
+	if (!(mask & (1 << i)))
+	    continue;
+	
 	VkFormat format = !i ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
 	VkExtent2D extent = {1, 1};
 	Image dst = create_image(0, format, extent, 1, 1, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "CUSTOM_MATERIAL_IMAGE");

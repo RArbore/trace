@@ -215,11 +215,11 @@ struct RenderContext {
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst) noexcept -> void;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst) noexcept -> void;
 
-    auto load_model(std::string_view model_name, Scene &scene) noexcept -> uint16_t;
+    auto load_model(std::string_view model_name, Scene &scene, const uint8_t *custom_mat = NULL) noexcept -> uint16_t;
     auto load_obj_model(std::string_view obj_filepath) noexcept -> Model;
     auto load_texture(std::string_view texture_filepath, bool srgb) noexcept -> std::pair<Image, VkImageView>;
     auto load_custom_model(const std::vector<Model::Vertex> &vertices, const std::vector<uint32_t> &indices, uint8_t red_albedo, uint8_t green_albedo, uint8_t blue_albedo, uint8_t roughness, uint8_t metallicity, Scene &scene) noexcept -> uint16_t;
-    auto load_custom_material(uint8_t red_albedo, uint8_t green_albedo, uint8_t blue_albedo, uint8_t roughness, uint8_t metallicity) noexcept -> std::array<std::pair<Image, VkImageView>, 4>;
+    auto load_custom_material(uint8_t red_albedo, uint8_t green_albedo, uint8_t blue_albedo, uint8_t roughness, uint8_t metallicity, uint8_t mask = 0xF) noexcept -> std::array<std::pair<Image, VkImageView>, 4>;
 
     auto update_descriptors_textures(const Scene &scene, uint32_t update_texture) noexcept -> void;
     auto update_descriptors_lights(const Scene &scene) noexcept -> void;

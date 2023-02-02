@@ -42,9 +42,18 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(x * 1.2f, y * 1.2f, -0.7f)), model_id_stone_lion);
     scene.add_light({0.0, 10.0, 0.0, 100.0});*/
 
+    scene.add_light({3.0, 0.0, 3.0, 50.0});
+
     const uint16_t model_id_dragon = context.load_model("dragon", scene);
     scene.add_object(glm::scale(glm::mat4(1), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_dragon);
-    scene.add_light({3.0, 0.0, 3.0, 50.0});
+
+    const uint8_t mat_red[] = {220, 20, 30, 200, 200};
+    const uint16_t model_id_red_dragon = context.load_model("dragon", scene, &mat_red[0]);
+    scene.add_object(glm::scale(glm::rotate(glm::translate(glm::mat4(1), glm::vec3(1.0f, 5.5f, 0.0f)), 1.0f, glm::vec3(0.0f, 0.0f, -0.5f)), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_red_dragon);
+
+    const uint8_t mat_blue[] = {100, 150, 230, 150, 255};
+    const uint16_t model_id_blue_dragon = context.load_model("dragon", scene, &mat_blue[0]);
+    scene.add_object(glm::scale(glm::rotate(glm::translate(glm::mat4(1), glm::vec3(1.0f, -5.5f, 0.0f)), 1.0f, glm::vec3(0.0f, 0.0f, 0.5f)), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_blue_dragon);
 
     const uint16_t model_id_floor = context.load_custom_model(
 							      {
