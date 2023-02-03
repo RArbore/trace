@@ -219,8 +219,8 @@ struct RenderContext {
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;
 
-    auto acceleration_structure_builder_build_blas(AccelerationStructureBuilder &acceleration_structure_builder, RingBuffer &ring_buffer, uint16_t model_idx, Scene &scene) noexcept -> void;
-    auto acceleration_structure_builder_build_tlas(AccelerationStructureBuilder &acceleration_structure_builder, RingBuffer &ring_buffer, Scene &scene) noexcept -> void;
+    auto acceleration_structure_builder_build_blas(AccelerationStructureBuilder &acceleration_structure_builder, uint16_t model_idx, Scene &scene, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;
+    auto acceleration_structure_builder_build_tlas(AccelerationStructureBuilder &acceleration_structure_builder, RingBuffer &ring_buffer, Scene &scene, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;
 
     auto load_model(std::string_view model_name, Scene &scene, const uint8_t *custom_mat = NULL) noexcept -> uint16_t;
     auto load_obj_model(std::string_view obj_filepath) noexcept -> Model;
