@@ -94,6 +94,7 @@ struct RenderContext {
 
     Image depth_image;
     VkImageView depth_image_view;
+    RingBuffer main_ring_buffer;
 
     VkCommandPool command_pool;
     std::array<VkCommandBuffer, FRAMES_IN_FLIGHT> raster_command_buffers;
@@ -116,8 +117,6 @@ struct RenderContext {
 #ifndef RELEASE
     std::map<const char *, uint16_t> allocated_tags;
 #endif
-    RingBuffer main_ring_buffer;
-    AccelerationStructureBuilder main_acceleration_structure_builder;
 
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR ray_tracing_properties;
     VkPhysicalDeviceAccelerationStructurePropertiesKHR acceleration_structure_properties;
@@ -218,9 +217,6 @@ struct RenderContext {
     auto ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void *;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;
-
-    auto acceleration_structure_builder_build_blas(AccelerationStructureBuilder &acceleration_structure_builder, uint16_t model_idx, Scene &scene, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;
-    auto acceleration_structure_builder_build_tlas(AccelerationStructureBuilder &acceleration_structure_builder, RingBuffer &ring_buffer, Scene &scene, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;
 
     auto load_model(std::string_view model_name, Scene &scene, const uint8_t *custom_mat = NULL) noexcept -> uint16_t;
     auto load_obj_model(std::string_view obj_filepath) noexcept -> Model;
