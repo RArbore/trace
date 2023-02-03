@@ -494,7 +494,6 @@ auto RenderContext::acceleration_structure_builder_build_blas(AccelerationStruct
 	ASSERT(acceleration_structure_builder.elements.size() < RingBuffer::MAX_ELEMENTS, "Too many elements in ring buffer.");
 	std::size_t new_element_size = round_up_p2(blas_build_sizes_info.buildScratchSize);
 	Buffer new_element_buffer = create_buffer_with_alignment(new_element_size, alignment, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_BLAS_BUILD_SCRATCH_BUFFER");
-	VkSemaphore new_element_semaphore = create_semaphore();
 
 	VkCommandBufferAllocateInfo allocate_info {};
 	allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -510,9 +509,12 @@ auto RenderContext::acceleration_structure_builder_build_blas(AccelerationStruct
 										new_element_buffer,
 										RingBuffer::NOT_OCCUPIED,
 										new_element_command_buffer,
-										new_element_semaphore
+										create_semaphore(),
+        									create_semaphore(),
+        									create_semaphore(),
 									    });
     }
+    builder_element_it->occupied = current_frame;
     
     Buffer blas_build_scratch_buffer = builder_element_it->scratch_buffer;
 
@@ -531,7 +533,6 @@ auto RenderContext::acceleration_structure_builder_build_blas(AccelerationStruct
     vkEndCommandBuffer(command_buffer);
 
     VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
-    VkSemaphore signal_semaphore = builder_element_it->semaphore;
     VkSubmitInfo submit_info {};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = 1;
@@ -548,7 +549,7 @@ auto RenderContext::acceleration_structure_builder_build_blas(AccelerationStruct
 	prev_semaphore = create_semaphore();
 	acceleration_structure_builder.build_acceleration_structure_semaphores[bottom_level_acceleration_structure] = prev_semaphore;
     }
-    std::vector<VkSemaphore> signal_semaphores = {prev_semaphore, signal_semaphore};
+    std::vector<VkSemaphore> signal_semaphores = {prev_semaphore, builder_element_it->build_semaphore, builder_element_it->tlas_listen_build_semaphore};
     for (uint32_t i = 0; i < num_semaphores; ++i) {
 	signal_semaphores.push_back(additional_semaphores[i]);
     }
@@ -557,6 +558,158 @@ auto RenderContext::acceleration_structure_builder_build_blas(AccelerationStruct
     vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
 }
 
-auto RenderContext::acceleration_structure_builder_build_tlas(AccelerationStructureBuilder &acceleration_structure_builder, RingBuffer &ring_buffer, Scene &scene, VkSemaphore *additional_semaphores, uint32_t num_semaphores) noexcept -> void {
+static inline auto glm4x4_to_vk_transform(const glm::mat4 &in, VkTransformMatrixKHR &out) noexcept -> void {
+    for (uint16_t i = 0; i < 4; ++i) {
+	out.matrix[0][i] = in[i][0];
+	out.matrix[1][i] = in[i][1];
+	out.matrix[2][i] = in[i][2];
+    }
+}
 
+auto RenderContext::acceleration_structure_builder_build_tlas(AccelerationStructureBuilder &acceleration_structure_builder, RingBuffer &ring_buffer, Scene &scene, VkSemaphore *additional_semaphores, uint32_t num_semaphores) noexcept -> void {
+    VkAccelerationStructureKHR &top_level_acceleration_structure = scene.tlas;
+    Buffer &tlas_acceleration_structure_buffer = scene.tlas_buffer;
+    Buffer &instances_buffer = scene.tlas_instances_buffer;
+    ASSERT(top_level_acceleration_structure == VK_NULL_HANDLE && tlas_acceleration_structure_buffer.size == 0 && instances_buffer.size == 0, "Can't build TLAS that's already built.");
+
+    const VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
+
+    VkAccelerationStructureGeometryInstancesDataKHR geometry_instances_data {};
+    geometry_instances_data.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+
+    VkAccelerationStructureGeometryKHR tlas_geometry {};
+    tlas_geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+    tlas_geometry.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+    tlas_geometry.geometry.instances = geometry_instances_data;
+    
+    VkAccelerationStructureBuildRangeInfoKHR tlas_build_range_info {};
+    tlas_build_range_info.firstVertex = 0;
+    tlas_build_range_info.primitiveCount = scene.num_objects;
+    tlas_build_range_info.primitiveOffset = 0;
+    tlas_build_range_info.transformOffset = 0;
+    VkAccelerationStructureBuildRangeInfoKHR *tlas_build_range_infos[] = {&tlas_build_range_info}; 
+    
+    VkAccelerationStructureBuildGeometryInfoKHR tlas_build_geometry_info {};
+    tlas_build_geometry_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+    tlas_build_geometry_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+    tlas_build_geometry_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+    tlas_build_geometry_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+    tlas_build_geometry_info.geometryCount = 1;
+    tlas_build_geometry_info.pGeometries = &tlas_geometry;
+    
+    const uint32_t max_instances_counts[] = {scene.num_objects};
+    
+    VkAccelerationStructureBuildSizesInfoKHR tlas_build_sizes_info {};
+    tlas_build_sizes_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
+    vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &tlas_build_geometry_info, max_instances_counts, &tlas_build_sizes_info);
+    
+    VkAccelerationStructureCreateInfoKHR top_level_create_info {};
+    top_level_create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+    top_level_create_info.buffer = tlas_acceleration_structure_buffer.buffer;
+    top_level_create_info.offset = 0;
+    top_level_create_info.size = tlas_build_sizes_info.accelerationStructureSize;
+    top_level_create_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+
+    ASSERT(vkCreateAccelerationStructureKHR(device, &top_level_create_info, NULL, &top_level_acceleration_structure), "Unable to create top level acceleration structure.");
+
+    tlas_acceleration_structure_buffer = create_buffer_with_alignment(tlas_build_sizes_info.accelerationStructureSize, alignment, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_TLAS_BUFFER");
+
+    auto builder_element_it = std::find_if(acceleration_structure_builder.elements.begin(), acceleration_structure_builder.elements.end(),
+						     [&](const AccelerationStructureBuilder::BuilderElement &element) {
+							 return element.scratch_buffer.size >= tlas_build_sizes_info.buildScratchSize;
+						     }
+						     );
+    if (builder_element_it == acceleration_structure_builder.elements.end()) {
+	ASSERT(acceleration_structure_builder.elements.size() < RingBuffer::MAX_ELEMENTS, "Too many elements in ring buffer.");
+	std::size_t new_element_size = round_up_p2(tlas_build_sizes_info.buildScratchSize);
+	Buffer new_element_buffer = create_buffer_with_alignment(new_element_size, alignment, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_BLAS_BUILD_SCRATCH_BUFFER");
+
+	VkCommandBufferAllocateInfo allocate_info {};
+	allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocate_info.commandPool = command_pool;
+	allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocate_info.commandBufferCount = 1;
+
+	VkCommandBuffer new_element_command_buffer;
+	ASSERT(vkAllocateCommandBuffers(device, &allocate_info, &new_element_command_buffer), "Unable to create command buffers.");
+	
+	builder_element_it = acceleration_structure_builder.elements.insert(acceleration_structure_builder.elements.end(),
+									    {
+										new_element_buffer,
+										RingBuffer::NOT_OCCUPIED,
+										new_element_command_buffer,
+										create_semaphore(),
+        									create_semaphore(),
+        									create_semaphore(),
+									    });
+    }
+    builder_element_it->occupied = current_frame;
+    
+    Buffer tlas_build_scratch_buffer = builder_element_it->scratch_buffer;
+
+    const std::size_t instances_buffer_size = scene.num_objects * sizeof(VkAccelerationStructureInstanceKHR);
+    instances_buffer = create_buffer(instances_buffer_size, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT, 0, "SCENE_TLAS_INSTANCES_BUFFER");
+    VkAccelerationStructureInstanceKHR *data_instance = (VkAccelerationStructureInstanceKHR *) ringbuffer_claim_buffer(ring_buffer, instances_buffer_size);
+    uint32_t obj_idx = 0;
+    for (uint16_t model_idx = 0; model_idx < scene.num_models; ++model_idx) {
+	for (uint32_t transform_idx = 0; transform_idx < (uint32_t) scene.transforms[model_idx].size(); ++transform_idx) {
+	    glm4x4_to_vk_transform(scene.transforms[model_idx][transform_idx], data_instance[obj_idx].transform);
+	    data_instance[obj_idx].mask = 0xFF;
+	    data_instance[obj_idx].flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+	    data_instance[obj_idx].instanceShaderBindingTableRecordOffset = 0;
+	    data_instance[obj_idx].accelerationStructureReference = get_device_address(scene.blass[model_idx]);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+	    data_instance[obj_idx].instanceCustomIndex = obj_idx;
+#pragma GCC diagnostic pop
+	    ++obj_idx;
+	}
+    }
+    ringbuffer_submit_buffer(ring_buffer, instances_buffer, &builder_element_it->tlas_instance_upload_semaphore, 1);
+    geometry_instances_data.data.deviceAddress = get_device_address(instances_buffer);
+    
+    tlas_build_geometry_info.dstAccelerationStructure = top_level_acceleration_structure;
+    tlas_build_geometry_info.scratchData.deviceAddress = get_device_address(tlas_build_scratch_buffer);
+
+    VkCommandBufferBeginInfo command_buffer_begin_info {};
+    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    VkCommandBuffer command_buffer = builder_element_it->command_buffer;
+
+    vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
+
+    vkCmdBuildAccelerationStructuresKHR(command_buffer, 1, &tlas_build_geometry_info, (const VkAccelerationStructureBuildRangeInfoKHR* const*) tlas_build_range_infos);
+
+    vkEndCommandBuffer(command_buffer);
+
+    std::vector<VkSemaphore> wait_semaphores;
+    for (auto &element : acceleration_structure_builder.elements) {
+	wait_semaphores.push_back(element.tlas_listen_build_semaphore);
+    }
+    wait_semaphores.push_back(builder_element_it->tlas_instance_upload_semaphore);
+    VkSubmitInfo submit_info {};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &command_buffer;
+
+    auto it = acceleration_structure_builder.build_acceleration_structure_semaphores.find(top_level_acceleration_structure);
+    VkSemaphore prev_semaphore;
+    if (it != acceleration_structure_builder.build_acceleration_structure_semaphores.end()) {
+	prev_semaphore = it->second;
+	wait_semaphores.push_back(prev_semaphore);
+    } else {
+	prev_semaphore = create_semaphore();
+	acceleration_structure_builder.build_acceleration_structure_semaphores[top_level_acceleration_structure] = prev_semaphore;
+    }
+    std::vector<VkPipelineStageFlags> wait_stages(wait_semaphores.size(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+    submit_info.waitSemaphoreCount = (uint32_t) wait_semaphores.size();
+    submit_info.pWaitSemaphores = wait_semaphores.data();
+    submit_info.pWaitDstStageMask = wait_stages.data();
+    std::vector<VkSemaphore> signal_semaphores = {prev_semaphore, builder_element_it->build_semaphore, builder_element_it->tlas_listen_build_semaphore};
+    for (uint32_t i = 0; i < num_semaphores; ++i) {
+	signal_semaphores.push_back(additional_semaphores[i]);
+    }
+    submit_info.signalSemaphoreCount = (uint32_t) signal_semaphores.size();
+    submit_info.pSignalSemaphores = signal_semaphores.data();
+    vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
 }

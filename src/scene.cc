@@ -385,7 +385,7 @@ auto RenderContext::load_custom_material(uint8_t red_albedo, uint8_t green_albed
     return ret;
 }
 
-auto glm4x4_to_vk_transform(const glm::mat4 &in, VkTransformMatrixKHR &out) noexcept -> void {
+static inline auto glm4x4_to_vk_transform(const glm::mat4 &in, VkTransformMatrixKHR &out) noexcept -> void {
     for (uint16_t i = 0; i < 4; ++i) {
 	out.matrix[0][i] = in[i][0];
 	out.matrix[1][i] = in[i][1];

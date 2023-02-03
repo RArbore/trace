@@ -81,7 +81,9 @@ struct AccelerationStructureBuilder {
 	Buffer scratch_buffer;
 	std::size_t occupied;
 	VkCommandBuffer command_buffer;
-	VkSemaphore semaphore;
+	VkSemaphore build_semaphore;
+	VkSemaphore tlas_listen_build_semaphore;
+	VkSemaphore tlas_instance_upload_semaphore;
     };
 
     static const std::size_t NOT_OCCUPIED = 0xFFFFFFFFFFFFFFFF;
@@ -101,7 +103,7 @@ struct AccelerationStructureBuilder {
     auto get_new_semaphores(VkSemaphore *dst, std::size_t current_frame) const noexcept -> void {
 	for (auto &element : elements)
 	    if (element.occupied == current_frame)
-		*(dst++) = element.semaphore;
+		*(dst++) = element.build_semaphore;
     }
 
     auto clear_occupied(std::size_t clear_frame) noexcept -> void {

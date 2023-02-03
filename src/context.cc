@@ -111,9 +111,7 @@ auto RenderContext::render(Scene &scene) noexcept -> void {
     const uint16_t num_ring_buffer_semaphores = main_ring_buffer.get_number_occupied(current_frame);
     const uint16_t num_acceleration_structure_builder_semaphores = main_acceleration_structure_builder.get_number_occupied(current_frame);
     const uint16_t num_wait_semaphores = (uint16_t) (1 + num_ring_buffer_semaphores + num_acceleration_structure_builder_semaphores);
-    ring_buffer_semaphore_scratchpad.reserve(num_wait_semaphores);
     ring_buffer_semaphore_scratchpad.resize(num_wait_semaphores);
-    ring_buffer_wait_stages_scratchpad.reserve(num_wait_semaphores);
     ring_buffer_wait_stages_scratchpad.resize(num_wait_semaphores, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     main_ring_buffer.get_new_semaphores(ring_buffer_semaphore_scratchpad.data(), current_frame);
     main_ring_buffer.clear_occupied(current_frame - FRAMES_IN_FLIGHT);
