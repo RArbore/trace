@@ -57,8 +57,17 @@ auto RenderContext::init() noexcept -> void {
     create_framebuffers();
     create_command_buffers();
     create_sync_objects();
-    main_ring_buffer = create_ringbuffer();
+    create_one_off_objects();
     init_imgui();
+}
+
+auto RenderContext::create_one_off_objects() noexcept -> void {
+    main_ring_buffer = create_ringbuffer();
+    perspective_matrix_buffer = create_buffer(sizeof(glm::mat4), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "PERSPECTIVE_MATRIX_BUFFER");
+    glm::mat4 *data_mat = (glm::mat4 *) ringbuffer_claim_buffer(main_ring_buffer, sizeof(glm::mat4));
+    *data_mat = glm::perspective(glm::radians(80.0f), 1.0f, 0.01f, 1000.0f);
+    (*data_mat)[1][1] *= -1.0f;
+    ringbuffer_submit_buffer(main_ring_buffer, perspective_matrix_buffer);
 }
 
 auto RenderContext::render(Scene &scene) noexcept -> void {
@@ -162,7 +171,7 @@ auto RenderContext::cleanup() noexcept -> void {
 	cleanup_buffer(buffer);
     }
     cleanup_imgui();
-    cleanup_ringbuffer(main_ring_buffer);
+    cleanup_one_off_objects();
     cleanup_sync_objects();
     cleanup_framebuffers();
     cleanup_depth_resources();
@@ -183,4 +192,9 @@ auto RenderContext::cleanup() noexcept -> void {
     cleanup_instance();
     glfwDestroyWindow(window);
     glfwTerminate();
+}
+
+auto RenderContext::cleanup_one_off_objects() noexcept -> void {
+    cleanup_ringbuffer(main_ring_buffer);
+    cleanup_buffer(perspective_matrix_buffer);
 }

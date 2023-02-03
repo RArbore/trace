@@ -22,7 +22,6 @@ layout(location = 2) in vec2 in_texture;
 layout(location = 3) in flat uint in_model_info;
 
 layout (push_constant) uniform PushConstants {
-    mat4 perspective;
     mat4 camera;
 };
 
@@ -32,7 +31,7 @@ const uint MAX_LIGHTS = 512;
 layout(set = 0, binding = 0) uniform lights_uniform {
     vec4 lights[MAX_LIGHTS];
 };
-layout(set = 0, binding = 1) uniform sampler2D textures[];
+layout(set = 0, binding = 2) uniform sampler2D textures[];
 
 const float PI = 3.14159265358979;
 
@@ -96,10 +95,11 @@ void main() {
     float alpha = roughness * roughness;
     float k = (roughness + 1.0) * (roughness + 1.0) / 8.0;
 
+    uint num_lights = floatBitsToUint(lights[0].x);
     vec3 outward_radiance = vec3(0.0);
-    for (uint light_id = 0; light_id < MAX_LIGHTS && lights[light_id].w > 0.0; ++light_id) {
-	vec3 light_position = lights[light_id].xyz;
-	float light_intensity = lights[light_id].w;
+    for (uint light_id = 0; light_id < num_lights; ++light_id) {
+	vec3 light_position = lights[light_id + 1].xyz;
+	float light_intensity = lights[light_id + 1].w;
 
 	vec3 light_dir = normalize(light_position - in_position);
 	vec3 halfway_dir = normalize(view_dir + light_dir);

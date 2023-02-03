@@ -44,11 +44,10 @@ struct vertex {
 layout(location = 0) rayPayloadInEXT hit_payload prd;
 
 layout (push_constant) uniform PushConstants {
-    mat4 perspective;
     mat4 camera;
 };
 
-layout(set = 0, binding = 1) uniform sampler2D textures[];
+layout(set = 0, binding = 2) uniform sampler2D textures[];
 layout(set = 1, binding = 2, scalar) buffer objects_buf { obj_desc i[]; } objects;
 
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };

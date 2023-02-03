@@ -58,7 +58,6 @@ struct RenderContext {
     bool active = true, resized = false, ray_tracing = false;
     uint32_t current_frame = 0;
 
-    glm::mat4 perspective_matrix;
     glm::mat4 camera_matrix;
     glm::vec3 camera_position;
     
@@ -94,6 +93,7 @@ struct RenderContext {
 
     Image depth_image;
     VkImageView depth_image_view;
+    Buffer perspective_matrix_buffer;
     RingBuffer main_ring_buffer;
 
     VkCommandPool command_pool;
@@ -157,6 +157,7 @@ struct RenderContext {
     auto create_depth_resources() noexcept -> void;
     auto create_command_buffers() noexcept -> void;
     auto create_sync_objects() noexcept -> void;
+    auto create_one_off_objects() noexcept -> void;
     auto create_ringbuffer() noexcept -> RingBuffer;
 
     auto cleanup_instance() noexcept -> void;
@@ -177,6 +178,7 @@ struct RenderContext {
     auto cleanup_command_pool() noexcept -> void;
     auto cleanup_depth_resources() noexcept -> void;
     auto cleanup_sync_objects() noexcept -> void;
+    auto cleanup_one_off_objects() noexcept -> void;
     auto cleanup_ringbuffer(RingBuffer &ring_buffer) noexcept -> void;
 
     auto physical_check_queue_family(VkPhysicalDevice physical_device, VkQueueFlagBits bits) noexcept -> uint32_t;
@@ -226,6 +228,7 @@ struct RenderContext {
 
     auto update_descriptors_textures(const Scene &scene, uint32_t update_texture) noexcept -> void;
     auto update_descriptors_lights(const Scene &scene) noexcept -> void;
+    auto update_descriptors_perspective() noexcept -> void;
     auto update_descriptors_tlas(const Scene &scene) noexcept -> void;
     auto update_descriptors_ray_trace_images() noexcept -> void;
     auto update_descriptors_ray_trace_objects(const Scene &scene) noexcept -> void;

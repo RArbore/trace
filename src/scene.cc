@@ -13,6 +13,7 @@
  */
 
 #include <filesystem>
+#include <bit>
 
 #include <tiny_obj_loader.h>
 
@@ -40,7 +41,7 @@ auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> 
     scene.indirect_draw_buf_contents_size = indirect_draw_size;
     scene.indirect_draw_buf = create_buffer(indirect_draw_size, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_INDIRECT_DRAW_BUFFER");
 
-    const std::size_t lights_size = scene.num_lights * sizeof(glm::vec4);
+    const std::size_t lights_size = (scene.num_lights + 1) * sizeof(glm::vec4);
     scene.lights_buf_contents_size = lights_size;
     scene.lights_buf = create_buffer(lights_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_LIGHTS_BUFFER");
 
@@ -74,7 +75,7 @@ auto RenderContext::update_vulkan_objects_for_scene(Scene &scene) noexcept -> vo
     const std::size_t indirect_draw_size = scene.num_models * sizeof(VkDrawIndexedIndirectCommand);
     scene.indirect_draw_buf_contents_size = indirect_draw_size;
 
-    const std::size_t lights_size = scene.num_lights * sizeof(glm::vec4);
+    const std::size_t lights_size = (scene.num_lights + 1) * sizeof(glm::vec4);
     scene.lights_buf_contents_size = lights_size;
 
     const std::size_t ray_trace_objects_size = scene.num_objects * sizeof(Scene::RayTraceObject);
@@ -153,7 +154,8 @@ auto RenderContext::ringbuffer_copy_scene_indirect_draw_into_buffer(Scene &scene
 
 auto RenderContext::ringbuffer_copy_scene_lights_into_buffer(Scene &scene) noexcept -> void {
     glm::vec4 *data_light = (glm::vec4 *) ringbuffer_claim_buffer(main_ring_buffer, scene.lights_buf_contents_size);
-    memcpy(data_light, scene.lights.data(), scene.num_lights * sizeof(glm::vec4));
+    (*data_light)[0] = std::bit_cast<float>((uint32_t) scene.num_lights);
+    memcpy(data_light + 1, scene.lights.data(), scene.num_lights * sizeof(glm::vec4));
     ringbuffer_submit_buffer(main_ring_buffer, scene.lights_buf);
 }
 

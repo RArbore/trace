@@ -42,7 +42,8 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(x * 1.2f, y * 1.2f, -0.7f)), model_id_stone_lion);
     scene.add_light({0.0, 10.0, 0.0, 100.0});*/
 
-    scene.add_light({3.0, 0.0, 3.0, 100.0});
+    scene.add_light({3.0, 3.0, 6.0, 50.0});
+    scene.add_light({3.0, -3.0, 6.0, 50.0});
 
     const uint16_t model_id_dragon = context.load_model("dragon", scene);
     scene.add_object(glm::scale(glm::translate(glm::mat4(1), glm::vec3(-2.5f, 0.0f, 0.0f)), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_dragon);
@@ -77,6 +78,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors_lights(scene);
+    context.update_descriptors_perspective();
     context.build_bottom_level_acceleration_structure_for_model(model_id_dragon, scene);
     context.build_bottom_level_acceleration_structure_for_model(model_id_red_dragon, scene);
     context.build_bottom_level_acceleration_structure_for_model(model_id_blue_dragon, scene);
@@ -86,8 +88,6 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     context.update_descriptors_ray_trace_objects(scene);
     
     //const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
-    context.perspective_matrix = glm::perspective(glm::radians(80.0f), 1.0f, 0.01f, 1000.0f);
-    context.perspective_matrix[1][1] *= -1.0f;
     context.camera_position = glm::vec3(3.0f, 3.0f, 4.0f);
 
     auto system_time = std::chrono::system_clock::now();
@@ -141,10 +141,10 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	}
 	context.last_pressed_keys = context.pressed_keys;
 
-	scene.transforms[model_id_dragon][0] = glm::scale(glm::rotate(glm::translate(glm::mat4(1), glm::vec3(-2.5f, 0.0f, 0.0f)), (float) elapsed_time, glm::vec3(0.0f, 0.0f, 1.0f)), glm::vec3(0.05f, 0.05f, 0.05f));
+	/*scene.transforms[model_id_dragon][0] = glm::scale(glm::rotate(glm::translate(glm::mat4(1), glm::vec3(-2.5f, 0.0f, 0.0f)), (float) elapsed_time, glm::vec3(0.0f, 0.0f, 1.0f)), glm::vec3(0.05f, 0.05f, 0.05f));
 	
 	context.ringbuffer_copy_scene_instances_into_buffer(scene);
-	context.ringbuffer_copy_scene_lights_into_buffer(scene);
+	context.ringbuffer_copy_scene_lights_into_buffer(scene);*/
 	
 	context.render(scene);
 	

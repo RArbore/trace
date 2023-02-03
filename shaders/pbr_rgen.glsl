@@ -31,11 +31,13 @@ const uint MAX_LIGHTS = 512;
 layout(set = 0, binding = 0) uniform lights_uniform {
     vec4 lights[MAX_LIGHTS];
 };
+layout(set = 0, binding = 1) uniform perspective_uniform {
+    mat4 perspective;
+};
 layout(set = 1, binding = 0) uniform accelerationStructureEXT tlas;
 layout(set = 1, binding = 1, rgba8) uniform writeonly image2D image;
 
 layout (push_constant) uniform PushConstants {
-    mat4 perspective;
     mat4 camera;
 };
 
@@ -67,8 +69,8 @@ void main() {
     hit_payload first_hit = prd;
 
     uint light_id = 0;
-    vec3 light_position = lights[light_id].xyz;
-    float light_intensity = lights[light_id].w;
+    vec3 light_position = lights[light_id + 1].xyz;
+    float light_intensity = lights[light_id + 1].w;
     vec3 light_dir = normalize(light_position - first_hit.hit_position);
     float light_dist = length(light_position - first_hit.hit_position);
     vec3 hit_position = first_hit.hit_position - ray_dir * 0.01;

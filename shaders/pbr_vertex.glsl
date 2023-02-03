@@ -21,8 +21,11 @@ layout(location = 2) in vec3 in_texture;
 layout(location = 3) in mat4 in_model;
 
 layout (push_constant) uniform PushConstants {
-    mat4 perspective;
     mat4 camera;
+};
+
+layout(set = 0, binding = 1) uniform perspective_uniform {
+    mat4 perspective;
 };
 
 layout(location = 0) out vec3 out_position;

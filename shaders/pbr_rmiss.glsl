@@ -28,7 +28,6 @@ struct hit_payload {
 layout(location = 0) rayPayloadInEXT hit_payload prd;
 
 layout (push_constant) uniform PushConstants {
-    mat4 perspective;
     mat4 camera;
 };
 

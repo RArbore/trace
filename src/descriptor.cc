@@ -96,18 +96,25 @@ auto RenderContext::create_descriptor_set_layout() noexcept -> void {
     lights_buffer_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     lights_buffer_layout_binding.pImmutableSamplers = NULL;
     lights_buffer_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
+
+    VkDescriptorSetLayoutBinding perspective_buffer_layout_binding {};
+    perspective_buffer_layout_binding.binding = 1;
+    perspective_buffer_layout_binding.descriptorCount = 1;
+    perspective_buffer_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    perspective_buffer_layout_binding.pImmutableSamplers = NULL;
+    perspective_buffer_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR;
     
     VkDescriptorSetLayoutBinding bindless_textures_layout_binding {};
-    bindless_textures_layout_binding.binding = 1;
+    bindless_textures_layout_binding.binding = 2;
     bindless_textures_layout_binding.descriptorCount = MAX_MODELS;
     bindless_textures_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     bindless_textures_layout_binding.pImmutableSamplers = NULL;
     bindless_textures_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
     
-    VkDescriptorSetLayoutBinding bindings[] = {lights_buffer_layout_binding, bindless_textures_layout_binding};
+    VkDescriptorSetLayoutBinding bindings[] = {lights_buffer_layout_binding, perspective_buffer_layout_binding, bindless_textures_layout_binding};
     
     VkDescriptorBindingFlags bindless_flags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-    VkDescriptorBindingFlags bindings_flags[] = {0, bindless_flags};
+    VkDescriptorBindingFlags bindings_flags[] = {0, 0, bindless_flags};
 
     VkDescriptorSetLayoutBindingFlagsCreateInfo layout_binding_flags_create_info {};
     layout_binding_flags_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
@@ -215,7 +222,7 @@ auto RenderContext::update_descriptors_textures(const Scene &scene, uint32_t upd
 	VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
 	write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	write_descriptor_set.dstSet = raster_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
-	write_descriptor_set.dstBinding = 1;
+	write_descriptor_set.dstBinding = 2;
 	write_descriptor_set.dstArrayElement = update_texture;
 	write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	write_descriptor_set.descriptorCount = 1;
@@ -241,6 +248,31 @@ auto RenderContext::update_descriptors_lights(const Scene &scene) noexcept -> vo
         write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	write_descriptor_set.dstSet = raster_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
 	write_descriptor_set.dstBinding = 0;
+	write_descriptor_set.dstArrayElement = 0;
+	write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	write_descriptor_set.descriptorCount = 1;
+	write_descriptor_set.pImageInfo = NULL;
+	write_descriptor_set.pBufferInfo = &std::get<1>(it->second);
+	write_descriptor_set.pTexelBufferView = NULL;
+	write_descriptor_set.pNext = NULL;
+    }
+}
+
+auto RenderContext::update_descriptors_perspective() noexcept -> void {
+    VkDescriptorBufferInfo descriptor_buffer_info {};
+    descriptor_buffer_info.buffer = perspective_matrix_buffer.buffer;
+    descriptor_buffer_info.offset = 0;
+    descriptor_buffer_info.range = VK_WHOLE_SIZE;
+
+    for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
+	DescriptorWriteInfo entry {};
+	std::get<1>(entry) = descriptor_buffer_info;
+	const auto it = raster_descriptor_set_writes.insert({current_frame + i, entry});
+
+	VkWriteDescriptorSet &write_descriptor_set = std::get<0>(it->second);
+        write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write_descriptor_set.dstSet = raster_descriptor_sets[(current_frame + i) % FRAMES_IN_FLIGHT];
+	write_descriptor_set.dstBinding = 1;
 	write_descriptor_set.dstArrayElement = 0;
 	write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	write_descriptor_set.descriptorCount = 1;
