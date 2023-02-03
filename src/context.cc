@@ -68,7 +68,7 @@ auto RenderContext::create_one_off_objects() noexcept -> void {
     *data_mat = glm::perspective(glm::radians(80.0f), 1.0f, 0.01f, 1000.0f);
     (*data_mat)[1][1] *= -1.0f;
     ringbuffer_submit_buffer(main_ring_buffer, perspective_matrix_buffer);
-}
+} 
 
 auto RenderContext::render(Scene &scene) noexcept -> void {
     glfwPollEvents();
@@ -82,40 +82,29 @@ auto RenderContext::render(Scene &scene) noexcept -> void {
     glfwGetCursorPos(window, &mouse_x, &mouse_y);
     if (current_frame == 0) {
 	last_mouse_x = mouse_x;
-	last_mouse_y = mouse_y;
+        last_mouse_y = mouse_y;
     }
     for (uint8_t i = 0; i <= GLFW_MOUSE_BUTTON_LAST; ++i)
 	pressed_buttons[i] = glfwGetMouseButton(window, i) == GLFW_PRESS;
 
     render_imgui(scene);
 
-    const uint32_t flight_index = current_frame % FRAMES_IN_FLIGHT;
-
-    vkWaitForFences(device, 1, &in_flight_fences[flight_index], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(device, 1, &in_flight_fence, VK_TRUE, UINT64_MAX);
 
     uint32_t image_index;
-    const VkResult acquire_next_image_result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available_semaphores[flight_index], VK_NULL_HANDLE, &image_index);
+    const VkResult acquire_next_image_result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available_semaphore, VK_NULL_HANDLE, &image_index);
     if (acquire_next_image_result == VK_ERROR_OUT_OF_DATE_KHR) {
 	recreate_swapchain();
 	return;
     }
     ASSERT(acquire_next_image_result == VK_SUCCESS || acquire_next_image_result == VK_SUBOPTIMAL_KHR, "Unable to acquire next image.");
-    vkResetFences(device, 1, &in_flight_fences[flight_index]);
+    vkResetFences(device, 1, &in_flight_fence);
 
-    {
-	auto it = raster_descriptor_set_writes.find(current_frame);
-	while (it != raster_descriptor_set_writes.end()) {
-            vkUpdateDescriptorSets(device, 1, &std::get<0>(it->second), 0, NULL);
-	    raster_descriptor_set_writes.erase(it);
-	    it = raster_descriptor_set_writes.find(current_frame);
-	}
-    }
-
-    vkResetCommandBuffer(raster_command_buffers[flight_index], 0);
+    vkResetCommandBuffer(raster_command_buffer, 0);
     if (ray_tracing)
-	record_ray_trace_command_buffer(raster_command_buffers[flight_index], image_index, flight_index);
+	record_ray_trace_command_buffer(raster_command_buffer, image_index);
     else
-	record_raster_command_buffer(raster_command_buffers[flight_index], image_index, flight_index, scene);
+	record_raster_command_buffer(raster_command_buffer, image_index, scene);
 
     const uint16_t num_wait_semaphores = 1 + main_ring_buffer.get_number_occupied(current_frame);
     ring_buffer_semaphore_scratchpad.reserve(num_wait_semaphores);
@@ -123,8 +112,8 @@ auto RenderContext::render(Scene &scene) noexcept -> void {
     ring_buffer_wait_stages_scratchpad.reserve(num_wait_semaphores);
     ring_buffer_wait_stages_scratchpad.resize(num_wait_semaphores, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     main_ring_buffer.get_new_semaphores(ring_buffer_semaphore_scratchpad.data(), current_frame);
-    ring_buffer_semaphore_scratchpad[num_wait_semaphores - 1] = image_available_semaphores[flight_index];
-    main_ring_buffer.clear_occupied(current_frame - FRAMES_IN_FLIGHT);
+    ring_buffer_semaphore_scratchpad[num_wait_semaphores - 1] = image_available_semaphore;
+    main_ring_buffer.clear_occupied(current_frame - 1);
 
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -132,16 +121,16 @@ auto RenderContext::render(Scene &scene) noexcept -> void {
     submit_info.pWaitSemaphores = ring_buffer_semaphore_scratchpad.data();
     submit_info.pWaitDstStageMask = ring_buffer_wait_stages_scratchpad.data();;
     submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &raster_command_buffers[flight_index];
+    submit_info.pCommandBuffers = &raster_command_buffer;
     submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = &render_finished_semaphores[flight_index];
+    submit_info.pSignalSemaphores = &render_finished_semaphore;
 
-    ASSERT(vkQueueSubmit(queue, 1, &submit_info, in_flight_fences[flight_index]), "");
+    ASSERT(vkQueueSubmit(queue, 1, &submit_info, in_flight_fence), "");
 
     VkPresentInfoKHR present_info {};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.waitSemaphoreCount = 1;
-    present_info.pWaitSemaphores = &render_finished_semaphores[flight_index];
+    present_info.pWaitSemaphores = &render_finished_semaphore;
     present_info.swapchainCount = 1;
     present_info.pSwapchains = &swapchain;
     present_info.pImageIndices = &image_index;
@@ -154,7 +143,7 @@ auto RenderContext::render(Scene &scene) noexcept -> void {
     }
 
     for (auto it = buffer_cleanup_queue.begin(); it != buffer_cleanup_queue.end();) {
-	if (it->second + FRAMES_IN_FLIGHT == current_frame) {
+	if (it->second + 1 == current_frame) {
 	    cleanup_buffer(it->first);
 	    it = buffer_cleanup_queue.erase(it);
 	} else {

@@ -34,8 +34,6 @@
 #define VKFN_INIT(fn)				\
     fn = (PFN_ ## fn) vkGetDeviceProcAddr(device, #fn)
 
-static constexpr uint32_t FRAMES_IN_FLIGHT = 2;
-
 struct SwapchainSupport {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
@@ -50,8 +48,6 @@ struct ImGuiData {
     std::array<float, 50> last_fpss;
     std::array<float, 500> last_heaps;
 };
-
-using DescriptorWriteInfo = std::tuple<VkWriteDescriptorSet, VkDescriptorBufferInfo, VkDescriptorImageInfo, VkWriteDescriptorSetAccelerationStructureKHR>;
 
 struct RenderContext {
     struct PushConstants {
@@ -77,8 +73,8 @@ struct RenderContext {
     std::vector<VkImage> swapchain_images;
     std::vector<VkImageView> swapchain_image_views;
     std::vector<VkFramebuffer> swapchain_framebuffers;
-    std::array<Image, FRAMES_IN_FLIGHT> ray_trace_images;
-    std::array<VkImageView, FRAMES_IN_FLIGHT> ray_trace_image_views;
+    Image ray_trace_image;
+    VkImageView ray_trace_image_view;
 
     std::map<std::string, VkShaderModule> shader_modules;
     VkPipelineLayout raster_pipeline_layout;
@@ -102,10 +98,10 @@ struct RenderContext {
     RingBuffer main_ring_buffer;
 
     VkCommandPool command_pool;
-    std::array<VkCommandBuffer, FRAMES_IN_FLIGHT> raster_command_buffers;
-    std::array<VkSemaphore, FRAMES_IN_FLIGHT> image_available_semaphores;
-    std::array<VkSemaphore, FRAMES_IN_FLIGHT> render_finished_semaphores;
-    std::array<VkFence, FRAMES_IN_FLIGHT> in_flight_fences;
+    VkCommandBuffer raster_command_buffer;
+    VkSemaphore image_available_semaphore;
+    VkSemaphore render_finished_semaphore;
+    VkFence in_flight_fence;
     std::vector<VkSemaphore> ring_buffer_semaphore_scratchpad;
     std::vector<VkPipelineStageFlags> ring_buffer_wait_stages_scratchpad;
 
@@ -113,9 +109,8 @@ struct RenderContext {
     VkDescriptorPool descriptor_pool, imgui_descriptor_pool;
     VkDescriptorSetLayout raster_descriptor_set_layout;
     VkDescriptorSetLayout ray_trace_descriptor_set_layout;
-    std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> raster_descriptor_sets;
-    std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> ray_trace_descriptor_sets;
-    std::multimap<uint32_t, DescriptorWriteInfo> raster_descriptor_set_writes;
+    VkDescriptorSet raster_descriptor_set;
+    VkDescriptorSet ray_trace_descriptor_set;
 
     VmaAllocator allocator;
     std::vector<std::pair<Buffer, std::size_t>> buffer_cleanup_queue;
@@ -203,8 +198,8 @@ struct RenderContext {
     auto create_image_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
     auto cleanup_image_view(VkImageView view) noexcept -> void;
 
-    auto record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, uint32_t flight_index, const Scene &scene) noexcept -> void;
-    auto record_ray_trace_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, uint32_t flight_index) noexcept -> void;
+    auto record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, const Scene &scene) noexcept -> void;
+    auto record_ray_trace_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void;
 
     auto create_semaphore() noexcept -> VkSemaphore;
     auto create_fence() noexcept -> VkFence;

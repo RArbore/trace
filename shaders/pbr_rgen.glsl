@@ -17,6 +17,7 @@
 #pragma shader_stage(raygen)
 #extension GL_GOOGLE_include_directive : enable
 
+#define RAY_TRACING
 #include "pbr_common.glsl"
 
 layout(location = 0) rayPayloadEXT hit_payload prd;

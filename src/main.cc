@@ -26,7 +26,7 @@ void *operator new(size_t size) {
 }
 
 auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> int {
-    srand(time(NULL));
+    srand((uint32_t) time(NULL));
     
     RenderContext context {};
     context.init();

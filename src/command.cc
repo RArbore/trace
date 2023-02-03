@@ -34,12 +34,12 @@ auto RenderContext::create_command_buffers() noexcept -> void {
     allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocate_info.commandPool = command_pool;
     allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocate_info.commandBufferCount = FRAMES_IN_FLIGHT;
+    allocate_info.commandBufferCount = 1;
 
-    ASSERT(vkAllocateCommandBuffers(device, &allocate_info, &raster_command_buffers[0]), "Unable to create command buffers.");
+    ASSERT(vkAllocateCommandBuffers(device, &allocate_info, &raster_command_buffer), "Unable to create command buffers.");
 }
 
-auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, uint32_t flight_index, const Scene &scene) noexcept -> void {
+auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, const Scene &scene) noexcept -> void {
     VkCommandBufferBeginInfo begin_info {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -85,7 +85,7 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
     vkCmdBindVertexBuffers(command_buffer, 0, 1, &scene.vertices_buf.buffer, offsets);
     vkCmdBindVertexBuffers(command_buffer, 1, 1, &scene.instances_buf.buffer, offsets);
     vkCmdBindIndexBuffer(command_buffer, scene.indices_buf.buffer, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, raster_pipeline_layout, 0, 1, &raster_descriptor_sets[flight_index], 0, NULL);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, raster_pipeline_layout, 0, 1, &raster_descriptor_set, 0, NULL);
     vkCmdPushConstants(command_buffer, raster_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push_constants);
     vkCmdDrawIndexedIndirect(command_buffer, scene.indirect_draw_buf.buffer, 0, (uint32_t) scene.num_models, sizeof(VkDrawIndexedIndirectCommand));
     render_draw_data_wrapper_imgui(command_buffer);
@@ -95,15 +95,15 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
     ASSERT(vkEndCommandBuffer(command_buffer), "Something went wrong recording into a raster command buffer.");
 }
 
-auto RenderContext::record_ray_trace_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, uint32_t flight_index) noexcept -> void {
+auto RenderContext::record_ray_trace_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void {
     VkCommandBufferBeginInfo begin_info {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
     ASSERT(vkBeginCommandBuffer(command_buffer, &begin_info), "Unable to begin recording command buffer.");
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline);
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline_layout, 0, 1, &raster_descriptor_sets[flight_index], 0, NULL);
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline_layout, 1, 1, &ray_trace_descriptor_sets[flight_index], 0, NULL);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline_layout, 0, 1, &raster_descriptor_set, 0, NULL);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline_layout, 1, 1, &ray_trace_descriptor_set, 0, NULL);
     vkCmdPushConstants(command_buffer, ray_trace_pipeline_layout, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR, 0, sizeof(PushConstants), &push_constants);
     vkCmdTraceRaysKHR(command_buffer, &rgen_sbt_region, &miss_sbt_region, &hit_sbt_region, &call_sbt_region, swapchain_extent.width, swapchain_extent.height, 1);
 
@@ -144,7 +144,7 @@ auto RenderContext::record_ray_trace_command_buffer(VkCommandBuffer command_buff
     blit_region.dstOffsets[1].x = swapchain_extent.width;
     blit_region.dstOffsets[1].y = swapchain_extent.height;
     blit_region.dstOffsets[1].z = 1;
-    vkCmdBlitImage(command_buffer, ray_trace_images[flight_index].image, VK_IMAGE_LAYOUT_GENERAL, swapchain_images[image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit_region, VK_FILTER_NEAREST);
+    vkCmdBlitImage(command_buffer, ray_trace_image.image, VK_IMAGE_LAYOUT_GENERAL, swapchain_images[image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit_region, VK_FILTER_NEAREST);
 
     image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
@@ -156,19 +156,15 @@ auto RenderContext::record_ray_trace_command_buffer(VkCommandBuffer command_buff
 }
 
 auto RenderContext::create_sync_objects() noexcept -> void {
-    for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
-	image_available_semaphores[i] = create_semaphore();
-	render_finished_semaphores[i] = create_semaphore();
-	in_flight_fences[i] = create_fence();
-    }
+    image_available_semaphore = create_semaphore();
+    render_finished_semaphore = create_semaphore();
+    in_flight_fence = create_fence();
 }
 
 auto RenderContext::cleanup_sync_objects() noexcept -> void {
-    for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; ++i) {
-	vkDestroySemaphore(device, image_available_semaphores[i], NULL);
-	vkDestroySemaphore(device, render_finished_semaphores[i], NULL);
-	vkDestroyFence(device, in_flight_fences[i], NULL);
-    }
+    vkDestroySemaphore(device, image_available_semaphore, NULL);
+    vkDestroySemaphore(device, render_finished_semaphore, NULL);
+    vkDestroyFence(device, in_flight_fence, NULL);
 }
 
 auto RenderContext::create_semaphore() noexcept -> VkSemaphore {

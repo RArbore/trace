@@ -12,12 +12,15 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifdef RAY_TRACING
 #extension GL_EXT_ray_tracing : require
+#endif
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 #extension GL_EXT_scalar_block_layout : require
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_buffer_reference2 : require
 
+#ifdef RAY_TRACING
 struct hit_payload {
     vec3 albedo;
     vec3 normal;
@@ -37,6 +40,7 @@ struct vertex {
     vec3 normal;
     vec2 texcoord;
 };
+#endif
 
 layout (push_constant) uniform PushConstants {
     mat4 camera;
@@ -54,13 +58,19 @@ layout(set = 0, binding = 1) uniform perspective_uniform {
 
 layout(set = 0, binding = 2) uniform sampler2D textures[];
 
+#ifdef RAY_TRACING
 layout(set = 1, binding = 0) uniform accelerationStructureEXT tlas;
+#endif
 
 layout(set = 1, binding = 1, rgba8) uniform writeonly image2D image;
 
+#ifdef RAY_TRACING
 layout(set = 1, binding = 2, scalar) buffer objects_buf { obj_desc i[]; } objects;
+#endif
 
 const float PI = 3.14159265358979;
 
+#ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };
 layout(buffer_reference, scalar) buffer indices_buf {uvec3 i[]; };
+#endif

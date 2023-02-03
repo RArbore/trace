@@ -236,7 +236,7 @@ auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t
     if (size == 0)
 	return NULL;
     for (ring_buffer.last_id = 0; ring_buffer.last_id < ring_buffer.elements.size(); ++ring_buffer.last_id) {
-	auto &element = ring_buffer.elements[ring_buffer.last_id];
+	const auto &element = ring_buffer.elements[ring_buffer.last_id];
 	if (element.size >= size && element.occupied == RingBuffer::NOT_OCCUPIED) {
 	    break;
 	}
