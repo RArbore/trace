@@ -15,47 +15,13 @@
 
 #version 460
 #pragma shader_stage(closest)
-#extension GL_EXT_ray_tracing : require
-#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
-#extension GL_EXT_buffer_reference2 : require
-#extension GL_EXT_scalar_block_layout : require
-#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_GOOGLE_include_directive : enable
 
-struct hit_payload {
-    vec3 albedo;
-    vec3 normal;
-    float roughness;
-    float metallicity;
-    vec3 hit_position;
-};
-
-struct obj_desc {
-    uint64_t vertex_address;
-    uint64_t index_address;
-    uint64_t model_id;
-};
-
-struct vertex {
-    vec3 position;
-    vec3 normal;
-    vec2 texcoord;
-};
+#include "pbr_common.glsl"
 
 layout(location = 0) rayPayloadInEXT hit_payload prd;
 
-layout (push_constant) uniform PushConstants {
-    mat4 camera;
-};
-
-layout(set = 0, binding = 2) uniform sampler2D textures[];
-layout(set = 1, binding = 2, scalar) buffer objects_buf { obj_desc i[]; } objects;
-
-layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };
-layout(buffer_reference, scalar) buffer indices_buf {uvec3 i[]; };
-
 hitAttributeEXT vec2 attribs;
-
-const float PI = 3.14159265358979;
 
 void main() {
     obj_desc obj = objects.i[gl_InstanceCustomIndexEXT];

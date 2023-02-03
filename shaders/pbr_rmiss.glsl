@@ -15,21 +15,11 @@
 
 #version 460
 #pragma shader_stage(miss)
-#extension GL_EXT_ray_tracing : require
+#extension GL_GOOGLE_include_directive : enable
 
-struct hit_payload {
-    vec3 albedo;
-    vec3 normal;
-    float roughness;
-    float metallicity;
-    vec3 hit_position;
-};
+#include "pbr_common.glsl"
 
 layout(location = 0) rayPayloadInEXT hit_payload prd;
-
-layout (push_constant) uniform PushConstants {
-    mat4 camera;
-};
 
 void main() {
     prd.albedo = vec3(0.0);

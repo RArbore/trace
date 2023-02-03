@@ -15,31 +15,11 @@
 
 #version 460
 #pragma shader_stage(raygen)
-#extension GL_EXT_ray_tracing : require
+#extension GL_GOOGLE_include_directive : enable
 
-struct hit_payload {
-    vec3 albedo;
-    vec3 normal;
-    float roughness;
-    float metallicity;
-    vec3 hit_position;
-};
+#include "pbr_common.glsl"
 
 layout(location = 0) rayPayloadEXT hit_payload prd;
-
-const uint MAX_LIGHTS = 512;
-layout(set = 0, binding = 0) uniform lights_uniform {
-    vec4 lights[MAX_LIGHTS];
-};
-layout(set = 0, binding = 1) uniform perspective_uniform {
-    mat4 perspective;
-};
-layout(set = 1, binding = 0) uniform accelerationStructureEXT tlas;
-layout(set = 1, binding = 1, rgba8) uniform writeonly image2D image;
-
-layout (push_constant) uniform PushConstants {
-    mat4 camera;
-};
 
 void main() {
     const vec2 pixel_center = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);

@@ -126,7 +126,7 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     VkPushConstantRange push_constant_range {};
     push_constant_range.offset = 0;
-    push_constant_range.size = 64;
+    push_constant_range.size = sizeof(PushConstants);
     push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDynamicState pipeline_dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
@@ -272,7 +272,7 @@ auto RenderContext::create_ray_trace_pipeline() noexcept -> void {
 
     VkPushConstantRange push_constant_range {};
     push_constant_range.offset = 0;
-    push_constant_range.size = 64;
+    push_constant_range.size = sizeof(PushConstants);
     push_constant_range.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
 
     VkDescriptorSetLayout descriptor_set_layouts[] = {raster_descriptor_set_layout, ray_trace_descriptor_set_layout};

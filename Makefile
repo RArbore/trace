@@ -19,7 +19,7 @@ IMGUI_FLAGS := -c -Iimgui -Iimgui/backends
 
 SRCS := $(shell find src -name "*.cc")
 HEADERS := $(shell find src -name "*.h")
-SHADERS := $(shell find shaders -name "*.glsl")
+SHADERS := $(shell find shaders -name "*.glsl" | grep -v "common")
 OBJS := $(subst src/, build/, $(patsubst %.cc, %.o, $(SRCS)))
 SPIRVS := $(subst shaders/, build/, $(patsubst %.glsl, %.spv, $(SHADERS)))
 IMGUI_SRCS := imgui/imgui.cpp imgui/imgui_demo.cpp imgui/imgui_draw.cpp imgui/imgui_tables.cpp imgui/imgui_widgets.cpp imgui/backends/imgui_impl_glfw.cpp imgui/backends/imgui_impl_vulkan.cpp

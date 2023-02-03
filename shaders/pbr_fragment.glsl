@@ -14,26 +14,16 @@
 
 #version 460
 #pragma shader_stage(fragment)
-#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_GOOGLE_include_directive : enable
+
+#include "pbr_common.glsl"
 
 layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec3 in_normal;
 layout(location = 2) in vec2 in_texture;
 layout(location = 3) in flat uint in_model_info;
 
-layout (push_constant) uniform PushConstants {
-    mat4 camera;
-};
-
 layout(location = 0) out vec4 out_color;
-
-const uint MAX_LIGHTS = 512;
-layout(set = 0, binding = 0) uniform lights_uniform {
-    vec4 lights[MAX_LIGHTS];
-};
-layout(set = 0, binding = 2) uniform sampler2D textures[];
-
-const float PI = 3.14159265358979;
 
 float normal_distribution(vec3 normal, vec3 halfway, float alpha) {
     float alpha_2 = alpha * alpha;

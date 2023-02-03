@@ -54,11 +54,15 @@ struct ImGuiData {
 using DescriptorWriteInfo = std::tuple<VkWriteDescriptorSet, VkDescriptorBufferInfo, VkDescriptorImageInfo, VkWriteDescriptorSetAccelerationStructureKHR>;
 
 struct RenderContext {
+    struct PushConstants {
+	glm::mat4 camera_matrix;
+	uint32_t seed;
+    };
+    
     GLFWwindow *window;
     bool active = true, resized = false, ray_tracing = false;
     uint32_t current_frame = 0;
 
-    glm::mat4 camera_matrix;
     glm::vec3 camera_position;
     
     VkInstance instance;
@@ -94,6 +98,7 @@ struct RenderContext {
     Image depth_image;
     VkImageView depth_image_view;
     Buffer perspective_matrix_buffer;
+    PushConstants push_constants;
     RingBuffer main_ring_buffer;
 
     VkCommandPool command_pool;
