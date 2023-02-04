@@ -18,7 +18,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #define RAY_TRACING
-#include "pbr_common.glsl"
+#include "common.glsl"
 
 layout(location = 0) rayPayloadEXT hit_payload prd;
 
@@ -27,8 +27,8 @@ void main() {
     const vec2 in_UV = pixel_center / vec2(gl_LaunchSizeEXT.xy);
     const vec2 d = in_UV * 2.0 - 1.0;
     const uvec2 blue_noise_size = imageSize(blue_noise_image);
-    const uvec2 blue_noise_coords = (gl_LaunchIDEXT.xy + uvec2(seed % blue_noise_size.x, 0)) % blue_noise_size;
-    const float random = imageLoad(blue_noise_image,  ivec2(blue_noise_coords))[seed % 4];
+    const uvec2 blue_noise_coords = (gl_LaunchIDEXT.xy + ivec2(hash(seed), hash(seed * 3))) % blue_noise_size;
+    const float random = imageLoad(blue_noise_image,  ivec2(blue_noise_coords))[hash(seed * 5) % 4];
     mat4 centered_camera = camera;
     centered_camera[3][0] = 0.0;
     centered_camera[3][1] = 0.0;
@@ -64,7 +64,6 @@ void main() {
 	direct_light_samples[hit_num] = light_intensity * float(prd.normal == vec3(0.0)) / (light_dist * light_dist);
     }
 
-    vec3 color = hits[hit_num - 1].albedo * direct_light_samples[hit_num - 1];
-    //color = mix(vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0), float(light_id));
-    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(color, 1.0));
+    vec4 color = vec4(hits[hit_num - 1].albedo * direct_light_samples[hit_num - 1], 1.0);
+    imageStore(ray_tracing_output_image, ivec2(gl_LaunchIDEXT.xy), color);
 }

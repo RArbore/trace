@@ -53,7 +53,6 @@ auto RenderContext::init() noexcept -> void {
     create_ray_trace_pipeline();
     create_shader_binding_table();
     create_sampler();
-    create_depth_resources();
     create_framebuffers();
     create_command_buffers();
     create_sync_objects();
@@ -74,9 +73,11 @@ auto RenderContext::create_one_off_objects() noexcept -> void {
     blue_noise_image = blue_noise_texture.first;
     blue_noise_image_view = blue_noise_texture.second;
     update_descriptors_blue_noise_images();
+
+    update_descriptors_ray_trace_images();
 } 
 
-auto RenderContext::render(Scene &scene) noexcept -> void {
+auto RenderContext::render() noexcept -> void {
     glfwPollEvents();
     if ((pressed_keys[GLFW_KEY_ESCAPE] && !is_using_imgui()) || glfwWindowShouldClose(window)) {
 	active = false;
@@ -93,7 +94,7 @@ auto RenderContext::render(Scene &scene) noexcept -> void {
     for (uint8_t i = 0; i <= GLFW_MOUSE_BUTTON_LAST; ++i)
 	pressed_buttons[i] = glfwGetMouseButton(window, i) == GLFW_PRESS;
 
-    render_imgui(scene);
+    render_imgui();
 
     vkWaitForFences(device, 1, &in_flight_fence, VK_TRUE, UINT64_MAX);
 
@@ -106,11 +107,8 @@ auto RenderContext::render(Scene &scene) noexcept -> void {
     ASSERT(acquire_next_image_result == VK_SUCCESS || acquire_next_image_result == VK_SUBOPTIMAL_KHR, "Unable to acquire next image.");
     vkResetFences(device, 1, &in_flight_fence);
 
-    vkResetCommandBuffer(raster_command_buffer, 0);
-    if (ray_tracing)
-	record_ray_trace_command_buffer(raster_command_buffer, image_index);
-    else
-	record_raster_command_buffer(raster_command_buffer, image_index, scene);
+    vkResetCommandBuffer(render_command_buffer, 0);
+    record_render_command_buffer(render_command_buffer, image_index);
 
     const uint16_t num_wait_semaphores = 1 + main_ring_buffer.get_number_occupied(current_frame);
     ring_buffer_semaphore_scratchpad.reserve(num_wait_semaphores);
@@ -127,7 +125,7 @@ auto RenderContext::render(Scene &scene) noexcept -> void {
     submit_info.pWaitSemaphores = ring_buffer_semaphore_scratchpad.data();
     submit_info.pWaitDstStageMask = ring_buffer_wait_stages_scratchpad.data();;
     submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &raster_command_buffer;
+    submit_info.pCommandBuffers = &render_command_buffer;
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = &render_finished_semaphore;
 
@@ -169,7 +167,6 @@ auto RenderContext::cleanup() noexcept -> void {
     cleanup_one_off_objects();
     cleanup_sync_objects();
     cleanup_framebuffers();
-    cleanup_depth_resources();
     cleanup_descriptor_pool();
     cleanup_descriptor_set_layout();
     cleanup_ray_trace_descriptor_set_layout();

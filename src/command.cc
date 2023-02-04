@@ -36,14 +36,20 @@ auto RenderContext::create_command_buffers() noexcept -> void {
     allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocate_info.commandBufferCount = 1;
 
-    ASSERT(vkAllocateCommandBuffers(device, &allocate_info, &raster_command_buffer), "Unable to create command buffers.");
+    ASSERT(vkAllocateCommandBuffers(device, &allocate_info, &render_command_buffer), "Unable to create command buffers.");
 }
 
-auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, const Scene &scene) noexcept -> void {
+auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void {
     VkCommandBufferBeginInfo begin_info {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
     ASSERT(vkBeginCommandBuffer(command_buffer, &begin_info), "Unable to begin recording command buffer.");
+
+    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline_layout, 0, 1, &raster_descriptor_set, 0, NULL);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline_layout, 1, 1, &ray_trace_descriptor_set, 0, NULL);
+    vkCmdPushConstants(command_buffer, ray_trace_pipeline_layout, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR, 0, sizeof(PushConstants), &push_constants);
+    vkCmdTraceRaysKHR(command_buffer, &rgen_sbt_region, &miss_sbt_region, &hit_sbt_region, &call_sbt_region, swapchain_extent.width, swapchain_extent.height, 1);
 
     VkClearValue clear_values[2];
     clear_values[0].color.float32[0] = 0.0f / 100.0f;
@@ -63,8 +69,8 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
     render_pass_begin_info.clearValueCount = 2;
     render_pass_begin_info.pClearValues = clear_values;
 
-    vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, raster_pipeline);
+    vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
     VkViewport viewport {};
     viewport.x = 0.0f;
@@ -81,77 +87,14 @@ auto RenderContext::record_raster_command_buffer(VkCommandBuffer command_buffer,
     scissor.extent = swapchain_extent;
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    const std::size_t offsets[] = {0};
-    vkCmdBindVertexBuffers(command_buffer, 0, 1, &scene.vertices_buf.buffer, offsets);
-    vkCmdBindVertexBuffers(command_buffer, 1, 1, &scene.instances_buf.buffer, offsets);
-    vkCmdBindIndexBuffer(command_buffer, scene.indices_buf.buffer, 0, VK_INDEX_TYPE_UINT32);
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, raster_pipeline_layout, 0, 1, &raster_descriptor_set, 0, NULL);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, raster_pipeline_layout, 1, 1, &ray_trace_descriptor_set, 0, NULL);
     vkCmdPushConstants(command_buffer, raster_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push_constants);
-    vkCmdDrawIndexedIndirect(command_buffer, scene.indirect_draw_buf.buffer, 0, (uint32_t) scene.num_models, sizeof(VkDrawIndexedIndirectCommand));
+    vkCmdDraw(command_buffer, 6, 1, 0, 0);
     render_draw_data_wrapper_imgui(command_buffer);
 
     vkCmdEndRenderPass(command_buffer);
 
-    ASSERT(vkEndCommandBuffer(command_buffer), "Something went wrong recording into a raster command buffer.");
-}
-
-auto RenderContext::record_ray_trace_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void {
-    VkCommandBufferBeginInfo begin_info {};
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-    ASSERT(vkBeginCommandBuffer(command_buffer, &begin_info), "Unable to begin recording command buffer.");
-
-    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline);
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline_layout, 0, 1, &raster_descriptor_set, 0, NULL);
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline_layout, 1, 1, &ray_trace_descriptor_set, 0, NULL);
-    vkCmdPushConstants(command_buffer, ray_trace_pipeline_layout, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR, 0, sizeof(PushConstants), &push_constants);
-    vkCmdTraceRaysKHR(command_buffer, &rgen_sbt_region, &miss_sbt_region, &hit_sbt_region, &call_sbt_region, swapchain_extent.width, swapchain_extent.height, 1);
-
-    VkImageMemoryBarrier image_memory_barrier {};
-    image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    image_memory_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    image_memory_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    image_memory_barrier.image = swapchain_images[image_index];
-    image_memory_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    image_memory_barrier.subresourceRange.baseMipLevel = 0;
-    image_memory_barrier.subresourceRange.levelCount = 1;
-    image_memory_barrier.subresourceRange.baseArrayLayer = 0;
-    image_memory_barrier.subresourceRange.layerCount = 1;
-    image_memory_barrier.srcAccessMask = 0;
-    image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
-
-    VkImageBlit blit_region {};
-    blit_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    blit_region.srcSubresource.mipLevel = 0;
-    blit_region.srcSubresource.baseArrayLayer = 0;
-    blit_region.srcSubresource.layerCount = 1;
-    blit_region.srcOffsets[0].x = 0;
-    blit_region.srcOffsets[0].y = 0;
-    blit_region.srcOffsets[0].z = 0;
-    blit_region.srcOffsets[1].x = swapchain_extent.width;
-    blit_region.srcOffsets[1].y = swapchain_extent.height;
-    blit_region.srcOffsets[1].z = 1;
-    blit_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    blit_region.dstSubresource.mipLevel = 0;
-    blit_region.dstSubresource.baseArrayLayer = 0;
-    blit_region.dstSubresource.layerCount = 1;
-    blit_region.dstOffsets[0].x = 0;
-    blit_region.dstOffsets[0].y = 0;
-    blit_region.dstOffsets[0].z = 0;
-    blit_region.dstOffsets[1].x = swapchain_extent.width;
-    blit_region.dstOffsets[1].y = swapchain_extent.height;
-    blit_region.dstOffsets[1].z = 1;
-    vkCmdBlitImage(command_buffer, ray_trace_image.image, VK_IMAGE_LAYOUT_GENERAL, swapchain_images[image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit_region, VK_FILTER_NEAREST);
-
-    image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    image_memory_barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
-    
     ASSERT(vkEndCommandBuffer(command_buffer), "Something went wrong recording into a raster command buffer.");
 }
 

@@ -18,23 +18,15 @@
 
 #include "common.glsl"
 
-layout(location = 0) in vec3 in_position;
-layout(location = 1) in vec3 in_normal;
-layout(location = 2) in vec3 in_texture;
-layout(location = 3) in mat4 in_model;
-
-layout(location = 0) out vec3 out_position;
-layout(location = 1) out vec3 out_normal;
-layout(location = 2) out vec3 out_texture;
-layout(location = 3) out flat uint out_model_info;
+const vec2 positions[6] = vec2[](
+				 vec2(-1.0, -1.0),
+				 vec2(1.0, -1.0),
+				 vec2(-1.0, 1.0),
+				 vec2(-1.0, 1.0),
+				 vec2(1.0, -1.0),
+				 vec2(1.0, 1.0)
+				 );
 
 void main() {
-    out_model_info = floatBitsToInt(in_model[3][3]);
-    mat4 corrected_model = in_model;
-    corrected_model[3][3] = 1.0;
-    
-    gl_Position = perspective * camera * corrected_model * vec4(in_position, 1.0);
-    out_position = (corrected_model * vec4(in_position, 1.0)).xyz;
-    out_normal = (corrected_model * vec4(in_normal, 0.0)).xyz;
-    out_texture = in_texture;
+    gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
 }

@@ -183,22 +183,6 @@ auto RenderContext::cleanup_image_view(VkImageView view) noexcept -> void {
     vkDestroyImageView(device, view, NULL);
 }
 
-auto RenderContext::create_depth_resources() noexcept -> void {
-    depth_image = create_image(0, VK_FORMAT_D32_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "DEPTH_IMAGE");
-    VkImageSubresourceRange subresource_range {}; 
-    subresource_range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    subresource_range.baseMipLevel = 0;
-    subresource_range.levelCount = 1;
-    subresource_range.baseArrayLayer = 0;
-    subresource_range.layerCount = 1;
-    depth_image_view = create_image_view(depth_image.image, VK_FORMAT_D32_SFLOAT, subresource_range);
-}
-
-auto RenderContext::cleanup_depth_resources() noexcept -> void {
-    cleanup_image_view(depth_image_view);
-    cleanup_image(depth_image);
-}
-
 auto RenderContext::create_ringbuffer() noexcept -> RingBuffer {
     return {};
 }

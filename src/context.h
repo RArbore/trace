@@ -53,10 +53,11 @@ struct RenderContext {
     struct PushConstants {
 	glm::mat4 camera_matrix;
 	uint32_t seed;
+	float alpha;
     };
     
     GLFWwindow *window;
-    bool active = true, resized = false, ray_tracing = false;
+    bool active = true, resized = false;
     uint32_t current_frame = 0;
 
     glm::vec3 camera_position;
@@ -75,6 +76,8 @@ struct RenderContext {
     std::vector<VkFramebuffer> swapchain_framebuffers;
     Image ray_trace_image;
     VkImageView ray_trace_image_view;
+    Image last_frame_image;
+    VkImageView last_frame_image_view;
 
     std::map<std::string, VkShaderModule> shader_modules;
     VkPipelineLayout raster_pipeline_layout;
@@ -91,8 +94,6 @@ struct RenderContext {
     VkStridedDeviceAddressRegionKHR hit_sbt_region;
     VkStridedDeviceAddressRegionKHR call_sbt_region;
 
-    Image depth_image;
-    VkImageView depth_image_view;
     Buffer perspective_matrix_buffer;
     Image blue_noise_image;
     VkImageView blue_noise_image_view;
@@ -100,7 +101,7 @@ struct RenderContext {
     RingBuffer main_ring_buffer;
 
     VkCommandPool command_pool;
-    VkCommandBuffer raster_command_buffer;
+    VkCommandBuffer render_command_buffer;
     VkSemaphore image_available_semaphore;
     VkSemaphore render_finished_semaphore;
     VkFence in_flight_fence;
@@ -134,7 +135,7 @@ struct RenderContext {
     std::array<bool, GLFW_KEY_LAST + 1> last_pressed_keys;
 
     auto init() noexcept -> void;
-    auto render(Scene &scene) noexcept -> void;
+    auto render() noexcept -> void;
     auto cleanup() noexcept -> void;
 
     auto create_instance() noexcept -> void;
@@ -156,7 +157,6 @@ struct RenderContext {
     auto create_ray_trace_descriptor_set_layout() noexcept -> void;
     auto create_ray_trace_descriptor_sets() noexcept -> void;
     auto create_command_pool() noexcept -> void;
-    auto create_depth_resources() noexcept -> void;
     auto create_command_buffers() noexcept -> void;
     auto create_sync_objects() noexcept -> void;
     auto create_one_off_objects() noexcept -> void;
@@ -178,7 +178,6 @@ struct RenderContext {
     auto cleanup_descriptor_set_layout() noexcept -> void;
     auto cleanup_ray_trace_descriptor_set_layout() noexcept -> void;
     auto cleanup_command_pool() noexcept -> void;
-    auto cleanup_depth_resources() noexcept -> void;
     auto cleanup_sync_objects() noexcept -> void;
     auto cleanup_one_off_objects() noexcept -> void;
     auto cleanup_ringbuffer(RingBuffer &ring_buffer) noexcept -> void;
@@ -200,8 +199,7 @@ struct RenderContext {
     auto create_image_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
     auto cleanup_image_view(VkImageView view) noexcept -> void;
 
-    auto record_raster_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, const Scene &scene) noexcept -> void;
-    auto record_ray_trace_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void;
+    auto record_render_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void;
 
     auto create_semaphore() noexcept -> VkSemaphore;
     auto create_fence() noexcept -> VkFence;
@@ -245,7 +243,7 @@ struct RenderContext {
     auto init_imgui() noexcept -> void;
     auto cleanup_imgui() noexcept -> void;
     auto recreate_imgui() noexcept -> void;
-    auto render_imgui(Scene &scene) noexcept -> void;
+    auto render_imgui() noexcept -> void;
     auto render_draw_data_wrapper_imgui(VkCommandBuffer command_buffer) noexcept -> void;
     auto is_using_imgui() noexcept -> bool;
 

@@ -13,12 +13,12 @@
  */
 
 #ifdef RAY_TRACING
+#extension GL_EXT_buffer_reference2 : require
 #extension GL_EXT_ray_tracing : require
 #endif
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
-#extension GL_EXT_scalar_block_layout : require
 #extension GL_EXT_nonuniform_qualifier : enable
-#extension GL_EXT_buffer_reference2 : require
+#extension GL_EXT_scalar_block_layout : require
 
 const float PI = 3.14159265358979;
 const uint NUM_BOUNCES = 1;
@@ -51,6 +51,7 @@ struct vertex {
 layout (push_constant) uniform PushConstants {
     mat4 camera;
     uint seed;
+    float alpha;
 };
 
 layout(set = 0, binding = 0) uniform lights_uniform {
@@ -67,13 +68,15 @@ layout(set = 0, binding = 2) uniform sampler2D textures[];
 layout(set = 1, binding = 0) uniform accelerationStructureEXT tlas;
 #endif
 
-layout(set = 1, binding = 1, rgba8) uniform writeonly image2D image;
-
 #ifdef RAY_TRACING
-layout(set = 1, binding = 2, scalar) buffer objects_buf { obj_desc i[]; } objects;
+layout(set = 1, binding = 1, scalar) buffer objects_buf { obj_desc i[]; } objects;
 #endif
 
-layout(set = 1, binding = 3, rgba8) uniform readonly image2D blue_noise_image;
+layout(set = 1, binding = 2, rgba8) uniform readonly image2D blue_noise_image;
+
+layout(set = 1, binding = 3, rgba8) uniform image2D ray_tracing_output_image;
+
+layout(set = 1, binding = 4, rgba8) uniform image2D last_frame_image;
 
 #ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };

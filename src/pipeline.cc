@@ -47,8 +47,8 @@ auto RenderContext::cleanup_shaders() noexcept -> void {
 }
 
 auto RenderContext::create_raster_pipeline() noexcept -> void {
-    VkShaderModule vertex_shader = shader_modules["pbr_vertex"];
-    VkShaderModule fragment_shader = shader_modules["pbr_fragment"];
+    VkShaderModule vertex_shader = shader_modules["filter_vertex"];
+    VkShaderModule fragment_shader = shader_modules["filter_fragment"];
 
     VkPipelineShaderStageCreateInfo vertex_shader_stage_create_info {};
     vertex_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -64,15 +64,12 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     VkPipelineShaderStageCreateInfo shader_stage_create_infos[] = {vertex_shader_stage_create_info, fragment_shader_stage_create_info};
 
-    auto binding_descriptions = Scene::binding_descriptions();
-    auto attribute_descriptions = Scene::attribute_descriptions();
-
     VkPipelineVertexInputStateCreateInfo vertex_input_create_info {};
     vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertex_input_create_info.vertexBindingDescriptionCount = binding_descriptions.size();
-    vertex_input_create_info.pVertexBindingDescriptions = binding_descriptions.data();
-    vertex_input_create_info.vertexAttributeDescriptionCount = attribute_descriptions.size();
-    vertex_input_create_info.pVertexAttributeDescriptions = attribute_descriptions.data();
+    vertex_input_create_info.vertexBindingDescriptionCount = 0;
+    vertex_input_create_info.pVertexBindingDescriptions = NULL;
+    vertex_input_create_info.vertexAttributeDescriptionCount = 0;
+    vertex_input_create_info.pVertexAttributeDescriptions = NULL;
 
     VkPipelineInputAssemblyStateCreateInfo input_assembly_create_info {};
     input_assembly_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -90,16 +87,13 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     rasterization_state_create_info.rasterizerDiscardEnable = VK_FALSE;
     rasterization_state_create_info.polygonMode = VK_POLYGON_MODE_FILL;
     rasterization_state_create_info.lineWidth = 1.0f;
-    rasterization_state_create_info.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterization_state_create_info.cullMode = VK_CULL_MODE_NONE;
     rasterization_state_create_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterization_state_create_info.depthBiasEnable = VK_FALSE;
 
     VkPipelineDepthStencilStateCreateInfo depth_stencil_state_create_info {};
     depth_stencil_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depth_stencil_state_create_info.depthTestEnable = VK_TRUE;
-    depth_stencil_state_create_info.depthWriteEnable = VK_TRUE;
-    depth_stencil_state_create_info.depthCompareOp = VK_COMPARE_OP_LESS;
-    depth_stencil_state_create_info.depthBoundsTestEnable = VK_FALSE;
+    depth_stencil_state_create_info.depthTestEnable = VK_FALSE;
     depth_stencil_state_create_info.stencilTestEnable = VK_FALSE;
 
     VkPipelineMultisampleStateCreateInfo multisampling_state_create_info {};
@@ -109,18 +103,11 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     VkPipelineColorBlendAttachmentState color_blend_attachment_state {};
     color_blend_attachment_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    color_blend_attachment_state.blendEnable = VK_TRUE;
-    color_blend_attachment_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    color_blend_attachment_state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    color_blend_attachment_state.colorBlendOp = VK_BLEND_OP_ADD;
-    color_blend_attachment_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    color_blend_attachment_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    color_blend_attachment_state.alphaBlendOp = VK_BLEND_OP_ADD;
+    color_blend_attachment_state.blendEnable = VK_FALSE;
 
     VkPipelineColorBlendStateCreateInfo color_blending_state_create_info {};
     color_blending_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     color_blending_state_create_info.logicOpEnable = VK_FALSE;
-    color_blending_state_create_info.logicOp = VK_LOGIC_OP_COPY;
     color_blending_state_create_info.attachmentCount = 1;
     color_blending_state_create_info.pAttachments = &color_blend_attachment_state;
 
@@ -135,12 +122,14 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     pipeline_dynamic_state_create_info.dynamicStateCount = 2;
     pipeline_dynamic_state_create_info.pDynamicStates = pipeline_dynamic_states;
 
+    VkDescriptorSetLayout descriptor_set_layouts[] = {raster_descriptor_set_layout, ray_trace_descriptor_set_layout};
+
     VkPipelineLayoutCreateInfo pipeline_layout_create_info {};
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipeline_layout_create_info.pushConstantRangeCount = 1;
     pipeline_layout_create_info.pPushConstantRanges = &push_constant_range;
-    pipeline_layout_create_info.setLayoutCount = 1;
-    pipeline_layout_create_info.pSetLayouts = &raster_descriptor_set_layout;
+    pipeline_layout_create_info.setLayoutCount = 2;
+    pipeline_layout_create_info.pSetLayouts = descriptor_set_layouts;
     ASSERT(vkCreatePipelineLayout(device, &pipeline_layout_create_info, NULL, &raster_pipeline_layout), "Unable to create raster pipeline layout.");
 
     VkAttachmentDescription color_attachment {};
@@ -157,28 +146,10 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     color_attachment_reference.attachment = 0;
     color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    VkAttachmentDescription depth_attachment {};
-    depth_attachment.format = VK_FORMAT_D32_SFLOAT;
-    depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference depth_attachment_reference {};
-    depth_attachment_reference.attachment = 1;
-    depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
     VkSubpassDescription subpass {};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &color_attachment_reference;
-    subpass.pDepthStencilAttachment = &depth_attachment_reference;
-
-    VkAttachmentDescription attachments[] = {color_attachment, depth_attachment};
-    VkSubpassDescription subpasses[] = {subpass};
 
     VkSubpassDependency subpass_dependency {};
     subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -186,14 +157,14 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     subpass_dependency.srcAccessMask = 0;
     subpass_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    subpass_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    subpass_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     
     VkRenderPassCreateInfo render_pass_create_info {};
     render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    render_pass_create_info.attachmentCount = 2;
-    render_pass_create_info.pAttachments = attachments;
+    render_pass_create_info.attachmentCount = 1;
+    render_pass_create_info.pAttachments = &color_attachment;
     render_pass_create_info.subpassCount = 1;
-    render_pass_create_info.pSubpasses = subpasses;
+    render_pass_create_info.pSubpasses = &subpass;
     render_pass_create_info.dependencyCount = 1;
     render_pass_create_info.pDependencies = &subpass_dependency;
 
@@ -305,12 +276,12 @@ auto RenderContext::create_framebuffers() noexcept -> void {
     swapchain_framebuffers.resize(swapchain_images.size());
 
     for (std::size_t i = 0; i < swapchain_framebuffers.size(); ++i) {
-	VkImageView attachments[] = {swapchain_image_views[i], depth_image_view};
+	VkImageView attachments[] = {swapchain_image_views[i]};
 
 	VkFramebufferCreateInfo create_info {};
 	create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	create_info.renderPass = raster_render_pass;
-	create_info.attachmentCount = 2;
+	create_info.attachmentCount = 1;
 	create_info.pAttachments = attachments;
 	create_info.width = swapchain_extent.width;
 	create_info.height = swapchain_extent.height;

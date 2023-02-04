@@ -30,7 +30,6 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     
     RenderContext context {};
     context.init();
-    context.update_descriptors_ray_trace_images();
 
     Scene scene {};
 
@@ -109,7 +108,8 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 
 	const glm::vec3 view_dir = glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta));
 	context.push_constants.camera_matrix = glm::lookAt(context.camera_position, context.camera_position + view_dir, glm::vec3(0.0f, 0.0f, 1.0f));
-	context.push_constants.seed = rand();
+	context.push_constants.seed = context.current_frame;
+	context.push_constants.alpha = 0.05f;
 	if (!context.is_using_imgui()) {
 	    const double mouse_dx = context.mouse_x - context.last_mouse_x;
 	    const double mouse_dy = context.mouse_y - context.last_mouse_y;
@@ -119,27 +119,31 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 		camera_theta = glm::clamp(camera_theta, 0.01, M_PI - 0.01);
 		if (camera_phi < 0.0) camera_phi += 2.0 * M_PI;
 		if (camera_phi >= 2.0 * M_PI) camera_phi -= 2.0 * M_PI;
+		context.push_constants.alpha = 1.0f;
 	    }
 	    if (context.pressed_keys[GLFW_KEY_W] == GLFW_PRESS) {
 		context.camera_position += (float) (dt * move_speed) * glm::vec3(cos(camera_phi), sin(camera_phi), 0.0);
+		context.push_constants.alpha = 1.0f;
 	    }
 	    if (context.pressed_keys[GLFW_KEY_A] == GLFW_PRESS) {
 		context.camera_position += (float) (dt * move_speed) * glm::vec3(-sin(camera_phi), cos(camera_phi), 0.0);
+		context.push_constants.alpha = 1.0f;
 	    }
 	    if (context.pressed_keys[GLFW_KEY_S] == GLFW_PRESS) {
 		context.camera_position += (float) (dt * move_speed) * glm::vec3(-cos(camera_phi), -sin(camera_phi), 0.0);
+		context.push_constants.alpha = 1.0f;
 	    }
 	    if (context.pressed_keys[GLFW_KEY_D] == GLFW_PRESS) {
 		context.camera_position += (float) (dt * move_speed) * glm::vec3(sin(camera_phi), -cos(camera_phi), 0.0);
+		context.push_constants.alpha = 1.0f;
 	    }
 	    if (context.pressed_keys[GLFW_KEY_LEFT_SHIFT] == GLFW_PRESS) {
 		context.camera_position += (float) (dt * move_speed) * glm::vec3(0.0, 0.0, -1.0);
+		context.push_constants.alpha = 1.0f;
 	    }
 	    if (context.pressed_keys[GLFW_KEY_SPACE] == GLFW_PRESS) {
 		context.camera_position += (float) (dt * move_speed) * glm::vec3(0.0, 0.0, 1.0);
-	    }
-	    if (context.pressed_keys[GLFW_KEY_R] == GLFW_PRESS && context.last_pressed_keys[GLFW_KEY_R] != GLFW_PRESS) {
-		context.ray_tracing = !context.ray_tracing;
+		context.push_constants.alpha = 1.0f;
 	    }
 	}
 	context.last_pressed_keys = context.pressed_keys;
@@ -149,7 +153,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	context.ringbuffer_copy_scene_instances_into_buffer(scene);
 	context.ringbuffer_copy_scene_lights_into_buffer(scene);*/
 	
-	context.render(scene);
+	context.render();
 	
 	if (elapsed_time_subsecond >= 0.25f) {
 	    const float fps = (float) num_frames_subsecond / (float) elapsed_time_subsecond;

@@ -122,6 +122,8 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 
     ray_trace_image = create_image(0, VK_FORMAT_R8G8B8A8_UNORM, swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "RAY_TRACING_STORAGE_IMAGE");
     ray_trace_image_view = create_image_view(ray_trace_image.image, VK_FORMAT_R8G8B8A8_UNORM, subresource_range);
+    last_frame_image = create_image(0, VK_FORMAT_R8G8B8A8_UNORM, swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "RAY_TRACING_STORAGE_IMAGE");
+    last_frame_image_view = create_image_view(last_frame_image.image, VK_FORMAT_R8G8B8A8_UNORM, subresource_range);
 
     inefficient_run_commands([&](VkCommandBuffer cmd) {
 	VkImageMemoryBarrier image_memory_barrier {};
@@ -137,7 +139,11 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 	image_memory_barrier.subresourceRange.layerCount = 1;
 	image_memory_barrier.srcAccessMask = 0;
 	image_memory_barrier.dstAccessMask = 0;
+
 	image_memory_barrier.image = ray_trace_image.image;
+	vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
+
+	image_memory_barrier.image = last_frame_image.image;
 	vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
     });
 }
@@ -145,6 +151,8 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 auto RenderContext::cleanup_ray_trace_images() noexcept -> void {
     cleanup_image_view(ray_trace_image_view);
     cleanup_image(ray_trace_image);
+    cleanup_image_view(last_frame_image_view);
+    cleanup_image(last_frame_image);
 }
 
 auto RenderContext::recreate_swapchain() noexcept -> void {
@@ -157,13 +165,11 @@ auto RenderContext::recreate_swapchain() noexcept -> void {
     vkDeviceWaitIdle(device);
 
     cleanup_framebuffers();
-    cleanup_depth_resources();
     cleanup_swapchain();
     cleanup_ray_trace_images();
     
     create_ray_trace_images();
     create_swapchain();
-    create_depth_resources();
     create_framebuffers();
 
     update_descriptors_ray_trace_images();

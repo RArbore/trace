@@ -74,11 +74,12 @@ auto RenderContext::recreate_imgui() noexcept -> void {
     ImGui_ImplVulkan_SetMinImageCount((uint32_t) swapchain_images.size());
 }
 
-auto RenderContext::render_imgui(Scene &scene) noexcept -> void {
+auto RenderContext::render_imgui() noexcept -> void {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
+    /*
     ImGui::InputText("Name of model", imgui_data.model_name.data(), imgui_data.model_name.size());
     ImGui::InputFloat("X position of model", &imgui_data.model_position[0]);
     ImGui::InputFloat("Y position of model", &imgui_data.model_position[1]);
@@ -97,6 +98,8 @@ auto RenderContext::render_imgui(Scene &scene) noexcept -> void {
 	update_vulkan_objects_for_scene(scene);
 	update_descriptors_lights(scene);
     }
+    */
+    
     std::ostringstream fps_label;
     fps_label << "FPS: " << imgui_data.last_fpss.back();
     ImGui::PlotLines(fps_label.str().c_str(), imgui_data.last_fpss.data(), (int32_t) imgui_data.last_fpss.size());

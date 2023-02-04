@@ -13,28 +13,19 @@
  */
 
 #version 460
-#pragma shader_stage(vertex)
+#pragma shader_stage(fragment)
 #extension GL_GOOGLE_include_directive : enable
 
 #include "common.glsl"
 
-layout(location = 0) in vec3 in_position;
-layout(location = 1) in vec3 in_normal;
-layout(location = 2) in vec3 in_texture;
-layout(location = 3) in mat4 in_model;
-
-layout(location = 0) out vec3 out_position;
-layout(location = 1) out vec3 out_normal;
-layout(location = 2) out vec3 out_texture;
-layout(location = 3) out flat uint out_model_info;
+layout(location = 0) out vec4 out_color;
 
 void main() {
-    out_model_info = floatBitsToInt(in_model[3][3]);
-    mat4 corrected_model = in_model;
-    corrected_model[3][3] = 1.0;
-    
-    gl_Position = perspective * camera * corrected_model * vec4(in_position, 1.0);
-    out_position = (corrected_model * vec4(in_position, 1.0)).xyz;
-    out_normal = (corrected_model * vec4(in_normal, 0.0)).xyz;
-    out_texture = in_texture;
+    ivec2 pixel_coord = ivec2(gl_FragCoord.xy);
+    vec4 new_color = imageLoad(ray_tracing_output_image, pixel_coord);
+    vec4 old_color = imageLoad(last_frame_image, pixel_coord);
+
+    vec4 blended_color = mix(old_color, new_color, alpha);
+    imageStore(last_frame_image, pixel_coord, blended_color);
+    out_color = blended_color;
 }
