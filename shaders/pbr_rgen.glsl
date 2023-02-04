@@ -31,49 +31,37 @@ void main() {
     centered_camera[3][0] = 0.0;
     centered_camera[3][1] = 0.0;
     centered_camera[3][2] = 0.0;
-    vec3 cam_pos = (inverse(camera) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-    vec3 ray_dir = normalize((inverse(centered_camera) * inverse(perspective) * vec4(d, 0.0, 1.0)).xyz);
-    
-    traceRayEXT(tlas,                 // acceleration structure
-		gl_RayFlagsOpaqueEXT, // rayFlags
-		0xFF,                 // cullMask
-		0,                    // sbtRecordOffset
-		0,                    // sbtRecordStride
-		0,                    // missIndex
-		cam_pos,              // ray origin
-		0.001,               // ray min range
-		ray_dir,              // ray direction
-		10000.0,              // ray max range
-		0                     // payload (location = 0)
-		);
 
-    hit_payload first_hit = prd;
-
-    uint light_id = 0;
+    uint num_lights = floatBitsToUint(lights[0].x);
+    uint light_id = seed % num_lights;
     vec3 light_position = lights[light_id + 1].xyz;
     float light_intensity = lights[light_id + 1].w;
-    vec3 light_dir = normalize(light_position - first_hit.hit_position);
-    float light_dist = length(light_position - first_hit.hit_position);
-    vec3 hit_position = first_hit.hit_position - ray_dir * 0.01;
-    traceRayEXT(tlas,
-		gl_RayFlagsOpaqueEXT,
-		0xFF,
-		0,
-		0,
-		0,
-		hit_position,
-		0.001,
-		light_dir,
-		light_dist,
-		0
-		);
-
-    bool occluded = length(prd.normal) > 0.0;
+    vec3 outward_radiance = vec3(0.0);
     
-    vec3 color = first_hit.albedo;
-    if (occluded) {
-	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(color * 0.05, 1.0));
-    } else {
-	imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(color, 1.0));
+    vec3 ray_pos = (inverse(camera) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+    vec3 ray_dir = normalize((inverse(centered_camera) * inverse(perspective) * vec4(d, 0.0, 1.0)).xyz);
+
+    hit_payload hits[NUM_BOUNCES];
+    float direct_light_samples[NUM_BOUNCES];
+    uint hit_num;
+
+    for (hit_num = 0; hit_num < NUM_BOUNCES; ++hit_num) {
+	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, ray_dir, 10000.0, 0);
+	hits[hit_num] = prd;
+	if (prd.normal == vec3(0.0)) {
+	    ++hit_num;
+	    break;
+	}
+
+	ray_pos = prd.hit_position + prd.flat_normal * SURFACE_OFFSET;
+	ray_dir = reflect(ray_dir, prd.normal);
+	vec3 light_dir = normalize(light_position - prd.hit_position);
+	float light_dist = length(light_position - prd.hit_position);
+
+	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, light_dir, light_dist, 0);
+	direct_light_samples[hit_num] = light_intensity * float(prd.normal == vec3(0.0)) / (light_dist * light_dist);
     }
+
+    vec3 color = hits[hit_num - 1].albedo;
+    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(color, 1.0));
 }

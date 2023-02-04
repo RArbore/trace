@@ -20,10 +20,16 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_buffer_reference2 : require
 
+const float PI = 3.14159265358979;
+const uint NUM_BOUNCES = 2;
+const uint MAX_LIGHTS = 512;
+const float SURFACE_OFFSET = 0.002;
+
 #ifdef RAY_TRACING
 struct hit_payload {
     vec3 albedo;
     vec3 normal;
+    vec3 flat_normal;
     float roughness;
     float metallicity;
     vec3 hit_position;
@@ -47,7 +53,6 @@ layout (push_constant) uniform PushConstants {
     uint seed;
 };
 
-const uint MAX_LIGHTS = 512;
 layout(set = 0, binding = 0) uniform lights_uniform {
     vec4 lights[MAX_LIGHTS];
 };
@@ -67,8 +72,6 @@ layout(set = 1, binding = 1, rgba8) uniform writeonly image2D image;
 #ifdef RAY_TRACING
 layout(set = 1, binding = 2, scalar) buffer objects_buf { obj_desc i[]; } objects;
 #endif
-
-const float PI = 3.14159265358979;
 
 #ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };

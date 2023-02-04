@@ -70,6 +70,7 @@ void main() {
 
     prd.albedo = albedo;
     prd.normal = normal;
+    prd.flat_normal = world_flat_normal;
     prd.roughness = roughness;
     prd.metallicity = metallicity;
     prd.hit_position = world_position;
