@@ -165,8 +165,15 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
     ray_trace_objects_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     ray_trace_objects_layout_binding.pImmutableSamplers = NULL;
     ray_trace_objects_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
+
+    VkDescriptorSetLayoutBinding blue_noise_image_layout_binding {};
+    blue_noise_image_layout_binding.binding = 3;
+    blue_noise_image_layout_binding.descriptorCount = 1;
+    blue_noise_image_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    blue_noise_image_layout_binding.pImmutableSamplers = NULL;
+    blue_noise_image_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
     
-    VkDescriptorSetLayoutBinding bindings[] = {tlas_layout_binding, out_image_layout_binding, ray_trace_objects_layout_binding};
+    VkDescriptorSetLayoutBinding bindings[] = {tlas_layout_binding, out_image_layout_binding, ray_trace_objects_layout_binding, blue_noise_image_layout_binding};
     
     VkDescriptorSetLayoutCreateInfo layout_create_info {};
     layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -329,6 +336,25 @@ auto RenderContext::update_descriptors_ray_trace_objects(const Scene &scene) noe
     write_descriptor_set.pBufferInfo = &descriptor_buffer_info;
     write_descriptor_set.pTexelBufferView = NULL;
     write_descriptor_set.pNext = NULL;
+
+    vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
+}
+
+auto RenderContext::update_descriptors_blue_noise_images() noexcept -> void {
+    VkDescriptorImageInfo descriptor_image_info {};
+    descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    descriptor_image_info.imageView = blue_noise_image_view;
+    
+    VkWriteDescriptorSet write_descriptor_set {};
+    write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write_descriptor_set.dstSet = ray_trace_descriptor_set;
+    write_descriptor_set.dstBinding = 3;
+    write_descriptor_set.dstArrayElement = 0;
+    write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    write_descriptor_set.descriptorCount = 1;
+    write_descriptor_set.pImageInfo = &descriptor_image_info;
+    write_descriptor_set.pBufferInfo = NULL;
+    write_descriptor_set.pTexelBufferView = NULL;
 
     vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
 }

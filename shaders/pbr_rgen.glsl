@@ -25,15 +25,16 @@ layout(location = 0) rayPayloadEXT hit_payload prd;
 void main() {
     const vec2 pixel_center = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
     const vec2 in_UV = pixel_center / vec2(gl_LaunchSizeEXT.xy);
-    vec2 d = in_UV * 2.0 - 1.0;
-    
+    const vec2 d = in_UV * 2.0 - 1.0;
+    const uvec2 blue_noise_coords = gl_LaunchIDEXT.xy % imageSize(blue_noise_image);
+    const float random = imageLoad(blue_noise_image,  ivec2(blue_noise_coords))[seed % 4];  
     mat4 centered_camera = camera;
     centered_camera[3][0] = 0.0;
     centered_camera[3][1] = 0.0;
     centered_camera[3][2] = 0.0;
 
     uint num_lights = floatBitsToUint(lights[0].x);
-    uint light_id = seed % num_lights;
+    uint light_id = uint(round(random)) % num_lights;
     vec3 light_position = lights[light_id + 1].xyz;
     float light_intensity = lights[light_id + 1].w;
     vec3 outward_radiance = vec3(0.0);
@@ -62,6 +63,7 @@ void main() {
 	direct_light_samples[hit_num] = light_intensity * float(prd.normal == vec3(0.0)) / (light_dist * light_dist);
     }
 
-    vec3 color = hits[hit_num - 1].albedo;
+    vec3 color = hits[hit_num - 1].albedo * direct_light_samples[hit_num - 1];
+    //color = mix(vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0), float(light_id));
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(color, 1.0));
 }

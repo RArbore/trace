@@ -325,7 +325,7 @@ auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &ds
     vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
 }
 
-auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst, VkSemaphore *additional_semaphores, uint32_t num_semaphores) noexcept -> void {
+auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst, VkImageLayout dst_layout, VkSemaphore *additional_semaphores, uint32_t num_semaphores) noexcept -> void {
     vmaUnmapMemory(allocator, ring_buffer.elements[ring_buffer.last_id].buffer.allocation);
 
     VkImageMemoryBarrier image_memory_barrier {};
@@ -363,7 +363,7 @@ auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst,
     vkCmdCopyBufferToImage(command_buffer, ring_buffer.elements[ring_buffer.last_id].buffer.buffer, dst.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
 
     image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    image_memory_barrier.newLayout = dst_layout;
     image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     image_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);

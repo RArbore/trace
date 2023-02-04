@@ -316,7 +316,32 @@ auto RenderContext::load_texture(std::string_view texture_filepath, bool srgb) n
 
     void *data_image = ringbuffer_claim_buffer(main_ring_buffer, image_size);
     memcpy(data_image, pixels, image_size);
-    ringbuffer_submit_buffer(main_ring_buffer, dst);
+    ringbuffer_submit_buffer(main_ring_buffer, dst, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    VkImageSubresourceRange subresource_range {};
+    subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresource_range.baseMipLevel = 0;
+    subresource_range.levelCount = 1;
+    subresource_range.baseArrayLayer = 0;
+    subresource_range.layerCount = 1;
+
+    return {dst, create_image_view(dst.image, format, subresource_range)};
+}
+
+auto RenderContext::load_image(std::string_view texture_filepath) noexcept -> std::pair<Image, VkImageView> {
+    int tex_width, tex_height, tex_channels;
+    stbi_uc* pixels = stbi_load(&texture_filepath[0], &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
+
+    ASSERT(pixels, "Unable to load texture.");
+    std::size_t image_size = tex_width * tex_height * 4;
+
+    VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
+    VkExtent2D extent = {(uint32_t) tex_width, (uint32_t) tex_height};
+    Image dst = create_image(0, format, extent, 1, 1, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "TEXTURE_IMAGE");
+
+    void *data_image = ringbuffer_claim_buffer(main_ring_buffer, image_size);
+    memcpy(data_image, pixels, image_size);
+    ringbuffer_submit_buffer(main_ring_buffer, dst, VK_IMAGE_LAYOUT_GENERAL);
 
     VkImageSubresourceRange subresource_range {};
     subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -372,7 +397,7 @@ auto RenderContext::load_custom_material(uint8_t red_albedo, uint8_t green_albed
 
 	void *data_image = ringbuffer_claim_buffer(main_ring_buffer, image_size);
 	memcpy(data_image, &contents[i * 4], image_size);
-	ringbuffer_submit_buffer(main_ring_buffer, dst);
+	ringbuffer_submit_buffer(main_ring_buffer, dst, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	
 	VkImageSubresourceRange subresource_range {};
 	subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;

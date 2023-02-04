@@ -63,11 +63,17 @@ auto RenderContext::init() noexcept -> void {
 
 auto RenderContext::create_one_off_objects() noexcept -> void {
     main_ring_buffer = create_ringbuffer();
+
     perspective_matrix_buffer = create_buffer(sizeof(glm::mat4), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "PERSPECTIVE_MATRIX_BUFFER");
     glm::mat4 *data_mat = (glm::mat4 *) ringbuffer_claim_buffer(main_ring_buffer, sizeof(glm::mat4));
     *data_mat = glm::perspective(glm::radians(80.0f), 1.0f, 0.01f, 1000.0f);
     (*data_mat)[1][1] *= -1.0f;
     ringbuffer_submit_buffer(main_ring_buffer, perspective_matrix_buffer);
+
+    auto blue_noise_texture = load_image("assets/LDR_RGBA_0.png");
+    blue_noise_image = blue_noise_texture.first;
+    blue_noise_image_view = blue_noise_texture.second;
+    update_descriptors_blue_noise_images();
 } 
 
 auto RenderContext::render(Scene &scene) noexcept -> void {
@@ -186,4 +192,6 @@ auto RenderContext::cleanup() noexcept -> void {
 auto RenderContext::cleanup_one_off_objects() noexcept -> void {
     cleanup_ringbuffer(main_ring_buffer);
     cleanup_buffer(perspective_matrix_buffer);
+    cleanup_image_view(blue_noise_image_view);
+    cleanup_image(blue_noise_image);
 }

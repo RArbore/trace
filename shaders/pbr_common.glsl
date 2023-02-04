@@ -21,7 +21,7 @@
 #extension GL_EXT_buffer_reference2 : require
 
 const float PI = 3.14159265358979;
-const uint NUM_BOUNCES = 2;
+const uint NUM_BOUNCES = 1;
 const uint MAX_LIGHTS = 512;
 const float SURFACE_OFFSET = 0.002;
 
@@ -73,7 +73,18 @@ layout(set = 1, binding = 1, rgba8) uniform writeonly image2D image;
 layout(set = 1, binding = 2, scalar) buffer objects_buf { obj_desc i[]; } objects;
 #endif
 
+layout(set = 1, binding = 3, rgba8) uniform readonly image2D blue_noise_image;
+
 #ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };
 layout(buffer_reference, scalar) buffer indices_buf {uvec3 i[]; };
 #endif
+
+uint hash(uint x) {
+    x += (x << 10u);
+    x ^= (x >> 6u);
+    x += (x << 3u);
+    x ^= (x >> 11u);
+    x += (x << 15u);
+    return x;
+}
