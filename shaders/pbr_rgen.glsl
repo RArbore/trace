@@ -26,8 +26,9 @@ void main() {
     const vec2 pixel_center = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
     const vec2 in_UV = pixel_center / vec2(gl_LaunchSizeEXT.xy);
     const vec2 d = in_UV * 2.0 - 1.0;
-    const uvec2 blue_noise_coords = gl_LaunchIDEXT.xy % imageSize(blue_noise_image);
-    const float random = imageLoad(blue_noise_image,  ivec2(blue_noise_coords))[seed % 4];  
+    const uvec2 blue_noise_size = imageSize(blue_noise_image);
+    const uvec2 blue_noise_coords = (gl_LaunchIDEXT.xy + uvec2(seed % blue_noise_size.x, 0)) % blue_noise_size;
+    const float random = imageLoad(blue_noise_image,  ivec2(blue_noise_coords))[seed % 4];
     mat4 centered_camera = camera;
     centered_camera[3][0] = 0.0;
     centered_camera[3][1] = 0.0;
