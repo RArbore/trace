@@ -79,7 +79,6 @@ void main() {
 	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, ray_dir, 10000.0, 0);
 	hits[hit_num] = prd;
 	if (prd.normal == vec3(0.0)) {
-	    ++hit_num;
 	    break;
 	}
 

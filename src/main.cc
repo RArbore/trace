@@ -113,8 +113,8 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	
 	glm::vec3 view_dir;
 	if (context.imgui_data.taa) {
-	    const double camera_theta_mod = camera_theta + random_float(-0.00015f, 0.00015f);
-	    const double camera_phi_mod = camera_phi + random_float(-0.00015f, 0.00015f);
+	    const double camera_theta_mod = camera_theta + random_float(-0.0002f, 0.0002f);
+	    const double camera_phi_mod = camera_phi + random_float(-0.0002f, 0.0002f);
 	    view_dir = glm::vec3(sin(camera_theta_mod) * cos(camera_phi_mod), sin(camera_theta_mod) * sin(camera_phi_mod), cos(camera_theta_mod));
 	} else {
 	    view_dir = glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta));

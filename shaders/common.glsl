@@ -24,6 +24,8 @@ const float PI = 3.14159265358979;
 const uint NUM_BOUNCES = 2;
 const uint MAX_LIGHTS = 512;
 const float SURFACE_OFFSET = 0.002;
+const float FLOAT_MAX = 3.402823466e+38;
+const float FLOAT_MIN = 1.175494351e-38;
 
 #ifdef RAY_TRACING
 struct hit_payload {
