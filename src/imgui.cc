@@ -109,6 +109,8 @@ auto RenderContext::render_imgui() noexcept -> void {
     std::ostringstream pos_label;
     pos_label << "POSITION: " << camera_position.x << " " << camera_position.y << " " << camera_position.z;
     ImGui::Text(pos_label.str().c_str());
+    ImGui::SliderFloat("Alpha", &imgui_data.alpha, 0.0f, 1.0f);
+    ImGui::Checkbox("TAA", &imgui_data.taa);
     
     ImGui::Render();
 }

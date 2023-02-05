@@ -41,12 +41,10 @@ struct SwapchainSupport {
 };
 
 struct ImGuiData {
-    std::array<char, 100> model_name;
-    std::array<float, 3> model_position;
-    float light_intensity;
-    std::array<float, 3> light_position;
     std::array<float, 50> last_fpss;
     std::array<float, 500> last_heaps;
+    float alpha = 0.05f;
+    bool taa = false;
 };
 
 struct RenderContext {

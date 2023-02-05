@@ -22,13 +22,17 @@
 
 layout(location = 0) rayPayloadEXT hit_payload prd;
 
+float eval_brdf(vec3 omega_in, vec3 omega_out, float roughness, float metallicity) {
+    return 1.0;
+}
+
 void main() {
     const vec2 pixel_center = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
     const vec2 in_UV = pixel_center / vec2(gl_LaunchSizeEXT.xy);
     const vec2 d = in_UV * 2.0 - 1.0;
     const uvec2 blue_noise_size = imageSize(blue_noise_image);
-    const uvec2 blue_noise_coords = (gl_LaunchIDEXT.xy + ivec2(hash(seed), hash(seed * 3))) % blue_noise_size;
-    const float random = imageLoad(blue_noise_image,  ivec2(blue_noise_coords))[hash(seed * 5) % 4];
+    const uvec2 blue_noise_coords = (gl_LaunchIDEXT.xy/* + ivec2(hash(seed), hash(seed * 3))*/) % blue_noise_size;
+    const float random = imageLoad(blue_noise_image,  ivec2(blue_noise_coords)).x;
     mat4 centered_camera = camera;
     centered_camera[3][0] = 0.0;
     centered_camera[3][1] = 0.0;
@@ -55,13 +59,17 @@ void main() {
 	    break;
 	}
 
-	ray_pos = prd.hit_position + prd.flat_normal * SURFACE_OFFSET;
-	ray_dir = reflect(ray_dir, prd.normal);
 	vec3 light_dir = normalize(light_position - prd.hit_position);
 	float light_dist = length(light_position - prd.hit_position);
+	float lambert = clamp(dot(prd.normal, light_dir), 0.0, 1.0);
+	float brdf = eval_brdf(-ray_dir, light_dir, prd.roughness, prd.metallicity);
+	float bsdf = brdf * lambert;
+
+	ray_pos = prd.hit_position + prd.flat_normal * SURFACE_OFFSET;
+	ray_dir = reflect(ray_dir, prd.normal);
 
 	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, light_dir, light_dist, 0);
-	direct_light_samples[hit_num] = light_intensity * float(prd.normal == vec3(0.0)) / (light_dist * light_dist);
+	direct_light_samples[hit_num] = light_intensity * bsdf * float(prd.normal == vec3(0.0)) / (light_dist * light_dist);
 
 	outward_radiance += hits[hit_num].albedo * direct_light_samples[hit_num];
     }
