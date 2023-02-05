@@ -37,7 +37,7 @@ vec2 slice_2_from_4(vec4 random, uint num) {
 }
 
 vec3 eval_brdf(vec3 omega_in, vec3 omega_out, hit_payload hit) {
-    vec3 c_spec = mix(vec3(0.04), hit.albedo, hit.metallicity);
+    /*vec3 c_spec = mix(vec3(0.04), hit.albedo, hit.metallicity);
     vec3 n = hit.normal;
     vec3 h = normalize(omega_in + omega_out);
     float m = hit.roughness;
@@ -46,7 +46,8 @@ vec3 eval_brdf(vec3 omega_in, vec3 omega_out, hit_payload hit) {
     vec3 F = c_spec + (1 - c_spec) * pow(1 - dot(omega_in, h), 5.0);
     float G = min(1.0, min(2 * dot(n, h) * dot(n, omega_out) / dot(omega_out, h), 2 * dot(n, h) * dot(n, omega_in) / dot(omega_out, h)));
     
-    return D * F * G / (4 * dot(n, omega_in) * dot(n, omega_out));
+    return D * F * G / (4 * dot(n, omega_in) * dot(n, omega_out));*/
+    return vec3(1.0 / (2.0 * PI));
 }
 
 void main() {
@@ -67,6 +68,7 @@ void main() {
     vec3 light_position = lights[light_id + 1].xyz;
     float light_intensity = lights[light_id + 1].w;
     vec3 outward_radiance = vec3(0.0);
+    vec3 weight = vec3(1.0);
     
     vec3 ray_pos = (inverse(camera) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
     vec3 ray_dir = normalize((inverse(centered_camera) * inverse(perspective) * vec4(d, 0.0, 1.0)).xyz);
@@ -84,14 +86,19 @@ void main() {
 
 	vec3 light_dir = normalize(light_position - prd.hit_position);
 	float light_dist = length(light_position - prd.hit_position);
+	float lambert = dot(hits[hit_num].normal, -ray_dir);
+	float lambert_light = dot(hits[hit_num].normal, light_dir);
+	vec3 omega_in = -ray_dir;
 
 	ray_pos = prd.hit_position + prd.flat_normal * SURFACE_OFFSET;
 	ray_dir = uniform_hemisphere(slice_2_from_4(random, hit_num), prd.normal);//reflect(ray_dir, prd.normal);
 
 	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, light_dir, light_dist, 0);
 	direct_light_samples[hit_num] = light_intensity * float(prd.normal == vec3(0.0)) / (light_dist * light_dist);
+
+	outward_radiance += hits[hit_num].albedo * direct_light_samples[hit_num] * lambert_light * weight * 2.0 * PI * eval_brdf(omega_in, light_dir, hits[hit_num]);
+	weight *= lambert * 2.0 * PI * eval_brdf(omega_in, ray_dir, hits[hit_num]);
     }
-    outward_radiance = hits[hit_num - 1].albedo;
 
     vec4 color = vec4(outward_radiance, 1.0);
     imageStore(ray_tracing_output_image, ivec2(gl_LaunchIDEXT.xy), color);
