@@ -62,9 +62,10 @@ void main() {
 
 	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, light_dir, light_dist, 0);
 	direct_light_samples[hit_num] = light_intensity * float(prd.normal == vec3(0.0)) / (light_dist * light_dist);
+
+	outward_radiance += hits[hit_num].albedo * direct_light_samples[hit_num];
     }
 
-    //vec4 color = vec4(hits[hit_num - 1].albedo * direct_light_samples[hit_num - 1], 1.0);
-    vec4 color = vec4(hits[hit_num - 1].albedo, 1.0);
+    vec4 color = vec4(outward_radiance, 1.0);
     imageStore(ray_tracing_output_image, ivec2(gl_LaunchIDEXT.xy), color);
 }
