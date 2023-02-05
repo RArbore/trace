@@ -35,7 +35,7 @@ void main() {
     centered_camera[3][2] = 0.0;
 
     uint num_lights = floatBitsToUint(lights[0].x);
-    uint light_id = uint(round(random)) % num_lights;
+    uint light_id = 0;//uint(round(random)) % num_lights;
     vec3 light_position = lights[light_id + 1].xyz;
     float light_intensity = lights[light_id + 1].w;
     vec3 outward_radiance = vec3(0.0);
@@ -64,6 +64,7 @@ void main() {
 	direct_light_samples[hit_num] = light_intensity * float(prd.normal == vec3(0.0)) / (light_dist * light_dist);
     }
 
-    vec4 color = vec4(hits[hit_num - 1].albedo * direct_light_samples[hit_num - 1], 1.0);
+    //vec4 color = vec4(hits[hit_num - 1].albedo * direct_light_samples[hit_num - 1], 1.0);
+    vec4 color = vec4(hits[hit_num - 1].albedo, 1.0);
     imageStore(ray_tracing_output_image, ivec2(gl_LaunchIDEXT.xy), color);
 }

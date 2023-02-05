@@ -43,8 +43,9 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	scene.add_object(glm::translate(glm::mat4(1), glm::vec3(x * 1.2f, y * 1.2f, -0.7f)), model_id_stone_lion);
     scene.add_light({0.0, 10.0, 0.0, 100.0});*/
 
-    scene.add_light({3.0, 3.0, 6.0, 50.0});
-    scene.add_light({3.0, -3.0, 6.0, 50.0});
+    /*scene.add_light({3.0, 3.0, 6.0, 50.0});
+      scene.add_light({3.0, -3.0, 6.0, 50.0});*/
+    scene.add_light({3.0, 0.0, 6.0, 50.0});
 
     const uint16_t model_id_dragon = context.load_model("dragon", scene);
     scene.add_object(glm::scale(glm::translate(glm::mat4(1), glm::vec3(-2.5f, 0.0f, 0.0f)), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_dragon);

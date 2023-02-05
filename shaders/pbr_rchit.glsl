@@ -62,7 +62,7 @@ void main() {
 		      det * (delta_texcoord2.y * triangle_edge1.y - delta_texcoord1.y * triangle_edge2.y),
 		      det * (delta_texcoord2.y * triangle_edge1.z - delta_texcoord1.y * triangle_edge2.z)
 		      );
-    vec3 T = vec3(gl_ObjectToWorldEXT * vec4(obj_T, 1.0));
+    vec3 T = normalize(vec3(obj_T * gl_WorldToObjectEXT));
     vec3 B = cross(N, T);
     mat3 TBN = mat3(T, B, N);
 
