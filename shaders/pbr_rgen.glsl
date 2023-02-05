@@ -22,10 +22,6 @@
 
 layout(location = 0) rayPayloadEXT hit_payload prd;
 
-float eval_brdf(vec3 omega_in, vec3 omega_out, float roughness, float metallicity) {
-    return 1.0;
-}
-
 vec3 uniform_hemisphere(vec2 random, vec3 direction) {
     float theta = 2.0 * PI * random.x;
     float cos_phi = 1.0 - 2.0 * random.y;
@@ -36,8 +32,21 @@ vec3 uniform_hemisphere(vec2 random, vec3 direction) {
 }
 
 vec2 slice_2_from_4(vec4 random, uint num) {
-    uint slice = num % 4;
+    uint slice = (num + seed) % 4;
     return random.xy * float(slice == 0) + random.yz * float(slice == 1) + random.zw * float(slice == 2) + random.wx * float(slice == 3);
+}
+
+vec3 eval_brdf(vec3 omega_in, vec3 omega_out, hit_payload hit) {
+    vec3 c_spec = mix(vec3(0.04), hit.albedo, hit.metallicity);
+    vec3 n = hit.normal;
+    vec3 h = normalize(omega_in + omega_out);
+    float m = hit.roughness;
+
+    float D = exp((dot(n, h) * dot(n, h) - 1) / (m * m * dot(n, h) * dot(n, h))) / (PI * m * m * dot(n, h) * dot(n, h) * dot(n, h) * dot(n, h));
+    vec3 F = c_spec + (1 - c_spec) * pow(1 - dot(omega_in, h), 5.0);
+    float G = min(1.0, min(2 * dot(n, h) * dot(n, omega_out) / dot(omega_out, h), 2 * dot(n, h) * dot(n, omega_in) / dot(omega_out, h)));
+    
+    return D * F * G / (4 * dot(n, omega_in) * dot(n, omega_out));
 }
 
 void main() {
@@ -47,6 +56,7 @@ void main() {
     const uvec2 blue_noise_size = imageSize(blue_noise_image);
     const uvec2 blue_noise_coords = (gl_LaunchIDEXT.xy + ivec2(hash(seed), hash(3 * seed))) % blue_noise_size;
     const vec4 random = imageLoad(blue_noise_image,  ivec2(blue_noise_coords));
+
     mat4 centered_camera = camera;
     centered_camera[3][0] = 0.0;
     centered_camera[3][1] = 0.0;
@@ -75,17 +85,14 @@ void main() {
 
 	vec3 light_dir = normalize(light_position - prd.hit_position);
 	float light_dist = length(light_position - prd.hit_position);
-	float lambert = clamp(dot(prd.normal, light_dir), 0.0, 1.0);
-	float brdf = eval_brdf(-ray_dir, light_dir, prd.roughness, prd.metallicity);
-	float bsdf = brdf * lambert;
 
 	ray_pos = prd.hit_position + prd.flat_normal * SURFACE_OFFSET;
 	ray_dir = uniform_hemisphere(slice_2_from_4(random, hit_num), prd.normal);//reflect(ray_dir, prd.normal);
 
 	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, light_dir, light_dist, 0);
-	direct_light_samples[hit_num] = light_intensity * bsdf * float(prd.normal == vec3(0.0)) / (light_dist * light_dist);
+	direct_light_samples[hit_num] = light_intensity * float(prd.normal == vec3(0.0)) / (light_dist * light_dist);
     }
-    outward_radiance = hits[hit_num - 1].albedo * direct_light_samples[hit_num - 1];
+    outward_radiance = hits[hit_num - 1].albedo;
 
     vec4 color = vec4(outward_radiance, 1.0);
     imageStore(ray_tracing_output_image, ivec2(gl_LaunchIDEXT.xy), color);

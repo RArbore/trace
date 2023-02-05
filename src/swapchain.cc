@@ -120,10 +120,10 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
     subresource_range.baseArrayLayer = 0;
     subresource_range.layerCount = 1;
 
-    ray_trace_image = create_image(0, VK_FORMAT_R8G8B8A8_UNORM, swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "RAY_TRACING_STORAGE_IMAGE");
-    ray_trace_image_view = create_image_view(ray_trace_image.image, VK_FORMAT_R8G8B8A8_UNORM, subresource_range);
-    last_frame_image = create_image(0, VK_FORMAT_R8G8B8A8_UNORM, swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "RAY_TRACING_STORAGE_IMAGE");
-    last_frame_image_view = create_image_view(last_frame_image.image, VK_FORMAT_R8G8B8A8_UNORM, subresource_range);
+    ray_trace_image = create_image(0, VK_FORMAT_R16G16B16A16_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "RAY_TRACING_STORAGE_IMAGE");
+    ray_trace_image_view = create_image_view(ray_trace_image.image, VK_FORMAT_R16G16B16A16_SFLOAT, subresource_range);
+    last_frame_image = create_image(0, VK_FORMAT_R16G16B16A16_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "RAY_TRACING_STORAGE_IMAGE");
+    last_frame_image_view = create_image_view(last_frame_image.image, VK_FORMAT_R16G16B16A16_SFLOAT, subresource_range);
 
     inefficient_run_commands([&](VkCommandBuffer cmd) {
 	VkImageMemoryBarrier image_memory_barrier {};

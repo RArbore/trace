@@ -74,9 +74,9 @@ layout(set = 1, binding = 1, scalar) buffer objects_buf { obj_desc i[]; } object
 
 layout(set = 1, binding = 2, rgba8) uniform readonly image2D blue_noise_image;
 
-layout(set = 1, binding = 3, rgba8) uniform image2D ray_tracing_output_image;
+layout(set = 1, binding = 3, rgba16f) uniform image2D ray_tracing_output_image;
 
-layout(set = 1, binding = 4, rgba8) uniform image2D last_frame_image;
+layout(set = 1, binding = 4, rgba16f) uniform image2D last_frame_image;
 
 #ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };
@@ -90,4 +90,33 @@ uint hash(uint x) {
     x ^= (x >> 11u);
     x += (x << 15u);
     return x;
+}
+
+float float_construct(uint m) {
+    const uint ieeeMantissa = 0x007FFFFFu;
+    const uint ieeeOne = 0x3F800000u;
+
+    m &= ieeeMantissa;
+    m |= ieeeOne;
+
+    float f = uintBitsToFloat(m);
+    return f - 1.0;
+}
+
+float random_float(uvec2 coords, uint seed) {
+    uint m = hash(coords.x ^ hash(coords.y ^ hash(seed)));
+    return float_construct(m);    
+}
+
+vec4 random_vec4(uvec2 coords, uint seed) {
+    uint m = hash(coords.x ^ hash(coords.y ^ hash(seed)));
+    vec4 ret;
+    ret.x = float_construct(m);
+    m ^= hash(m);
+    ret.y = float_construct(m);
+    m ^= hash(m);
+    ret.z = float_construct(m);
+    m ^= hash(m);
+    ret.w = float_construct(m);
+    return ret;
 }
