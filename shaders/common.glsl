@@ -21,7 +21,7 @@
 #extension GL_EXT_scalar_block_layout : require
 
 const float PI = 3.14159265358979;
-const uint NUM_BOUNCES = 2;
+const uint NUM_BOUNCES = 5;
 const uint MAX_LIGHTS = 512;
 const float SURFACE_OFFSET = 0.002;
 const float FLOAT_MAX = 3.402823466e+38;
@@ -35,6 +35,7 @@ struct hit_payload {
     float roughness;
     float metallicity;
     vec3 hit_position;
+    float direct_emittance;
 };
 
 struct obj_desc {

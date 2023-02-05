@@ -73,9 +73,9 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 								  0, 1, 2,
 								  1, 3, 2,
 							      },
-							      255,
 							      200,
-							      50,
+							      200,
+							      200,
 							      0,
 							      0,
 							      scene

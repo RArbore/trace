@@ -74,4 +74,5 @@ void main() {
     prd.roughness = roughness;
     prd.metallicity = metallicity;
     prd.hit_position = world_position;
+    prd.direct_emittance = 0.0;
 }
