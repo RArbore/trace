@@ -109,10 +109,15 @@ void main() {
     vec3 ray_dir = normalize((inverse(centered_camera) * inverse(perspective) * vec4(d, 0.0, 1.0)).xyz);
 
     hit_payload hits[NUM_BOUNCES];
+    vec3 first_hit_albedo = vec3(1.0);
     uint hit_num;
 
     for (hit_num = 0; hit_num < NUM_BOUNCES; ++hit_num) {
 	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, ray_dir, 10000.0, 0);
+	if (hit_num == 0) {
+	    first_hit_albedo = prd.albedo;
+	    prd.albedo = vec3(1.0);
+	}
 	hits[hit_num] = prd;
 	outward_radiance += hits[hit_num].direct_emittance * weight;
 
@@ -127,6 +132,6 @@ void main() {
 	}
     }
 
-    vec4 color = vec4(outward_radiance, 1.0);
+    vec4 color = vec4(outward_radiance * first_hit_albedo, 1.0);
     imageStore(ray_tracing_output_image, ivec2(gl_LaunchIDEXT.xy), color);
 }
