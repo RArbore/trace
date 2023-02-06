@@ -26,6 +26,7 @@ const uint MAX_LIGHTS = 512;
 const float SURFACE_OFFSET = 0.002;
 const float FLOAT_MAX = 3.402823466e+38;
 const float FLOAT_MIN = 1.175494351e-38;
+const float FAR_AWAY = 10000.0;
 
 #ifdef RAY_TRACING
 struct hit_payload {
@@ -53,7 +54,6 @@ struct vertex {
 #endif
 
 layout (push_constant) uniform PushConstants {
-    mat4 camera;
     uint seed;
     float alpha;
 };
@@ -62,8 +62,18 @@ layout(set = 0, binding = 0) uniform lights_uniform {
     vec4 lights[MAX_LIGHTS];
 };
 
-layout(set = 0, binding = 1) uniform perspective_uniform {
+layout(set = 0, binding = 1) uniform projection_uniform {
     mat4 perspective;
+    mat4 inverse_perspective;
+    mat4 camera;
+    mat4 last_frame_camera;
+    mat4 inverse_camera;
+    mat4 last_frame_inverse_camera;
+    mat4 centered_camera;
+    mat4 last_frame_centered_camera;
+    mat4 inverse_centered_camera;
+    mat4 last_frame_inverse_centered_camera;
+    vec3 camera_position;
 };
 
 layout(set = 0, binding = 2) uniform sampler2D textures[];
@@ -80,12 +90,12 @@ layout(set = 1, binding = 2, rgba8) uniform readonly image2D blue_noise_image;
 
 layout(set = 1, binding = 3, rgba16f) uniform image2D ray_tracing_albedo_image;
 layout(set = 1, binding = 4, rgba16f) uniform image2D ray_tracing_lighting_image;
-layout(set = 1, binding = 5, r16f) uniform image2D ray_tracing_depth_image;
+layout(set = 1, binding = 5, rgba16f) uniform image2D ray_tracing_position_image;
 layout(set = 1, binding = 6, rgba8) uniform image2D ray_tracing_normal_image;
 
 layout(set = 1, binding = 7, rgba16f) uniform image2D last_frame_albedo_image;
 layout(set = 1, binding = 8, rgba16f) uniform image2D last_frame_lighting_image;
-layout(set = 1, binding = 9, r16f) uniform image2D last_frame_depth_image;
+layout(set = 1, binding = 9, rgba16f) uniform image2D last_frame_position_image;
 layout(set = 1, binding = 10, rgba8) uniform image2D last_frame_normal_image;
 
 #ifdef RAY_TRACING

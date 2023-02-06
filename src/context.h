@@ -49,7 +49,6 @@ struct ImGuiData {
 
 struct RenderContext {
     struct PushConstants {
-	glm::mat4 camera_matrix;
 	uint32_t seed;
 	float alpha;
     };
@@ -58,6 +57,8 @@ struct RenderContext {
     bool active = true, resized = false;
     uint32_t current_frame = 0;
 
+    glm::mat4 camera_matrix;
+    glm::mat4 last_frame_camera_matrix;
     glm::vec3 camera_position;
     
     VkInstance instance;
@@ -92,7 +93,7 @@ struct RenderContext {
     VkStridedDeviceAddressRegionKHR hit_sbt_region;
     VkStridedDeviceAddressRegionKHR call_sbt_region;
 
-    Buffer perspective_matrix_buffer;
+    Buffer projection_buffer;
     Image blue_noise_image;
     VkImageView blue_noise_image_view;
     PushConstants push_constants;
@@ -213,6 +214,7 @@ struct RenderContext {
     auto ringbuffer_copy_scene_indirect_draw_into_buffer(Scene &scene) noexcept -> void;
     auto ringbuffer_copy_scene_lights_into_buffer(Scene &scene) noexcept -> void;
     auto ringbuffer_copy_scene_ray_trace_objects_into_buffer(Scene &scene) noexcept -> void;
+    auto ringbuffer_copy_projection_matrices_into_buffer() noexcept -> void;
 
     auto ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void *;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;

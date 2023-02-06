@@ -28,7 +28,7 @@ void main() {
     prd.flat_normal = vec3(0.0);
     prd.roughness = 0.0;
     prd.metallicity = 0.0;
-    prd.hit_position = vec3(0.0);
+    prd.hit_position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * FAR_AWAY;
     prd.direct_emittance = 7.5;
     prd.model_id = 0xFFFFFFFF;
 }

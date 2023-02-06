@@ -274,7 +274,7 @@ auto RenderContext::update_descriptors_lights(const Scene &scene) noexcept -> vo
 
 auto RenderContext::update_descriptors_perspective() noexcept -> void {
     VkDescriptorBufferInfo descriptor_buffer_info {};
-    descriptor_buffer_info.buffer = perspective_matrix_buffer.buffer;
+    descriptor_buffer_info.buffer = projection_buffer.buffer;
     descriptor_buffer_info.offset = 0;
     descriptor_buffer_info.range = VK_WHOLE_SIZE;
     

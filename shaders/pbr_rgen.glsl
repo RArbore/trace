@@ -88,33 +88,31 @@ vec3 BRDF(vec3 omega_in, vec3 omega_out, hit_payload hit) {
     return kD * hit.albedo / PI + specular;
 }
 
+vec2 pixel_coord_to_device_coord(ivec2 pixel_coord) {
+    vec2 pixel_center = vec2(pixel_coord) + vec2(0.5);
+    vec2 in_UV = pixel_center / vec2(imageSize(ray_tracing_albedo_image));
+    return in_UV * 2.0 - 1.0;
+}
+
 void main() {
-    const vec2 pixel_center = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
-    const vec2 in_UV = pixel_center / vec2(gl_LaunchSizeEXT.xy);
-    const vec2 d = in_UV * 2.0 - 1.0;
     const uvec2 blue_noise_size = imageSize(blue_noise_image);
     const uvec2 blue_noise_coords = (gl_LaunchIDEXT.xy + ivec2(hash(seed), hash(3 * seed))) % blue_noise_size;
     const vec4 random = imageLoad(blue_noise_image,  ivec2(blue_noise_coords));
-
-    mat4 centered_camera = camera;
-    centered_camera[3][0] = 0.0;
-    centered_camera[3][1] = 0.0;
-    centered_camera[3][2] = 0.0;
 
     uint num_lights = floatBitsToUint(lights[0].x);
     vec3 outward_radiance = vec3(0.0);
     vec3 weight = vec3(1.0);
     
-    vec3 cam_pos = (inverse(camera) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-    vec3 ray_pos = cam_pos;
-    vec3 ray_dir = normalize((inverse(centered_camera) * inverse(perspective) * vec4(d, 0.0, 1.0)).xyz);
+    vec2 device_coord = pixel_coord_to_device_coord(ivec2(gl_LaunchIDEXT.xy));
+    vec3 ray_pos = camera_position;
+    vec3 ray_dir = normalize((inverse_centered_camera * inverse_perspective * vec4(device_coord, 0.0, 1.0)).xyz);
 
     hit_payload hits[NUM_BOUNCES];
     vec3 first_hit_albedo = vec3(1.0);
     uint hit_num;
 
     for (hit_num = 0; hit_num < NUM_BOUNCES; ++hit_num) {
-	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, ray_dir, 10000.0, 0);
+	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, ray_dir, FAR_AWAY, 0);
 	if (hit_num == 0) {
 	    first_hit_albedo = prd.albedo;
 	    prd.albedo = vec3(1.0);
@@ -135,6 +133,6 @@ void main() {
 
     imageStore(ray_tracing_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit_albedo, 1.0));
     imageStore(ray_tracing_lighting_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
-    imageStore(ray_tracing_depth_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].normal == vec3(0.0) ? 10000.0 : length(hits[0].hit_position - cam_pos)));
+    imageStore(ray_tracing_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].hit_position, 1.0));
     imageStore(ray_tracing_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].normal * 0.5 + 0.5, 1.0));
 }
