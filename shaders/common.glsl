@@ -36,6 +36,7 @@ struct hit_payload {
     float metallicity;
     vec3 hit_position;
     float direct_emittance;
+    uint model_id;
 };
 
 struct obj_desc {
@@ -77,9 +78,15 @@ layout(set = 1, binding = 1, scalar) buffer objects_buf { obj_desc i[]; } object
 
 layout(set = 1, binding = 2, rgba8) uniform readonly image2D blue_noise_image;
 
-layout(set = 1, binding = 3, rgba16f) uniform image2D ray_tracing_output_image;
+layout(set = 1, binding = 3, rgba16f) uniform image2D ray_tracing_albedo_image;
+layout(set = 1, binding = 4, rgba16f) uniform image2D ray_tracing_lighting_image;
+layout(set = 1, binding = 5, r32f) uniform image2D ray_tracing_depth_image;
+layout(set = 1, binding = 6, r16ui) uniform uimage2D ray_tracing_model_id_image;
 
-layout(set = 1, binding = 4, rgba16f) uniform image2D last_frame_image;
+layout(set = 1, binding = 7, rgba16f) uniform image2D last_frame_albedo_image;
+layout(set = 1, binding = 8, rgba16f) uniform image2D last_frame_lighting_image;
+layout(set = 1, binding = 9, r32f) uniform image2D last_frame_depth_image;
+layout(set = 1, binding = 10, r16ui) uniform uimage2D last_frame_model_id_image;
 
 #ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };

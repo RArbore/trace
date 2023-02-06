@@ -30,4 +30,5 @@ void main() {
     prd.metallicity = 0.0;
     prd.hit_position = vec3(0.0);
     prd.direct_emittance = 7.5;
+    prd.model_id = 0xFFFFFFFF;
 }

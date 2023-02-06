@@ -105,7 +105,8 @@ void main() {
     vec3 outward_radiance = vec3(0.0);
     vec3 weight = vec3(1.0);
     
-    vec3 ray_pos = (inverse(camera) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+    vec3 cam_pos = (inverse(camera) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+    vec3 ray_pos = cam_pos;
     vec3 ray_dir = normalize((inverse(centered_camera) * inverse(perspective) * vec4(d, 0.0, 1.0)).xyz);
 
     hit_payload hits[NUM_BOUNCES];
@@ -132,6 +133,8 @@ void main() {
 	}
     }
 
-    vec4 color = vec4(outward_radiance * first_hit_albedo, 1.0);
-    imageStore(ray_tracing_output_image, ivec2(gl_LaunchIDEXT.xy), color);
+    imageStore(ray_tracing_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit_albedo, 1.0));
+    imageStore(ray_tracing_lighting_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
+    imageStore(ray_tracing_depth_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].normal == vec3(0.0) ? 10000.0 : length(hits[0].hit_position - cam_pos)));
+    imageStore(ray_tracing_model_id_image, ivec2(gl_LaunchIDEXT.xy), uvec4(hits[0].model_id));
 }

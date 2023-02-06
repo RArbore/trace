@@ -22,10 +22,10 @@ layout(location = 0) out vec4 out_color;
 
 void main() {
     ivec2 pixel_coord = ivec2(gl_FragCoord.xy);
-    vec4 new_color = imageLoad(ray_tracing_output_image, pixel_coord);
-    vec4 old_color = imageLoad(last_frame_image, pixel_coord);
+    vec4 new_color = imageLoad(ray_tracing_lighting_image, pixel_coord);
+    vec4 old_color = imageLoad(last_frame_lighting_image, pixel_coord);
 
     vec4 blended_color = mix(old_color, new_color, alpha);
-    imageStore(last_frame_image, pixel_coord, blended_color);
+    imageStore(last_frame_lighting_image, pixel_coord, blended_color);
     out_color = blended_color;
 }
