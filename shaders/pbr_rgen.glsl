@@ -136,5 +136,5 @@ void main() {
     imageStore(ray_tracing_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit_albedo, 1.0));
     imageStore(ray_tracing_lighting_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
     imageStore(ray_tracing_depth_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].normal == vec3(0.0) ? 10000.0 : length(hits[0].hit_position - cam_pos)));
-    imageStore(ray_tracing_model_id_image, ivec2(gl_LaunchIDEXT.xy), uvec4(hits[0].model_id));
+    imageStore(ray_tracing_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].normal * 0.5 + 0.5, 1.0));
 }

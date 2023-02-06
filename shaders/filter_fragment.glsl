@@ -24,7 +24,7 @@ struct pixel_sample {
     vec3 albedo;
     vec3 lighting;
     float depth;
-    uint model_id;
+    vec3 normal;
 };
 
 pixel_sample get_new_sample() {
@@ -33,7 +33,7 @@ pixel_sample get_new_sample() {
     s.albedo = imageLoad(ray_tracing_albedo_image, pixel_coord).xyz;
     s.lighting = imageLoad(ray_tracing_lighting_image, pixel_coord).xyz;
     s.depth = imageLoad(ray_tracing_depth_image, pixel_coord).x;
-    s.model_id = imageLoad(ray_tracing_model_id_image, pixel_coord).x;
+    s.normal = imageLoad(ray_tracing_normal_image, pixel_coord).xyz * 2.0 - 1.0;
     return s;
 }
 
@@ -43,7 +43,7 @@ pixel_sample get_old_sample() {
     s.albedo = imageLoad(last_frame_albedo_image, pixel_coord).xyz;
     s.lighting = imageLoad(last_frame_lighting_image, pixel_coord).xyz;
     s.depth = imageLoad(last_frame_depth_image, pixel_coord).x;
-    s.model_id = imageLoad(last_frame_model_id_image, pixel_coord).x;
+    s.normal = imageLoad(last_frame_normal_image, pixel_coord).xyz * 2.0 - 1.0;
     return s;
 }
 
@@ -52,7 +52,7 @@ void set_sample(pixel_sample s) {
     imageStore(last_frame_albedo_image, pixel_coord, vec4(s.albedo, 1.0));
     imageStore(last_frame_lighting_image, pixel_coord, vec4(s.lighting, 1.0));
     imageStore(last_frame_depth_image, pixel_coord, vec4(s.depth));
-    imageStore(last_frame_model_id_image, pixel_coord, uvec4(s.model_id));
+    imageStore(last_frame_normal_image, pixel_coord, vec4(s.normal * 0.5 + 0.5, 1.0));
 }
 
 vec4 sample_to_color(pixel_sample s) {
