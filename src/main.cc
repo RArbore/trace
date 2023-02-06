@@ -49,7 +49,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 
     /*scene.add_light({3.0, 3.0, 6.0, 50.0});
       scene.add_light({3.0, -3.0, 6.0, 50.0});*/
-    scene.add_light({3.0, 0.0, 6.0, 50.0});
+    scene.add_light({3.0, 0.0, 6.0, 100.0});
 
     const uint16_t model_id_dragon = context.load_model("dragon", scene);
     scene.add_object(glm::scale(glm::translate(glm::mat4(1), glm::vec3(-2.5f, 0.0f, 0.0f)), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_dragon);
@@ -76,8 +76,8 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 							      200,
 							      200,
 							      200,
-							      0,
-							      0,
+							      200,
+							      20,
 							      scene
 							      );
     scene.add_object(glm::scale(glm::mat4(1), glm::vec3(10.0f, 10.0f, 1.0f)), model_id_floor);

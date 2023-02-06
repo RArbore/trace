@@ -29,5 +29,5 @@ void main() {
     prd.roughness = 0.0;
     prd.metallicity = 0.0;
     prd.hit_position = vec3(0.0);
-    prd.direct_emittance = 2.5;
+    prd.direct_emittance = 7.5;
 }

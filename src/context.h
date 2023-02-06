@@ -43,8 +43,8 @@ struct SwapchainSupport {
 struct ImGuiData {
     std::array<float, 50> last_fpss;
     std::array<float, 500> last_heaps;
-    float alpha = 0.05f;
-    bool taa = false;
+    float alpha = 0.005f;
+    bool taa = true;
 };
 
 struct RenderContext {
