@@ -20,12 +20,54 @@
 
 layout(location = 0) out vec4 out_color;
 
+struct pixel_sample {
+    vec3 albedo;
+    vec3 lighting;
+    float depth;
+    uint model_id;
+};
+
+pixel_sample get_new_sample() {
+    ivec2 pixel_coord = ivec2(gl_FragCoord.xy);
+    pixel_sample s;
+    s.albedo = imageLoad(ray_tracing_albedo_image, pixel_coord).xyz;
+    s.lighting = imageLoad(ray_tracing_lighting_image, pixel_coord).xyz;
+    s.depth = imageLoad(ray_tracing_depth_image, pixel_coord).x;
+    s.model_id = imageLoad(ray_tracing_model_id_image, pixel_coord).x;
+    return s;
+}
+
+pixel_sample get_old_sample() {
+    ivec2 pixel_coord = ivec2(gl_FragCoord.xy);
+    pixel_sample s;
+    s.albedo = imageLoad(last_frame_albedo_image, pixel_coord).xyz;
+    s.lighting = imageLoad(last_frame_lighting_image, pixel_coord).xyz;
+    s.depth = imageLoad(last_frame_depth_image, pixel_coord).x;
+    s.model_id = imageLoad(last_frame_model_id_image, pixel_coord).x;
+    return s;
+}
+
+void set_sample(pixel_sample s) {
+    ivec2 pixel_coord = ivec2(gl_FragCoord.xy);
+    imageStore(last_frame_albedo_image, pixel_coord, vec4(s.albedo, 1.0));
+    imageStore(last_frame_lighting_image, pixel_coord, vec4(s.lighting, 1.0));
+    imageStore(last_frame_depth_image, pixel_coord, vec4(s.depth));
+    imageStore(last_frame_model_id_image, pixel_coord, uvec4(s.model_id));
+}
+
+vec4 sample_to_color(pixel_sample s) {
+    return vec4(s.albedo * s.lighting, 1.0);
+}
+
 void main() {
     ivec2 pixel_coord = ivec2(gl_FragCoord.xy);
-    vec4 new_color = imageLoad(ray_tracing_lighting_image, pixel_coord);
-    vec4 old_color = imageLoad(last_frame_lighting_image, pixel_coord);
+    pixel_sample new_sample = get_new_sample();
+    pixel_sample old_sample = get_old_sample();
 
-    vec4 blended_color = mix(old_color, new_color, alpha);
-    imageStore(last_frame_lighting_image, pixel_coord, blended_color);
-    out_color = blended_color;
+    vec3 blended_lighting = mix(old_sample.lighting, new_sample.lighting, alpha);
+    pixel_sample blended_sample = new_sample;
+    blended_sample.lighting = blended_lighting;
+    
+    set_sample(blended_sample);
+    out_color = sample_to_color(blended_sample);
 }
