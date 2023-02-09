@@ -89,7 +89,7 @@ vec3 BRDF(vec3 omega_in, vec3 omega_out, hit_payload hit) {
 }
 
 vec2 pixel_coord_to_device_coord(ivec2 pixel_coord) {
-    vec2 pixel_center = vec2(pixel_coord) + vec2(0.5);
+    vec2 pixel_center = vec2(pixel_coord) + taa_jitter;
     vec2 in_UV = pixel_center / vec2(imageSize(ray_tracing_albedo_image));
     return in_UV * 2.0 - 1.0;
 }
@@ -126,7 +126,7 @@ void main() {
 	    float lambert = dot(hits[hit_num].normal, -ray_dir);
 	    vec3 omega_in = -ray_dir;
 	    ray_pos = prd.hit_position + prd.flat_normal * SURFACE_OFFSET;
-	    ray_dir = uniform_hemisphere(slice_2_from_4(random, hit_num), prd.normal);//reflect(ray_dir, prd.normal);
+	    ray_dir = uniform_hemisphere(slice_2_from_4(random, hit_num), prd.normal);
 	    weight *= lambert * BRDF(omega_in, ray_dir, hits[hit_num]);
 	}
     }

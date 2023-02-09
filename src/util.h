@@ -51,4 +51,9 @@ inline auto assert_impl(uint32_t result, const char *msg, const char* file, uint
 #define ASSERT(res, msg)			\
     assert_impl(res, msg, __FILE__, __LINE__);
 
+static inline auto random_float(float a, float b) -> float {
+    return (b - a) * ((float) rand() / (float) RAND_MAX) + a;
+}
+
+
 #endif

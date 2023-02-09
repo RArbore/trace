@@ -26,7 +26,7 @@ const uint MAX_LIGHTS = 512;
 const float SURFACE_OFFSET = 0.002;
 const float FLOAT_MAX = 3.402823466e+38;
 const float FLOAT_MIN = 1.175494351e-38;
-const float FAR_AWAY = 10000.0;
+const float FAR_AWAY = 1000.0;
 
 #ifdef RAY_TRACING
 struct hit_payload {
@@ -73,6 +73,7 @@ layout(set = 0, binding = 1) uniform projection_uniform {
     mat4 last_frame_centered_camera;
     mat4 inverse_centered_camera;
     mat4 last_frame_inverse_centered_camera;
+    vec2 taa_jitter;
     vec3 camera_position;
 };
 

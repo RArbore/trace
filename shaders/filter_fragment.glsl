@@ -73,9 +73,10 @@ void main() {
     pixel_sample new_sample = get_new_sample(pixel_coord);
     pixel_sample old_sample = get_old_sample(pixel_coord);
 
+    bool blend = true;
     vec3 blended_lighting = mix(old_sample.lighting, new_sample.lighting, alpha);
     pixel_sample blended_sample = new_sample;
-    blended_sample.lighting = blended_lighting;
+    blended_sample.lighting = blend ? blended_lighting : new_sample.lighting;
     
     set_sample(blended_sample, pixel_coord);
     out_color = sample_to_color(blended_sample);

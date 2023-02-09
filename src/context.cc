@@ -63,7 +63,7 @@ auto RenderContext::init() noexcept -> void {
 auto RenderContext::create_one_off_objects() noexcept -> void {
     main_ring_buffer = create_ringbuffer();
 
-    projection_buffer = create_buffer(sizeof(glm::mat4) * 10 + sizeof(glm::vec3), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "PROJECTION_BUFFER");
+    projection_buffer = create_buffer(sizeof(glm::mat4) * NUM_PROJECTION_ENTRIES, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "PROJECTION_BUFFER");
 
     auto blue_noise_texture = load_image("assets/LDR_RGBA_0.png");
     blue_noise_image = blue_noise_texture.first;

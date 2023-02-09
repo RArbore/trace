@@ -93,6 +93,7 @@ struct RenderContext {
     VkStridedDeviceAddressRegionKHR hit_sbt_region;
     VkStridedDeviceAddressRegionKHR call_sbt_region;
 
+    static constexpr uint32_t NUM_PROJECTION_ENTRIES = 11;
     Buffer projection_buffer;
     Image blue_noise_image;
     VkImageView blue_noise_image_view;

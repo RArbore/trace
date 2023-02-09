@@ -175,7 +175,7 @@ auto RenderContext::ringbuffer_copy_scene_ray_trace_objects_into_buffer(Scene &s
 }
 
 auto RenderContext::ringbuffer_copy_projection_matrices_into_buffer() noexcept -> void {
-    glm::mat4 *data_mat = (glm::mat4 *) ringbuffer_claim_buffer(main_ring_buffer, sizeof(glm::mat4) * 10 + sizeof(glm::vec3));
+    glm::mat4 *data_mat = (glm::mat4 *) ringbuffer_claim_buffer(main_ring_buffer, sizeof(glm::mat4) * NUM_PROJECTION_ENTRIES);
     data_mat[0] = glm::perspective(glm::radians(80.0f), 1.0f, 0.01f, 1000.0f);
     data_mat[0][1][1] *= -1.0f;
     data_mat[1] = glm::inverse(data_mat[0]);
@@ -189,8 +189,12 @@ auto RenderContext::ringbuffer_copy_projection_matrices_into_buffer() noexcept -
 	data_mat[i + 6][3][1] = 0.0f;
 	data_mat[i + 6][3][2] = 0.0f;
     }
-    glm::vec3 *data_vec = (glm::vec3 *) &data_mat[10];
-    data_vec[0] = camera_position;
+    glm::vec4 *data_vec = (glm::vec4 *) &data_mat[10];
+    constexpr float taa_radius = 0.3f;
+    const float taa_sample_angle = random_float(0.0f, 2.0f * (float) M_PI);
+    const float taa_sample_radius = random_float(0.0f, taa_radius);
+    *((glm::vec2 *) &data_vec[0]) = imgui_data.taa ? glm::vec2(taa_sample_radius * cos(taa_sample_angle), taa_sample_radius * sin(taa_sample_angle)) + glm::vec2(0.5f, 0.5f) : glm::vec2(0.5f, 0.5f);
+    *((glm::vec3 *) &data_vec[1]) = camera_position;
     ringbuffer_submit_buffer(main_ring_buffer, projection_buffer);
 }
 

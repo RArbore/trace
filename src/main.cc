@@ -25,10 +25,6 @@ auto operator new(size_t size) -> void * {
     return malloc(size);
 }
 
-static auto random_float(float a, float b) -> float {
-    return (b - a) * ((float) rand() / (float) RAND_MAX) + a;
-}
-
 auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> int {
     srand((uint32_t) time(NULL));
     
@@ -111,14 +107,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	elapsed_time_subsecond += dt;
 	++num_frames_subsecond;
 	
-	glm::vec3 view_dir;
-	if (context.imgui_data.taa) {
-	    const double camera_theta_mod = camera_theta + random_float(-0.0002f, 0.0002f);
-	    const double camera_phi_mod = camera_phi + random_float(-0.0002f, 0.0002f);
-	    view_dir = glm::vec3(sin(camera_theta_mod) * cos(camera_phi_mod), sin(camera_theta_mod) * sin(camera_phi_mod), cos(camera_theta_mod));
-	} else {
-	    view_dir = glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta));
-	}
+	const glm::vec3 view_dir = glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta));
 	context.last_frame_camera_matrix = context.camera_matrix;
 	context.camera_matrix = glm::lookAt(context.camera_position, context.camera_position + view_dir, glm::vec3(0.0f, 0.0f, 1.0f));
 	context.push_constants.seed = context.current_frame;
