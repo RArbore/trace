@@ -53,6 +53,11 @@ struct vertex {
 };
 #endif
 
+struct hemisphere_sample {
+    vec3 drawn_sample;
+    float drawn_weight;
+};
+
 layout (push_constant) uniform PushConstants {
     uint seed;
     float alpha;

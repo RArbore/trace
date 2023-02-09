@@ -22,13 +22,25 @@
 
 layout(location = 0) rayPayloadEXT hit_payload prd;
 
-vec3 uniform_hemisphere(vec2 random, vec3 direction) {
-    float theta = 2.0 * PI * random.x;
-    float cos_phi = 1.0 - 2.0 * random.y;
-    float sin_theta = sin(theta);
-    float sin_phi = sqrt(1 - cos_phi * cos_phi);
-    vec3 sphere = vec3(sin_theta * sin_phi, sin_theta * cos_phi, sin_phi);
-    return dot(sphere, direction) >= 0.0 ? sphere : -sphere;
+
+hemisphere_sample uniform_hemisphere(vec2 random, vec3 direction) {
+    hemisphere_sample ret;
+    float theta = acos(random.x);
+    float phi = 2.0 * PI * random.y;
+    vec3 sphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+    ret.drawn_sample = dot(sphere, direction) >= 0.0 ? sphere : -sphere;
+    ret.drawn_weight = 1.0 / (2.0 * PI);
+    return ret;
+}
+
+hemisphere_sample cosine_weighted_hemisphere(vec2 random, vec3 direction) {
+    hemisphere_sample ret;
+    float theta = acos(sqrt(random.x));
+    float phi = 2.0 * PI * random.y;
+    vec3 sphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+    ret.drawn_sample = dot(sphere, direction) >= 0.0 ? sphere : -sphere;
+    ret.drawn_weight = cos(theta) / PI;
+    return ret;
 }
 
 vec2 slice_2_from_4(vec4 random, uint num) {
@@ -126,8 +138,9 @@ void main() {
 	    float lambert = dot(hits[hit_num].normal, -ray_dir);
 	    vec3 omega_in = -ray_dir;
 	    ray_pos = prd.hit_position + prd.flat_normal * SURFACE_OFFSET;
-	    ray_dir = uniform_hemisphere(slice_2_from_4(random, hit_num), prd.normal);
-	    weight *= lambert * BRDF(omega_in, ray_dir, hits[hit_num]);
+	    hemisphere_sample samp = cosine_weighted_hemisphere(slice_2_from_4(random, hit_num), prd.normal);
+	    ray_dir = samp.drawn_sample;
+	    weight *= 2.0 * PI * lambert * BRDF(omega_in, ray_dir, hits[hit_num]) * samp.drawn_weight;
 	}
     }
 
