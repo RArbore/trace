@@ -22,39 +22,17 @@
 
 layout(location = 0) rayPayloadEXT hit_payload prd;
 
-
-hemisphere_sample uniform_hemisphere(vec2 random, vec3 direction) {
-    hemisphere_sample ret;
-    float theta = acos(random.x);
-    float phi = 2.0 * PI * random.y;
-    vec3 sphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
-    ret.drawn_sample = dot(sphere, direction) >= 0.0 ? sphere : -sphere;
-    ret.drawn_weight = 1.0 / (2.0 * PI);
-    return ret;
-}
-
-hemisphere_sample cosine_weighted_hemisphere(vec2 random, vec3 direction) {
-    hemisphere_sample ret;
-    float theta = acos(sqrt(random.x));
-    float phi = 2.0 * PI * random.y;
-    vec3 sphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
-    ret.drawn_sample = dot(sphere, direction) >= 0.0 ? sphere : -sphere;
-    ret.drawn_weight = cos(theta) / PI;
-    return ret;
-}
-
 vec2 slice_2_from_4(vec4 random, uint num) {
     uint slice = (num + seed) % 4;
     return random.xy * float(slice == 0) + random.yz * float(slice == 1) + random.zw * float(slice == 2) + random.wx * float(slice == 3);
 }
 
-float normal_distribution(vec3 normal, vec3 halfway, float alpha) {
+float normal_distribution(float cos_theta, float alpha) {
     float alpha_2 = alpha * alpha;
-    float normal_dot_halfway = max(dot(normal, halfway), 0.0);
-    float normal_dot_halfway_2 = normal_dot_halfway * normal_dot_halfway;
+    float cos_theta_2 = cos_theta * cos_theta;
     
     float nominator = alpha_2;
-    float denominator = (normal_dot_halfway_2 * (alpha_2 - 1.0) + 1.0);
+    float denominator = (cos_theta_2 * (alpha_2 - 1.0) + 1.0);
     denominator = PI * denominator * denominator;
     
     return nominator / denominator;
@@ -80,6 +58,37 @@ vec3 fresnel_schlick(float cos_theta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
 }
 
+hemisphere_sample uniform_hemisphere(vec2 random, vec3 direction) {
+    hemisphere_sample ret;
+    float theta = acos(random.x);
+    float phi = 2.0 * PI * random.y;
+    vec3 sphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+    ret.drawn_sample = dot(sphere, direction) >= 0.0 ? sphere : -sphere;
+    ret.drawn_weight = 1.0 / (2.0 * PI);
+    return ret;
+}
+
+hemisphere_sample cosine_weighted_hemisphere(vec2 random, vec3 direction) {
+    hemisphere_sample ret;
+    float theta = acos(sqrt(random.x));
+    float phi = 2.0 * PI * random.y;
+    vec3 sphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+    ret.drawn_sample = dot(sphere, direction) >= 0.0 ? sphere : -sphere;
+    ret.drawn_weight = cos(theta) / PI;
+    return ret;
+}
+
+hemisphere_sample ggx_weighted_hemisphere(vec2 random, vec3 direction, float roughness) {
+    hemisphere_sample ret;
+    float alpha = roughness * roughness;
+    float theta = atan(alpha * sqrt(random.x / (1.0 - random.x)));
+    float phi = 2.0 * PI * random.y;
+    vec3 sphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+    ret.drawn_sample = dot(sphere, direction) >= 0.0 ? sphere : -sphere;
+    ret.drawn_weight = normal_distribution(cos(theta), alpha) * cos(theta) * sin(theta);
+    return ret;
+}
+
 vec3 BRDF(vec3 omega_in, vec3 omega_out, hit_payload hit) {
     vec3 F0_dieletric = vec3(0.04); 
     vec3 F0 = mix(F0_dieletric, hit.albedo, hit.metallicity);
@@ -87,7 +96,7 @@ vec3 BRDF(vec3 omega_in, vec3 omega_out, hit_payload hit) {
     float k = (hit.roughness + 1.0) * (hit.roughness + 1.0) / 8.0;
     vec3 halfway_dir = normalize(omega_in + omega_out);
 
-    float D = normal_distribution(hit.normal, halfway_dir, alpha);
+    float D = normal_distribution(max(dot(hit.normal, halfway_dir), 0.0), alpha);
     float G = geometry_smith(hit.normal, omega_in, omega_out, k);
     vec3 F = fresnel_schlick(clamp(dot(halfway_dir, omega_in), 0.0, 1.0), F0);
 
