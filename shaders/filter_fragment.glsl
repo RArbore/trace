@@ -68,25 +68,59 @@ ivec2 device_coord_to_pixel_coord(vec2 device_coord) {
     return ivec2(pixel_center - vec2(0.5));
 }
 
+float blur_kernel[25] = float[25](
+				  1.0 / 273.0, 4.0 / 273.0, 7.0 / 273.0, 4.0 / 273.0, 1.0 / 273.0,
+				  4.0 / 273.0, 16.0 / 273.0, 26.0 / 273.0, 16.0 / 273.0, 4.0 / 273.0,
+				  7.0 / 273.0, 26.0 / 273.0, 41.0 / 273.0, 26.0 / 273.0, 7.0 / 273.0,
+				  4.0 / 273.0, 16.0 / 273.0, 26.0 / 273.0, 16.0 / 273.0, 4.0 / 273.0,
+				  1.0 / 273.0, 4.0 / 273.0, 7.0 / 273.0, 4.0 / 273.0, 1.0 / 273.0
+				  );
+
 void main() {
     ivec2 pixel_coord = ivec2(gl_FragCoord.xy);
-    pixel_sample new_sample = get_new_sample(pixel_coord);
-    pixel_sample old_sample = get_old_sample(pixel_coord);
 
-    vec4 new_NDC = perspective * camera * vec4(new_sample.position, 1.0);
+    /*vec4 new_NDC = perspective * camera * vec4(new_sample.position, 1.0);
     vec4 old_NDC = perspective * last_frame_camera * vec4(new_sample.position, 1.0);
     vec3 new_device = new_NDC.xyz / new_NDC.w;
     vec3 old_device = old_NDC.xyz / old_NDC.w;
     vec2 device_velocity = new_device.xy - old_device.xy;
 
     ivec2 reprojected_pixel_coord = device_coord_to_pixel_coord(pixel_coord_to_device_coord(pixel_coord) - device_velocity);
-    pixel_sample reprojected_sample = get_old_sample(reprojected_pixel_coord);
+    pixel_sample reprojected_sample = get_old_sample(reprojected_pixel_coord);*/
 
+    pixel_sample new_sample = get_new_sample(pixel_coord);
+    vec3 atrous_lighting = vec3(0.0);
+    float total_weight = 0.0;
+    for (int i = -2; i <= 2; ++i) {
+	for (int j = -2; j <= 2; ++j) {
+	    ivec2 offset = ivec2(i, j);
+	    pixel_sample blur_sample = get_new_sample(pixel_coord + offset);
+
+	    vec4 color_dist = sample_to_color(new_sample) - sample_to_color(blur_sample);
+	    float color_dist2 = dot(color_dist, color_dist);
+	    float color_weight = min(exp(-color_dist2 / sigma_color), 1.0);
+
+	    vec3 normal_dist = new_sample.normal - blur_sample.normal;
+	    float normal_dist2 = dot(normal_dist, normal_dist);
+	    float normal_weight = min(exp(-normal_dist2 / sigma_normal), 1.0);
+
+	    vec3 position_dist = new_sample.position - blur_sample.position;
+	    float position_dist2 = dot(position_dist, position_dist);
+	    float position_weight = min(exp(-position_dist2 / sigma_position), 1.0);
+
+	    float weight = /*color_weight * */normal_weight * position_weight * blur_kernel[(i + 2) * 5 + j + 2];
+	    atrous_lighting += blur_sample.lighting * weight;
+	    total_weight += weight;
+	}
+    }
+    vec3 new_lighting = atrous_lighting / total_weight;
+
+    pixel_sample old_sample = get_old_sample(pixel_coord);
     float depth = length(new_sample.position - camera_position);
     bool blend = depth < 0.8 * FAR_AWAY && camera == last_frame_camera;
-    vec3 blended_lighting = mix(old_sample.lighting, new_sample.lighting, alpha);
+    vec3 blended_lighting = mix(old_sample.lighting, new_lighting, alpha);
     pixel_sample blended_sample = new_sample;
-    blended_sample.lighting = blend ? blended_lighting : new_sample.lighting;
+    blended_sample.lighting = blend ? blended_lighting : new_lighting;
     
     set_sample(blended_sample, pixel_coord);
     out_color = sample_to_color(blended_sample);

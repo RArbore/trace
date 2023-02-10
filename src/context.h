@@ -45,12 +45,18 @@ struct ImGuiData {
     std::array<float, 500> last_heaps;
     float alpha = 0.005f;
     bool taa = true;
+    float sigma_color = 1.0f;
+    float sigma_normal = 1.0f;
+    float sigma_position = 1.0f;
 };
 
 struct RenderContext {
     struct PushConstants {
 	uint32_t seed;
 	float alpha;
+	float sigma_color;
+	float sigma_normal;
+	float sigma_position;
     };
     
     GLFWwindow *window;

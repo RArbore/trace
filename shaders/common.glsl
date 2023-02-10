@@ -61,6 +61,10 @@ struct hemisphere_sample {
 layout (push_constant) uniform PushConstants {
     uint seed;
     float alpha;
+    float sigma_color;
+    float sigma_normal;
+    float sigma_position;
+    //uint filter_iter;
 };
 
 layout(set = 0, binding = 0) uniform lights_uniform {

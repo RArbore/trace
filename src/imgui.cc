@@ -110,6 +110,9 @@ auto RenderContext::render_imgui() noexcept -> void {
     pos_label << "POSITION: " << camera_position.x << " " << camera_position.y << " " << camera_position.z;
     ImGui::Text(pos_label.str().c_str());
     ImGui::SliderFloat("Alpha", &imgui_data.alpha, 0.0f, 1.0f);
+    ImGui::SliderFloat("Sigma - Color", &imgui_data.sigma_color, 0.05f, 2.0f);
+    ImGui::SliderFloat("Sigma - Normal", &imgui_data.sigma_normal, 0.05f, 2.0f);
+    ImGui::SliderFloat("Sigma - Position", &imgui_data.sigma_position, 0.05f, 2.0f);
     ImGui::Checkbox("TAA", &imgui_data.taa);
     
     ImGui::Render();
