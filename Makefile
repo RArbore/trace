@@ -6,12 +6,15 @@ GLSL := glslc
 RELEASE ?= 0
 ifeq ($(RELEASE), 1)
 	CPPFLAGS := -Ofast -march=native -flto -DRELEASE
+	GLSLFLAGS := -O
 	LDFLAGS := -flto
 else
 	CPPFLAGS := -g
+	GLSLFLAGS := -g
 endif
 
 CPPFLAGS := $(CPPFLAGS) -c -fno-rtti -pipe -Iimgui -Iimgui/backends -std=c++20
+GLSLFLAGS := $(GLSLFLAGS) --target-spv=spv1.5 --target-env=vulkan1.2
 LDFLAGS := $(LDFLAGS) -fuse-ld=mold
 WFLAGS := -Wall -Wextra -Wshadow -Wconversion -Wpedantic
 LDLIBS := -lvulkan -lglfw
@@ -33,7 +36,7 @@ $(OBJS): build/%.o: src/%.cc $(HEADERS)
 	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
 
 $(SPIRVS): build/%.spv: shaders/%.glsl $(SHADER_HEADERS)
-	$(GLSL) --target-spv=spv1.5 $< -o $@
+	$(GLSL) $(GLSLFLAGS) $< -o $@
 
 build/imgui/imgui.o: imgui/imgui.cpp
 	$(CXX) $(IMGUI_FLAGS) $< -o $@

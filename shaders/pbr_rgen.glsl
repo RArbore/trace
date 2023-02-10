@@ -22,6 +22,11 @@
 
 layout(location = 0) rayPayloadEXT hit_payload prd;
 
+float atan2(in float y, in float x) {
+    bool s = (abs(x) > abs(y));
+    return mix(PI / 2.0 - atan(x,y), atan(y,x), s);
+}
+
 vec2 slice_2_from_4(vec4 random, uint num) {
     uint slice = (num + seed) % 4;
     return random.xy * float(slice == 0) + random.yz * float(slice == 1) + random.zw * float(slice == 2) + random.wx * float(slice == 3);
@@ -72,9 +77,12 @@ hemisphere_sample cosine_weighted_hemisphere(vec2 random, vec3 direction) {
     hemisphere_sample ret;
     float theta = acos(sqrt(random.x));
     float phi = 2.0 * PI * random.y;
-    vec3 sphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
-    ret.drawn_sample = dot(sphere, direction) >= 0.0 ? sphere : -sphere;
     ret.drawn_weight = cos(theta) / PI;
+    float direction_theta = atan2(direction.y, direction.x);
+    float direction_phi = acos(direction.z);
+    theta += direction_theta;
+    phi += direction_phi;
+    ret.drawn_sample = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
     return ret;
 }
 
@@ -83,9 +91,12 @@ hemisphere_sample ggx_weighted_hemisphere(vec2 random, vec3 direction, float rou
     float alpha = roughness * roughness;
     float theta = atan(alpha * sqrt(random.x / (1.0 - random.x)));
     float phi = 2.0 * PI * random.y;
-    vec3 sphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
-    ret.drawn_sample = dot(sphere, direction) >= 0.0 ? sphere : -sphere;
     ret.drawn_weight = normal_distribution(cos(theta), alpha) * cos(theta) * sin(theta);
+    float direction_theta = atan2(direction.y, direction.x);
+    float direction_phi = acos(direction.z);
+    theta += direction_theta;
+    phi += direction_phi;
+    ret.drawn_sample = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
     return ret;
 }
 
