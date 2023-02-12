@@ -80,27 +80,6 @@ hemisphere_sample uniform_weighted_hemisphere(vec2 random, vec3 direction) {
     return ret;
 }
 
-hemisphere_sample cosine_weighted_hemisphere(vec2 random, vec3 direction) {
-    hemisphere_sample ret;
-    float theta = acos(sqrt(random.x));
-    float phi = 2.0 * PI * random.y;
-    vec3 up_hemisphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
-    ret.drawn_sample = get_arbitrary_hemisphere_orientation_matrix(direction) * up_hemisphere;
-    ret.drawn_pdf = cos(theta) / PI + 0.001;
-    return ret;
-}
-
-hemisphere_sample ggx_weighted_hemisphere(vec2 random, vec3 direction, float roughness) {
-    hemisphere_sample ret;
-    float alpha = roughness * roughness;
-    float theta = atan(alpha * sqrt(random.x / (1.0 - random.x)));
-    float phi = 2.0 * PI * random.y;
-    vec3 up_hemisphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
-    ret.drawn_sample = get_arbitrary_hemisphere_orientation_matrix(direction) * up_hemisphere;
-    ret.drawn_pdf = normal_distribution(cos(theta), alpha) * cos(theta) * sin(theta) + 0.001;
-    return ret;
-}
-
 vec3 BRDF(vec3 omega_in, vec3 omega_out, hit_payload hit) {
     vec3 F0_dieletric = vec3(0.04); 
     vec3 F0 = mix(F0_dieletric, hit.albedo, hit.metallicity);
@@ -119,12 +98,6 @@ vec3 BRDF(vec3 omega_in, vec3 omega_out, hit_payload hit) {
     vec3 kS = F;
     vec3 kD = (vec3(1.0) - kS) * (1.0 - hit.metallicity);
     return kD * hit.albedo / PI + specular;
-}
-
-vec2 pixel_coord_to_device_coord(ivec2 pixel_coord) {
-    vec2 pixel_center = vec2(pixel_coord) + taa_jitter;
-    vec2 in_UV = pixel_center / vec2(imageSize(ray_tracing_albedo_image));
-    return in_UV * 2.0 - 1.0;
 }
 
 void main() {
@@ -166,7 +139,7 @@ void main() {
     }
 
     imageStore(ray_tracing_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit_albedo, 1.0));
-    imageStore(ray_tracing_lighting_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
+    imageStore(ray_tracing_lighting1_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
     imageStore(ray_tracing_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].hit_position, 1.0));
     imageStore(ray_tracing_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].normal * 0.5 + 0.5, 1.0));
 }

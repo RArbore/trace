@@ -58,13 +58,19 @@ struct hemisphere_sample {
     float drawn_pdf;
 };
 
+struct pixel_sample {
+    vec3 albedo;
+    vec3 lighting;
+    vec3 position;
+    vec3 normal;
+};
+
 layout (push_constant) uniform PushConstants {
     uint seed;
     float alpha;
-    float sigma_color;
     float sigma_normal;
     float sigma_position;
-    //uint filter_iter;
+    uint filter_iter;
 };
 
 layout(set = 0, binding = 0) uniform lights_uniform {
@@ -99,14 +105,15 @@ layout(set = 1, binding = 1, scalar) buffer objects_buf { obj_desc i[]; } object
 layout(set = 1, binding = 2, rgba8) uniform readonly image2D blue_noise_image;
 
 layout(set = 1, binding = 3, rgba16f) uniform image2D ray_tracing_albedo_image;
-layout(set = 1, binding = 4, rgba16f) uniform image2D ray_tracing_lighting_image;
-layout(set = 1, binding = 5, rgba16f) uniform image2D ray_tracing_position_image;
-layout(set = 1, binding = 6, rgba8) uniform image2D ray_tracing_normal_image;
+layout(set = 1, binding = 4, rgba16f) uniform image2D ray_tracing_lighting1_image;
+layout(set = 1, binding = 5, rgba16f) uniform image2D ray_tracing_lighting2_image;
+layout(set = 1, binding = 6, rgba16f) uniform image2D ray_tracing_position_image;
+layout(set = 1, binding = 7, rgba8) uniform image2D ray_tracing_normal_image;
 
-layout(set = 1, binding = 7, rgba16f) uniform image2D last_frame_albedo_image;
-layout(set = 1, binding = 8, rgba16f) uniform image2D last_frame_lighting_image;
-layout(set = 1, binding = 9, rgba16f) uniform image2D last_frame_position_image;
-layout(set = 1, binding = 10, rgba8) uniform image2D last_frame_normal_image;
+layout(set = 1, binding = 8, rgba16f) uniform image2D last_frame_albedo_image;
+layout(set = 1, binding = 9, rgba16f) uniform image2D last_frame_lighting_image;
+layout(set = 1, binding = 10, rgba16f) uniform image2D last_frame_position_image;
+layout(set = 1, binding = 11, rgba8) uniform image2D last_frame_normal_image;
 
 #ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };
@@ -149,4 +156,57 @@ vec4 random_vec4(uvec2 coords, uint seed) {
     m ^= hash(m);
     ret.w = float_construct(m);
     return ret;
+}
+
+pixel_sample get_new_sample(ivec2 pixel_coord) {
+    pixel_sample s;
+    s.albedo = imageLoad(ray_tracing_albedo_image, pixel_coord).xyz;
+    if (filter_iter % 2 == 0) {
+	s.lighting = imageLoad(ray_tracing_lighting1_image, pixel_coord).xyz;
+    } else {
+	s.lighting = imageLoad(ray_tracing_lighting2_image, pixel_coord).xyz;
+    }
+    s.position = imageLoad(ray_tracing_position_image, pixel_coord).xyz;
+    s.normal = imageLoad(ray_tracing_normal_image, pixel_coord).xyz * 2.0 - 1.0;
+    return s;
+}
+
+pixel_sample get_old_sample(ivec2 pixel_coord) {
+    pixel_sample s;
+    s.albedo = imageLoad(last_frame_albedo_image, pixel_coord).xyz;
+    s.lighting = imageLoad(last_frame_lighting_image, pixel_coord).xyz;
+    s.position = imageLoad(last_frame_position_image, pixel_coord).xyz;
+    s.normal = imageLoad(last_frame_normal_image, pixel_coord).xyz * 2.0 - 1.0;
+    return s;
+}
+
+void set_new_lighting(vec3 lighting, ivec2 pixel_coord) {
+    if (filter_iter % 2 == 0) {
+	imageStore(ray_tracing_lighting2_image, pixel_coord, vec4(lighting, 1.0));
+    } else {
+	imageStore(ray_tracing_lighting1_image, pixel_coord, vec4(lighting, 1.0));
+    }
+}
+
+void set_old_sample(pixel_sample s, ivec2 pixel_coord) {
+    imageStore(last_frame_albedo_image, pixel_coord, vec4(s.albedo, 1.0));
+    imageStore(last_frame_lighting_image, pixel_coord, vec4(s.lighting, 1.0));
+    imageStore(last_frame_position_image, pixel_coord, vec4(s.position, 1.0));
+    imageStore(last_frame_normal_image, pixel_coord, vec4(s.normal * 0.5 + 0.5, 1.0));
+}
+
+vec4 sample_to_color(pixel_sample s) {
+    return vec4(s.albedo * s.lighting, 1.0);
+}
+
+vec2 pixel_coord_to_device_coord(ivec2 pixel_coord) {
+    vec2 pixel_center = vec2(pixel_coord) + vec2(0.5);
+    vec2 in_UV = pixel_center / vec2(imageSize(ray_tracing_albedo_image));
+    return in_UV * 2.0 - 1.0;
+}
+
+ivec2 device_coord_to_pixel_coord(vec2 device_coord) {
+    vec2 in_UV = device_coord * 0.5 + 0.5;
+    vec2 pixel_center = in_UV * vec2(imageSize(ray_tracing_albedo_image));
+    return ivec2(pixel_center - vec2(0.5));
 }

@@ -272,6 +272,42 @@ auto RenderContext::cleanup_ray_trace_pipeline() noexcept -> void {
     vkDestroyPipelineLayout(device, ray_trace_pipeline_layout, NULL);
 }
 
+auto RenderContext::create_compute_pipeline() noexcept -> void {
+    VkShaderModule compute_shader = shader_modules["filter_atrous"];
+
+    VkPipelineShaderStageCreateInfo compute_shader_stage_create_info {};
+    compute_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    compute_shader_stage_create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    compute_shader_stage_create_info.module = compute_shader;
+    compute_shader_stage_create_info.pName = "main";
+
+    VkPushConstantRange push_constant_range {};
+    push_constant_range.offset = 0;
+    push_constant_range.size = sizeof(PushConstants);
+    push_constant_range.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    VkDescriptorSetLayout descriptor_set_layouts[] = {raster_descriptor_set_layout, ray_trace_descriptor_set_layout};
+
+    VkPipelineLayoutCreateInfo pipeline_layout_create_info {};
+    pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipeline_layout_create_info.pushConstantRangeCount = 1;
+    pipeline_layout_create_info.pPushConstantRanges = &push_constant_range;
+    pipeline_layout_create_info.setLayoutCount = 2;
+    pipeline_layout_create_info.pSetLayouts = descriptor_set_layouts;
+    ASSERT(vkCreatePipelineLayout(device, &pipeline_layout_create_info, NULL, &compute_pipeline_layout), "Unable to create compute pipeline layout.");
+
+    VkComputePipelineCreateInfo compute_pipeline_create_info {};
+    compute_pipeline_create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    compute_pipeline_create_info.stage = compute_shader_stage_create_info;
+    compute_pipeline_create_info.layout = compute_pipeline_layout;
+    ASSERT(vkCreateComputePipelines(device, {}, 1, &compute_pipeline_create_info, nullptr, &compute_pipeline), "Unable to create compute pipeline.");
+}
+
+auto RenderContext::cleanup_compute_pipeline() noexcept -> void {
+    vkDestroyPipeline(device, compute_pipeline, NULL);
+    vkDestroyPipelineLayout(device, compute_pipeline_layout, NULL);
+}
+
 auto RenderContext::create_framebuffers() noexcept -> void {
     swapchain_framebuffers.resize(swapchain_images.size());
 

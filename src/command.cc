@@ -45,11 +45,31 @@ auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer,
 
     ASSERT(vkBeginCommandBuffer(command_buffer, &begin_info), "Unable to begin recording command buffer.");
 
+    push_constants.filter_iter = 0;
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline);
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline_layout, 0, 1, &raster_descriptor_set, 0, NULL);
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, ray_trace_pipeline_layout, 1, 1, &ray_trace_descriptor_set, 0, NULL);
     vkCmdPushConstants(command_buffer, ray_trace_pipeline_layout, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR, 0, sizeof(PushConstants), &push_constants);
     vkCmdTraceRaysKHR(command_buffer, &rgen_sbt_region, &miss_sbt_region, &hit_sbt_region, &call_sbt_region, swapchain_extent.width, swapchain_extent.height, 1);
+
+    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+			 imgui_data.num_filter_iters ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			 0, 0, NULL, 0, NULL, 0, NULL);
+
+    if (imgui_data.num_filter_iters) {
+	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline);
+	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline_layout, 0, 1, &raster_descriptor_set, 0, NULL);
+	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline_layout, 1, 1, &ray_trace_descriptor_set, 0, NULL);
+    }
+    for (uint32_t filter_iter = 0; filter_iter < (uint32_t) imgui_data.num_filter_iters; ++filter_iter) {
+	push_constants.filter_iter = filter_iter;
+	vkCmdPushConstants(command_buffer, compute_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants), &push_constants);
+	vkCmdDispatch(command_buffer, (swapchain_extent.width + 15) / 16, (swapchain_extent.height + 15) / 16, 1);
+	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+			     filter_iter + 1 < (uint32_t) imgui_data.num_filter_iters ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			     0, 0, NULL, 0, NULL, 0, NULL);
+    }
+    push_constants.filter_iter = imgui_data.num_filter_iters % 2;
 
     VkClearValue clear_values[2];
     clear_values[0].color.float32[0] = 0.0f / 100.0f;

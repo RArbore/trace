@@ -43,20 +43,20 @@ struct SwapchainSupport {
 struct ImGuiData {
     std::array<float, 50> last_fpss;
     std::array<float, 500> last_heaps;
-    float alpha = 0.005f;
+    float alpha = 0.001f;
     bool taa = true;
-    float sigma_color = 1.0f;
-    float sigma_normal = 1.0f;
-    float sigma_position = 1.0f;
+    float sigma_normal = 0.1f;
+    float sigma_position = 0.1f;
+    int num_filter_iters = 0;
 };
 
 struct RenderContext {
     struct PushConstants {
 	uint32_t seed;
 	float alpha;
-	float sigma_color;
 	float sigma_normal;
 	float sigma_position;
+	uint32_t filter_iter;
     };
     
     GLFWwindow *window;
@@ -79,8 +79,8 @@ struct RenderContext {
     std::vector<VkImage> swapchain_images;
     std::vector<VkImageView> swapchain_image_views;
     std::vector<VkFramebuffer> swapchain_framebuffers;
-    std::array<Image, 4> ray_trace_images;
-    std::array<VkImageView, 4> ray_trace_image_views;
+    std::array<Image, 5> ray_trace_images;
+    std::array<VkImageView, 5> ray_trace_image_views;
     std::array<Image, 4> last_frame_images;
     std::array<VkImageView, 4> last_frame_image_views;
 
@@ -92,6 +92,9 @@ struct RenderContext {
     std::vector<VkRayTracingShaderGroupCreateInfoKHR> ray_trace_shader_groups;
     VkPipelineLayout ray_trace_pipeline_layout;
     VkPipeline ray_trace_pipeline;
+
+    VkPipelineLayout compute_pipeline_layout;
+    VkPipeline compute_pipeline;
 
     Buffer shader_binding_table_buffer;
     VkStridedDeviceAddressRegionKHR rgen_sbt_region;
@@ -154,6 +157,7 @@ struct RenderContext {
     auto create_shaders() noexcept -> void;
     auto create_raster_pipeline() noexcept -> void;
     auto create_ray_trace_pipeline() noexcept -> void;
+    auto create_compute_pipeline() noexcept -> void;
     auto create_shader_binding_table() noexcept -> void;
     auto create_framebuffers() noexcept -> void;
     auto create_sampler() noexcept -> void;
@@ -178,6 +182,7 @@ struct RenderContext {
     auto cleanup_shaders() noexcept -> void;
     auto cleanup_raster_pipeline() noexcept -> void;
     auto cleanup_ray_trace_pipeline() noexcept -> void;
+    auto cleanup_compute_pipeline() noexcept -> void;
     auto cleanup_framebuffers() noexcept -> void;
     auto cleanup_sampler() noexcept -> void;
     auto cleanup_descriptor_pool() noexcept -> void;

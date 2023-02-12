@@ -101,7 +101,7 @@ auto RenderContext::render_imgui() noexcept -> void {
     */
     
     std::ostringstream fps_label;
-    fps_label << "FPS: " << imgui_data.last_fpss.back();
+    fps_label << "FPS: " << imgui_data.last_fpss.back() << " (" << 1000.0f / imgui_data.last_fpss.back() << " ms)";
     ImGui::PlotLines(fps_label.str().c_str(), imgui_data.last_fpss.data(), (int32_t) imgui_data.last_fpss.size());
     std::ostringstream heap_label;
     heap_label << "HEAP: " << imgui_data.last_heaps.back();
@@ -110,9 +110,9 @@ auto RenderContext::render_imgui() noexcept -> void {
     pos_label << "POSITION: " << camera_position.x << " " << camera_position.y << " " << camera_position.z;
     ImGui::Text(pos_label.str().c_str());
     ImGui::SliderFloat("Alpha", &imgui_data.alpha, 0.0f, 1.0f);
-    ImGui::SliderFloat("Sigma - Color", &imgui_data.sigma_color, 0.05f, 2.0f);
-    ImGui::SliderFloat("Sigma - Normal", &imgui_data.sigma_normal, 0.05f, 2.0f);
-    ImGui::SliderFloat("Sigma - Position", &imgui_data.sigma_position, 0.05f, 2.0f);
+    ImGui::SliderFloat("Sigma - Normal", &imgui_data.sigma_normal, 0.01f, 2.0f);
+    ImGui::SliderFloat("Sigma - Position", &imgui_data.sigma_position, 0.01f, 2.0f);
+    ImGui::SliderInt("Atrous Filter", &imgui_data.num_filter_iters, 0, 5);
     ImGui::Checkbox("TAA", &imgui_data.taa);
     
     ImGui::Render();

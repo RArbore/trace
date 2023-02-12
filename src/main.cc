@@ -112,7 +112,6 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	context.camera_matrix = glm::lookAt(context.camera_position, context.camera_position + view_dir, glm::vec3(0.0f, 0.0f, 1.0f));
 	context.push_constants.seed = context.current_frame;
 	context.push_constants.alpha = context.current_frame ? context.imgui_data.alpha : 0.0f;
-	context.push_constants.sigma_color = context.imgui_data.sigma_color;
 	context.push_constants.sigma_normal = context.imgui_data.sigma_normal;
 	context.push_constants.sigma_position = context.imgui_data.sigma_position;
 	if (!context.is_using_imgui()) {
