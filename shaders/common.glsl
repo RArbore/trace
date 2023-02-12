@@ -55,7 +55,7 @@ struct vertex {
 
 struct hemisphere_sample {
     vec3 drawn_sample;
-    float drawn_weight;
+    float drawn_pdf;
 };
 
 layout (push_constant) uniform PushConstants {

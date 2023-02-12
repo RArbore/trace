@@ -63,13 +63,20 @@ vec3 fresnel_schlick(float cos_theta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
 }
 
-hemisphere_sample uniform_hemisphere(vec2 random, vec3 direction) {
+mat3 get_arbitrary_hemisphere_orientation_matrix(vec3 direction) {
+    vec3 random_direction = direction.x != 0.0 || direction.y != 0.0 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+    vec3 x = normalize(cross(direction, random_direction));
+    vec3 y = cross(x, direction);
+    return mat3(x, y, direction);
+}
+
+hemisphere_sample uniform_weighted_hemisphere(vec2 random, vec3 direction) {
     hemisphere_sample ret;
     float theta = acos(random.x);
     float phi = 2.0 * PI * random.y;
-    vec3 sphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
-    ret.drawn_sample = dot(sphere, direction) >= 0.0 ? sphere : -sphere;
-    ret.drawn_weight = 1.0 / (2.0 * PI);
+    vec3 up_hemisphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+    ret.drawn_sample = get_arbitrary_hemisphere_orientation_matrix(direction) * up_hemisphere;
+    ret.drawn_pdf = 1.0 / (2.0 * PI);
     return ret;
 }
 
@@ -77,12 +84,9 @@ hemisphere_sample cosine_weighted_hemisphere(vec2 random, vec3 direction) {
     hemisphere_sample ret;
     float theta = acos(sqrt(random.x));
     float phi = 2.0 * PI * random.y;
-    ret.drawn_weight = cos(theta) / PI;
-    float direction_theta = atan2(direction.y, direction.x);
-    float direction_phi = acos(direction.z);
-    theta += direction_theta;
-    phi += direction_phi;
-    ret.drawn_sample = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+    vec3 up_hemisphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+    ret.drawn_sample = get_arbitrary_hemisphere_orientation_matrix(direction) * up_hemisphere;
+    ret.drawn_pdf = cos(theta) / PI + 0.001;
     return ret;
 }
 
@@ -91,12 +95,9 @@ hemisphere_sample ggx_weighted_hemisphere(vec2 random, vec3 direction, float rou
     float alpha = roughness * roughness;
     float theta = atan(alpha * sqrt(random.x / (1.0 - random.x)));
     float phi = 2.0 * PI * random.y;
-    ret.drawn_weight = normal_distribution(cos(theta), alpha) * cos(theta) * sin(theta);
-    float direction_theta = atan2(direction.y, direction.x);
-    float direction_phi = acos(direction.z);
-    theta += direction_theta;
-    phi += direction_phi;
-    ret.drawn_sample = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+    vec3 up_hemisphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+    ret.drawn_sample = get_arbitrary_hemisphere_orientation_matrix(direction) * up_hemisphere;
+    ret.drawn_pdf = normal_distribution(cos(theta), alpha) * cos(theta) * sin(theta) + 0.001;
     return ret;
 }
 
@@ -158,9 +159,9 @@ void main() {
 	    float lambert = dot(hits[hit_num].normal, -ray_dir);
 	    vec3 omega_in = -ray_dir;
 	    ray_pos = prd.hit_position + prd.flat_normal * SURFACE_OFFSET;
-	    hemisphere_sample samp = cosine_weighted_hemisphere(slice_2_from_4(random, hit_num), prd.normal);
+	    hemisphere_sample samp = uniform_weighted_hemisphere(slice_2_from_4(random, hit_num), prd.normal);
 	    ray_dir = samp.drawn_sample;
-	    weight *= 2.0 * PI * lambert * BRDF(omega_in, ray_dir, hits[hit_num]) * samp.drawn_weight;
+	    weight *= lambert * BRDF(omega_in, ray_dir, hits[hit_num]) / (samp.drawn_pdf * 2.0 * PI);
 	}
     }
 

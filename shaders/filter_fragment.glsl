@@ -113,7 +113,7 @@ void main() {
 	    total_weight += weight;
 	}
     }
-    vec3 new_lighting = atrous_lighting / total_weight;
+    vec3 new_lighting = new_sample.lighting;//atrous_lighting / total_weight;
 
     pixel_sample old_sample = get_old_sample(pixel_coord);
     float depth = length(new_sample.position - camera_position);
