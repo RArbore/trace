@@ -12,6 +12,8 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Tracy.hpp"
+
 #include "context.h"
 
 static auto glfw_framebuffer_resize_callback(GLFWwindow* window, [[maybe_unused]] int width, [[maybe_unused]] int height) noexcept -> void {
@@ -75,6 +77,7 @@ auto RenderContext::create_one_off_objects() noexcept -> void {
 } 
 
 auto RenderContext::render() noexcept -> void {
+    ZoneScoped;
     glfwPollEvents();
     if ((pressed_keys[GLFW_KEY_ESCAPE] && !is_using_imgui()) || glfwWindowShouldClose(window)) {
 	active = false;

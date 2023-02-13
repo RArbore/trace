@@ -17,6 +17,8 @@
 
 #include <glm/gtx/transform.hpp>
 
+#include "Tracy.hpp"
+
 #include "context.h"
 
 static std::size_t num_heap_allocs = 0;
@@ -167,6 +169,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	}
 	context.imgui_data.last_heaps[context.imgui_data.last_heaps.size() - 1] = (float) num_heap_allocs;
 	num_heap_allocs = 0;
+	FrameMark;
     }
 
     vkDeviceWaitIdle(context.device);
