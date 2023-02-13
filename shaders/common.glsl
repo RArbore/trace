@@ -88,7 +88,6 @@ layout(set = 0, binding = 1) uniform projection_uniform {
     mat4 last_frame_centered_camera;
     mat4 inverse_centered_camera;
     mat4 last_frame_inverse_centered_camera;
-    vec2 taa_jitter;
     vec3 camera_position;
 };
 
@@ -104,14 +103,14 @@ layout(set = 1, binding = 1, scalar) buffer objects_buf { obj_desc i[]; } object
 
 layout(set = 1, binding = 2, rgba8) uniform readonly image2D blue_noise_image;
 
-layout(set = 1, binding = 3, rgba16f) uniform image2D ray_tracing_albedo_image;
-layout(set = 1, binding = 4, rgba16f) uniform image2D ray_tracing_lighting1_image;
-layout(set = 1, binding = 5, rgba16f) uniform image2D ray_tracing_lighting2_image;
+layout(set = 1, binding = 3, rgba8) uniform image2D ray_tracing_albedo_image;
+layout(set = 1, binding = 4, rgba32f) uniform image2D ray_tracing_lighting1_image;
+layout(set = 1, binding = 5, rgba32f) uniform image2D ray_tracing_lighting2_image;
 layout(set = 1, binding = 6, rgba16f) uniform image2D ray_tracing_position_image;
 layout(set = 1, binding = 7, rgba8) uniform image2D ray_tracing_normal_image;
 
-layout(set = 1, binding = 8, rgba16f) uniform image2D last_frame_albedo_image;
-layout(set = 1, binding = 9, rgba16f) uniform image2D last_frame_lighting_image;
+layout(set = 1, binding = 8, rgba8) uniform image2D last_frame_albedo_image;
+layout(set = 1, binding = 9, rgba32f) uniform image2D last_frame_lighting_image;
 layout(set = 1, binding = 10, rgba16f) uniform image2D last_frame_position_image;
 layout(set = 1, binding = 11, rgba8) uniform image2D last_frame_normal_image;
 

@@ -202,11 +202,7 @@ auto RenderContext::ringbuffer_copy_projection_matrices_into_buffer() noexcept -
 	data_mat[i + 6][3][2] = 0.0f;
     }
     glm::vec4 *data_vec = (glm::vec4 *) &data_mat[10];
-    constexpr float taa_radius = 0.3f;
-    const float taa_sample_angle = random_float(0.0f, 2.0f * (float) M_PI);
-    const float taa_sample_radius = random_float(0.0f, taa_radius);
-    *((glm::vec2 *) &data_vec[0]) = imgui_data.taa ? glm::vec2(taa_sample_radius * cos(taa_sample_angle), taa_sample_radius * sin(taa_sample_angle)) + glm::vec2(0.5f, 0.5f) : glm::vec2(0.5f, 0.5f);
-    *((glm::vec3 *) &data_vec[1]) = camera_position;
+    *((glm::vec3 *) &data_vec[0]) = camera_position;
     ringbuffer_submit_buffer(main_ring_buffer, projection_buffer);
 }
 

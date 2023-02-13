@@ -76,7 +76,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 							      200,
 							      200,
 							      200,
-							      20,
+							      200,
 							      scene
 							      );
     scene.add_object(glm::scale(glm::mat4(1), glm::vec3(10.0f, 10.0f, 1.0f)), model_id_floor);
