@@ -12,11 +12,14 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Tracy.hpp"
+
 #include "context.h"
 
 static constexpr uint32_t MAX_MODELS = 256;
 
 auto RenderContext::create_sampler() noexcept -> void {
+    ZoneScoped;
     VkPhysicalDeviceProperties physical_device_properties {};
     vkGetPhysicalDeviceProperties(physical_device, &physical_device_properties);
 
@@ -41,10 +44,12 @@ auto RenderContext::create_sampler() noexcept -> void {
 }
 
 auto RenderContext::cleanup_sampler() noexcept -> void {
+    ZoneScoped;
     vkDestroySampler(device, sampler, NULL);
 }
 
 auto RenderContext::create_descriptor_pool() noexcept -> void {
+    ZoneScoped;
     VkDescriptorPoolSize descriptor_pool_sizes[] = {
 	{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
 	{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
@@ -94,11 +99,13 @@ auto RenderContext::create_descriptor_pool() noexcept -> void {
 }
 
 auto RenderContext::cleanup_descriptor_pool() noexcept -> void {
+    ZoneScoped;
     vkDestroyDescriptorPool(device, descriptor_pool, NULL);
     vkDestroyDescriptorPool(device, imgui_descriptor_pool, NULL);
 }
 
 auto RenderContext::create_descriptor_set_layout() noexcept -> void {
+    ZoneScoped;
     VkDescriptorSetLayoutBinding lights_buffer_layout_binding {};
     lights_buffer_layout_binding.binding = 0;
     lights_buffer_layout_binding.descriptorCount = 1;
@@ -141,10 +148,12 @@ auto RenderContext::create_descriptor_set_layout() noexcept -> void {
 }
 
 auto RenderContext::cleanup_descriptor_set_layout() noexcept -> void {
+    ZoneScoped;
     vkDestroyDescriptorSetLayout(device, raster_descriptor_set_layout, NULL);
 }
 
 auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
+    ZoneScoped;
     VkDescriptorSetLayoutBinding tlas_layout_binding {};
     tlas_layout_binding.binding = 0;
     tlas_layout_binding.descriptorCount = 1;
@@ -200,10 +209,12 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
 }
 
 auto RenderContext::cleanup_ray_trace_descriptor_set_layout() noexcept -> void {
+    ZoneScoped;
     vkDestroyDescriptorSetLayout(device, ray_trace_descriptor_set_layout, NULL);
 }
 
 auto RenderContext::create_descriptor_sets() noexcept -> void {
+    ZoneScoped;
     uint32_t max_variable_count = MAX_MODELS;
     
     VkDescriptorSetVariableDescriptorCountAllocateInfo variable_count_allocate_info {};
@@ -222,6 +233,7 @@ auto RenderContext::create_descriptor_sets() noexcept -> void {
 }
 
 auto RenderContext::create_ray_trace_descriptor_sets() noexcept -> void {
+    ZoneScoped;
     VkDescriptorSetAllocateInfo allocate_info {};
     allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocate_info.descriptorPool = descriptor_pool;
@@ -232,6 +244,7 @@ auto RenderContext::create_ray_trace_descriptor_sets() noexcept -> void {
 }
 
 auto RenderContext::update_descriptors_textures(const Scene &scene, uint32_t update_texture) noexcept -> void {
+    ZoneScoped;
     VkDescriptorImageInfo descriptor_image_info {};
     descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     descriptor_image_info.imageView = scene.textures[update_texture].second;
@@ -253,6 +266,7 @@ auto RenderContext::update_descriptors_textures(const Scene &scene, uint32_t upd
 }
 
 auto RenderContext::update_descriptors_lights(const Scene &scene) noexcept -> void {
+    ZoneScoped;
     VkDescriptorBufferInfo descriptor_buffer_info {};
     descriptor_buffer_info.buffer = scene.lights_buf.buffer;
     descriptor_buffer_info.offset = 0;
@@ -274,6 +288,7 @@ auto RenderContext::update_descriptors_lights(const Scene &scene) noexcept -> vo
 }
 
 auto RenderContext::update_descriptors_perspective() noexcept -> void {
+    ZoneScoped;
     VkDescriptorBufferInfo descriptor_buffer_info {};
     descriptor_buffer_info.buffer = projection_buffer.buffer;
     descriptor_buffer_info.offset = 0;
@@ -295,6 +310,7 @@ auto RenderContext::update_descriptors_perspective() noexcept -> void {
 }
 
 auto RenderContext::update_descriptors_tlas(const Scene &scene) noexcept -> void {
+    ZoneScoped;
     VkWriteDescriptorSetAccelerationStructureKHR descriptor_acceleration_structure_info {};
     descriptor_acceleration_structure_info.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
     descriptor_acceleration_structure_info.accelerationStructureCount = 1;
@@ -316,6 +332,7 @@ auto RenderContext::update_descriptors_tlas(const Scene &scene) noexcept -> void
 }
 
 auto RenderContext::update_descriptors_ray_trace_objects(const Scene &scene) noexcept -> void {
+    ZoneScoped;
     VkDescriptorBufferInfo descriptor_buffer_info {};
     descriptor_buffer_info.buffer = scene.ray_trace_objects_buf.buffer;
     descriptor_buffer_info.offset = 0;
@@ -337,6 +354,7 @@ auto RenderContext::update_descriptors_ray_trace_objects(const Scene &scene) noe
 }
 
 auto RenderContext::update_descriptors_blue_noise_images() noexcept -> void {
+    ZoneScoped;
     VkDescriptorImageInfo descriptor_image_info {};
     descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
     descriptor_image_info.imageView = blue_noise_image_view;
@@ -356,6 +374,7 @@ auto RenderContext::update_descriptors_blue_noise_images() noexcept -> void {
 }
 
 auto RenderContext::update_descriptors_ray_trace_images() noexcept -> void {
+    ZoneScoped;
     VkDescriptorImageInfo descriptor_image_info {};
     descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 

@@ -17,9 +17,12 @@
 
 #include <tiny_obj_loader.h>
 
+#include "Tracy.hpp"
+
 #include "context.h"
 
 auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
+    ZoneScoped;
     scene.model_vertices_offsets.resize(scene.models.size());
     scene.model_indices_offsets.resize(scene.models.size());
     
@@ -58,6 +61,7 @@ auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> 
 }
 
 auto RenderContext::update_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
+    ZoneScoped;
     scene.model_vertices_offsets.resize(scene.models.size());
     scene.model_indices_offsets.resize(scene.models.size());
     
@@ -90,6 +94,7 @@ auto RenderContext::update_vulkan_objects_for_scene(Scene &scene) noexcept -> vo
 }
 
 auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
+    ZoneScoped;
     cleanup_buffer(scene.vertices_buf);
     cleanup_buffer(scene.indices_buf);
     cleanup_buffer(scene.instances_buf);
@@ -110,6 +115,7 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> v
 }
 
 auto RenderContext::ringbuffer_copy_scene_vertices_into_buffer(Scene &scene) noexcept -> void {
+    ZoneScoped;
     char *data_vertex = (char *) ringbuffer_claim_buffer(main_ring_buffer, scene.vertices_buf_contents_size);
     for (const Model &model : scene.models) {
 	model.dump_vertices(data_vertex);
@@ -119,6 +125,7 @@ auto RenderContext::ringbuffer_copy_scene_vertices_into_buffer(Scene &scene) noe
 }
 
 auto RenderContext::ringbuffer_copy_scene_indices_into_buffer(Scene &scene) noexcept -> void {
+    ZoneScoped;
     char *data_index = (char *) ringbuffer_claim_buffer(main_ring_buffer, scene.indices_buf_contents_size);
     for (const Model &model : scene.models) {
 	model.dump_indices(data_index);
@@ -128,6 +135,7 @@ auto RenderContext::ringbuffer_copy_scene_indices_into_buffer(Scene &scene) noex
 }
 
 auto RenderContext::ringbuffer_copy_scene_instances_into_buffer(Scene &scene) noexcept -> void {
+    ZoneScoped;
     glm::mat4 *data_instance = (glm::mat4 *) ringbuffer_claim_buffer(main_ring_buffer, scene.instances_buf_contents_size);
     for (auto transforms : scene.transforms) {
 	memcpy(data_instance, transforms.data(), transforms.size() * sizeof(glm::mat4));
@@ -137,6 +145,7 @@ auto RenderContext::ringbuffer_copy_scene_instances_into_buffer(Scene &scene) no
 }
 
 auto RenderContext::ringbuffer_copy_scene_indirect_draw_into_buffer(Scene &scene) noexcept -> void {
+    ZoneScoped;
     VkDrawIndexedIndirectCommand *data_indirect_draw  = (VkDrawIndexedIndirectCommand *) ringbuffer_claim_buffer(main_ring_buffer, scene.indirect_draw_buf_contents_size);
     uint32_t num_instances_so_far = 0;
     for (std::size_t i = 0; i < scene.num_models; ++i) {
@@ -153,6 +162,7 @@ auto RenderContext::ringbuffer_copy_scene_indirect_draw_into_buffer(Scene &scene
 }
 
 auto RenderContext::ringbuffer_copy_scene_lights_into_buffer(Scene &scene) noexcept -> void {
+    ZoneScoped;
     glm::vec4 *data_light = (glm::vec4 *) ringbuffer_claim_buffer(main_ring_buffer, scene.lights_buf_contents_size);
     (*data_light)[0] = std::bit_cast<float>((uint32_t) scene.num_lights);
     memcpy(data_light + 1, scene.lights.data(), scene.num_lights * sizeof(glm::vec4));
@@ -160,6 +170,7 @@ auto RenderContext::ringbuffer_copy_scene_lights_into_buffer(Scene &scene) noexc
 }
 
 auto RenderContext::ringbuffer_copy_scene_ray_trace_objects_into_buffer(Scene &scene) noexcept -> void {
+    ZoneScoped;
     Scene::RayTraceObject *data_ray_trace_object = (Scene::RayTraceObject *) ringbuffer_claim_buffer(main_ring_buffer, scene.ray_trace_objects_buf_contents_size);
     VkDeviceAddress vertex_buffer_address = get_device_address(scene.vertices_buf);
     VkDeviceAddress index_buffer_address = get_device_address(scene.indices_buf);
@@ -175,6 +186,7 @@ auto RenderContext::ringbuffer_copy_scene_ray_trace_objects_into_buffer(Scene &s
 }
 
 auto RenderContext::ringbuffer_copy_projection_matrices_into_buffer() noexcept -> void {
+    ZoneScoped;
     glm::mat4 *data_mat = (glm::mat4 *) ringbuffer_claim_buffer(main_ring_buffer, sizeof(glm::mat4) * NUM_PROJECTION_ENTRIES);
     data_mat[0] = glm::perspective(glm::radians(80.0f), 1.0f, 0.01f, 1000.0f);
     data_mat[0][1][1] *= -1.0f;
@@ -199,6 +211,7 @@ auto RenderContext::ringbuffer_copy_projection_matrices_into_buffer() noexcept -
 }
 
 auto RenderContext::load_model(std::string_view model_name, Scene &scene, const uint8_t *custom_mat) noexcept -> uint16_t {
+    ZoneScoped;
     auto it = scene.loaded_models.find(std::string(model_name));
     if (!custom_mat && it != scene.loaded_models.end())
 	return it->second;
@@ -274,6 +287,7 @@ auto RenderContext::load_model(std::string_view model_name, Scene &scene, const 
 }
 
 auto RenderContext::load_obj_model(std::string_view obj_filepath) noexcept -> Model {
+    ZoneScoped;
     Model model {};
 
     tinyobj::attrib_t attrib;
@@ -328,6 +342,7 @@ auto RenderContext::load_obj_model(std::string_view obj_filepath) noexcept -> Mo
 }
 
 auto RenderContext::load_texture(std::string_view texture_filepath, bool srgb) noexcept -> std::pair<Image, VkImageView> {
+    ZoneScoped;
     int tex_width, tex_height, tex_channels;
     stbi_uc* pixels = stbi_load(&texture_filepath[0], &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
 
@@ -353,6 +368,7 @@ auto RenderContext::load_texture(std::string_view texture_filepath, bool srgb) n
 }
 
 auto RenderContext::load_image(std::string_view texture_filepath) noexcept -> std::pair<Image, VkImageView> {
+    ZoneScoped;
     int tex_width, tex_height, tex_channels;
     stbi_uc* pixels = stbi_load(&texture_filepath[0], &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
 
@@ -378,6 +394,7 @@ auto RenderContext::load_image(std::string_view texture_filepath) noexcept -> st
 }
 
 auto RenderContext::load_custom_model(const std::vector<Model::Vertex> &vertices, const std::vector<uint32_t> &indices, uint8_t red_albedo, uint8_t green_albedo, uint8_t blue_albedo, uint8_t roughness, uint8_t metallicity, Scene &scene) noexcept -> uint16_t {
+    ZoneScoped;
     const uint16_t model_id = scene.num_models;
     const uint16_t base_texture_id = scene.num_textures;
 
@@ -402,6 +419,7 @@ auto RenderContext::load_custom_model(const std::vector<Model::Vertex> &vertices
 }
 
 auto RenderContext::load_custom_material(uint8_t red_albedo, uint8_t green_albedo, uint8_t blue_albedo, uint8_t roughness, uint8_t metallicity, uint8_t mask) noexcept -> std::array<std::pair<Image, VkImageView>, 4> {
+    ZoneScoped;
     std::size_t image_size = 4;
     std::array<uint8_t, 16> contents = {
 	red_albedo, green_albedo, blue_albedo, 255,
@@ -445,6 +463,7 @@ auto glm4x4_to_vk_transform(const glm::mat4 &in, VkTransformMatrixKHR &out) noex
 }
 
 auto RenderContext::build_bottom_level_acceleration_structure_for_model(uint16_t model_idx, Scene &scene) noexcept -> void {
+    ZoneScoped;
     const VkDeviceAddress vertex_buffer_address = get_device_address(scene.vertices_buf);
     const VkDeviceAddress index_buffer_address = get_device_address(scene.indices_buf);
     const VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
@@ -511,6 +530,7 @@ auto RenderContext::build_bottom_level_acceleration_structure_for_model(uint16_t
 }
 
 auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scene) noexcept -> void {
+    ZoneScoped;
     const VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
 
     std::vector<VkAccelerationStructureInstanceKHR> bottom_level_instances;

@@ -12,9 +12,12 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Tracy.hpp"
+
 #include "context.h"
 
 auto RenderContext::create_shader_binding_table() noexcept -> void {
+    ZoneScoped;
     const uint32_t miss_count = 1;
     const uint32_t hit_count = 1;
     const uint32_t handle_count = 1 + miss_count + hit_count;
@@ -64,5 +67,6 @@ auto RenderContext::create_shader_binding_table() noexcept -> void {
 }
 
 auto RenderContext::cleanup_shader_binding_table() noexcept -> void {
+    ZoneScoped;
     cleanup_buffer(shader_binding_table_buffer);
 }

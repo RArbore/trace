@@ -12,9 +12,12 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Tracy.hpp"
+
 #include "context.h"
 
 auto RenderContext::create_swapchain() noexcept -> void {
+    ZoneScoped;
     const SwapchainSupport support = physical_check_swapchain_support(physical_device);
     ASSERT(support.formats.size() > 0 && support.present_modes.size() > 0, "Swapchain support is suddenly not available for chosen physical device.");
 
@@ -62,6 +65,7 @@ auto RenderContext::create_swapchain() noexcept -> void {
 }
 
 auto RenderContext::choose_swapchain_options(const SwapchainSupport &support) noexcept -> std::tuple<VkSurfaceFormatKHR, VkPresentModeKHR, VkExtent2D> {
+    ZoneScoped;
     VkSurfaceFormatKHR surface_format {};
     VkPresentModeKHR present_mode {};
     VkExtent2D swap_extent {};
@@ -106,6 +110,7 @@ auto RenderContext::choose_swapchain_options(const SwapchainSupport &support) no
 }
 
 auto RenderContext::cleanup_swapchain() noexcept -> void {
+    ZoneScoped;
     for (auto view : swapchain_image_views) {
 	vkDestroyImageView(device, view, NULL);
     }
@@ -113,6 +118,7 @@ auto RenderContext::cleanup_swapchain() noexcept -> void {
 }
 
 auto RenderContext::create_ray_trace_images() noexcept -> void {
+    ZoneScoped;
     VkImageSubresourceRange subresource_range {};
     subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     subresource_range.baseMipLevel = 0;
@@ -161,6 +167,7 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 }
 
 auto RenderContext::cleanup_ray_trace_images() noexcept -> void {
+    ZoneScoped;
     for (uint32_t i = 0; i < ray_trace_images.size(); ++i) {
 	cleanup_image_view(ray_trace_image_views[i]);
 	cleanup_image(ray_trace_images[i]);
@@ -173,6 +180,7 @@ auto RenderContext::cleanup_ray_trace_images() noexcept -> void {
 }
 
 auto RenderContext::recreate_swapchain() noexcept -> void {
+    ZoneScoped;
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
     while (width == 0 || height == 0) {

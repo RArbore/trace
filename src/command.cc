@@ -12,9 +12,12 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Tracy.hpp"
+
 #include "context.h"
 
 auto RenderContext::create_command_pool() noexcept -> void {
+    ZoneScoped;
     const uint32_t queue_family = physical_check_queue_family(physical_device, (VkQueueFlagBits) (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT));
 
     VkCommandPoolCreateInfo create_info {};
@@ -26,10 +29,12 @@ auto RenderContext::create_command_pool() noexcept -> void {
 }
 
 auto RenderContext::cleanup_command_pool() noexcept -> void {
+    ZoneScoped;
     vkDestroyCommandPool(device, command_pool, NULL);
 }
 
 auto RenderContext::create_command_buffers() noexcept -> void {
+    ZoneScoped;
     VkCommandBufferAllocateInfo allocate_info {};
     allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocate_info.commandPool = command_pool;
@@ -40,6 +45,7 @@ auto RenderContext::create_command_buffers() noexcept -> void {
 }
 
 auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void {
+    ZoneScoped;
     VkCommandBufferBeginInfo begin_info {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -119,18 +125,21 @@ auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer,
 }
 
 auto RenderContext::create_sync_objects() noexcept -> void {
+    ZoneScoped;
     image_available_semaphore = create_semaphore();
     render_finished_semaphore = create_semaphore();
     in_flight_fence = create_fence();
 }
 
 auto RenderContext::cleanup_sync_objects() noexcept -> void {
+    ZoneScoped;
     vkDestroySemaphore(device, image_available_semaphore, NULL);
     vkDestroySemaphore(device, render_finished_semaphore, NULL);
     vkDestroyFence(device, in_flight_fence, NULL);
 }
 
 auto RenderContext::create_semaphore() noexcept -> VkSemaphore {
+    ZoneScoped;
     VkSemaphoreCreateInfo semaphore_info {};
     semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -140,6 +149,7 @@ auto RenderContext::create_semaphore() noexcept -> VkSemaphore {
 }
 
 auto RenderContext::create_fence() noexcept -> VkFence {
+    ZoneScoped;
     VkFenceCreateInfo fence_info {};
     fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;

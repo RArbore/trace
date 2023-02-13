@@ -28,6 +28,7 @@ auto operator new(size_t size) -> void * {
 }
 
 auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> int {
+    ZoneScoped;
     srand((uint32_t) time(NULL));
     
     RenderContext context {};
@@ -100,6 +101,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     double elapsed_time = 0.0;
     double camera_theta = 3.0 * M_PI / 4.0, camera_phi = 5.0 * M_PI / 4.0;
     const double sensitivity = 100.0, move_speed = 5.0;
+    FrameMark;
     while (context.active) {
 	const auto current_time = std::chrono::system_clock::now();
 	const std::chrono::duration<double> dt_chrono = current_time - system_time;

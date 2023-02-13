@@ -12,9 +12,12 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Tracy.hpp"
+
 #include "context.h"
 
 auto RenderContext::create_allocator() noexcept -> void {
+    ZoneScoped;
     VmaAllocatorCreateInfo create_info {};
     create_info.instance = instance;
     create_info.physicalDevice = physical_device;
@@ -25,6 +28,7 @@ auto RenderContext::create_allocator() noexcept -> void {
 }
 
 auto RenderContext::cleanup_allocator() noexcept -> void {
+    ZoneScoped;
 #ifndef RELEASE
     for (auto [tag, num_alive] : allocated_tags) {
 	if (num_alive) {
@@ -36,6 +40,7 @@ auto RenderContext::cleanup_allocator() noexcept -> void {
 }
 
 auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags, const char *name) noexcept -> Buffer {
+    ZoneScoped;
     VkBufferCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     create_info.size = size;
@@ -64,6 +69,7 @@ auto RenderContext::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, V
 }
 
 auto RenderContext::create_buffer_with_alignment(VkDeviceSize size, VkDeviceSize alignment, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags, const char *name) noexcept -> Buffer {
+    ZoneScoped;
     VkBufferCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     create_info.size = size;
@@ -92,6 +98,7 @@ auto RenderContext::create_buffer_with_alignment(VkDeviceSize size, VkDeviceSize
 }
 
 auto RenderContext::cleanup_buffer(Buffer buffer) noexcept -> void {
+    ZoneScoped;
 #ifndef RELEASE
     VmaAllocationInfo allocation_info;
     if (!buffer.allocation)
@@ -106,10 +113,12 @@ auto RenderContext::cleanup_buffer(Buffer buffer) noexcept -> void {
 }
 
 auto RenderContext::future_cleanup_buffer(Buffer buffer) noexcept -> void {
+    ZoneScoped;
     buffer_cleanup_queue.push_back({buffer, current_frame});
 }
 
 auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mip_levels, uint32_t array_layers, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags, const char *name) noexcept -> Image {
+    ZoneScoped;
     VkImageCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     create_info.flags = flags;
@@ -147,6 +156,7 @@ auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkEx
 }
 
 auto RenderContext::create_image_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView {
+    ZoneScoped;
     VkImageViewCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     create_info.image = image;
@@ -165,6 +175,7 @@ auto RenderContext::create_image_view(VkImage image, VkFormat format, VkImageSub
 }
 
 auto RenderContext::cleanup_image(Image image) noexcept -> void {
+    ZoneScoped;
 #ifndef RELEASE
     if (!image.allocation) {
 	std::cout << "DEBUG: About to crash in cleanup_image. Image: " << image.image << "   Allocation: " << image.allocation << "   Width: " << image.extent.width << "   Height: " << image.extent.height << ".\n";
@@ -180,14 +191,17 @@ auto RenderContext::cleanup_image(Image image) noexcept -> void {
 }
 
 auto RenderContext::cleanup_image_view(VkImageView view) noexcept -> void {
+    ZoneScoped;
     vkDestroyImageView(device, view, NULL);
 }
 
 auto RenderContext::create_ringbuffer() noexcept -> RingBuffer {
+    ZoneScoped;
     return {};
 }
 
 auto RenderContext::cleanup_ringbuffer(RingBuffer &ring_buffer) noexcept -> void {
+    ZoneScoped;
     for (auto &element : ring_buffer.elements) {
 	cleanup_buffer(element.buffer);
 	vkDestroySemaphore(device, element.semaphore, NULL);
@@ -216,6 +230,7 @@ static inline auto round_up_p2(std::size_t v) noexcept -> std::size_t {
 }
 
 auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void * {
+    ZoneScoped;
     ring_buffer.last_copy_size = size;
     if (size == 0)
 	return NULL;
@@ -257,6 +272,7 @@ auto RenderContext::ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t
 }
 
 auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst, VkSemaphore *additional_semaphores, uint32_t num_semaphores) noexcept -> void {
+    ZoneScoped;
     if (ring_buffer.last_copy_size == 0)
 	return;
     vmaUnmapMemory(allocator, ring_buffer.elements[ring_buffer.last_id].buffer.allocation);
@@ -310,6 +326,7 @@ auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &ds
 }
 
 auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst, VkImageLayout dst_layout, VkSemaphore *additional_semaphores, uint32_t num_semaphores) noexcept -> void {
+    ZoneScoped;
     vmaUnmapMemory(allocator, ring_buffer.elements[ring_buffer.last_id].buffer.allocation);
 
     VkImageMemoryBarrier image_memory_barrier {};
@@ -382,6 +399,7 @@ auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst,
 }
 
 auto RenderContext::get_device_address(const Buffer &buffer) noexcept -> VkDeviceAddress {
+    ZoneScoped;
     VkBufferDeviceAddressInfo buffer_device_address_info {};
     buffer_device_address_info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
     buffer_device_address_info.buffer = buffer.buffer;
@@ -389,6 +407,7 @@ auto RenderContext::get_device_address(const Buffer &buffer) noexcept -> VkDevic
 }
 
 auto RenderContext::get_device_address(const VkAccelerationStructureKHR &acceleration_structure) noexcept -> VkDeviceAddress {
+    ZoneScoped;
     VkAccelerationStructureDeviceAddressInfoKHR acceleration_structure_device_address_info {};
     acceleration_structure_device_address_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
     acceleration_structure_device_address_info.accelerationStructure = acceleration_structure;
@@ -396,6 +415,7 @@ auto RenderContext::get_device_address(const VkAccelerationStructureKHR &acceler
 }
 
 auto RenderContext::inefficient_upload_to_buffer(void *data, std::size_t size, Buffer buffer) noexcept -> void {
+    ZoneScoped;
     Buffer cpu_visible = create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, "CPU_VISIBLE_FOR_INEFFICIENT_MEMCPY_BUFFER_UPLOAD");
     
     char *buffer_data;

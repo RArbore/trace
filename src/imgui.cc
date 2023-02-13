@@ -12,6 +12,8 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Tracy.hpp"
+
 #include <sstream>
 
 #include <imgui.h>
@@ -21,6 +23,7 @@
 #include "context.h"
 
 auto RenderContext::init_imgui() noexcept -> void {
+    ZoneScoped;
     ImGui::CreateContext();
     ImGui_ImplGlfw_InitForVulkan(window, true);
 
@@ -65,16 +68,19 @@ auto RenderContext::init_imgui() noexcept -> void {
 }
 
 auto RenderContext::cleanup_imgui() noexcept -> void {
+    ZoneScoped;
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 }
 
 auto RenderContext::recreate_imgui() noexcept -> void {
+    ZoneScoped;
     ImGui_ImplVulkan_SetMinImageCount((uint32_t) swapchain_images.size());
 }
 
 auto RenderContext::render_imgui() noexcept -> void {
+    ZoneScoped;
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -119,9 +125,11 @@ auto RenderContext::render_imgui() noexcept -> void {
 }
 
 auto RenderContext::render_draw_data_wrapper_imgui(VkCommandBuffer command_buffer) noexcept -> void {
+    ZoneScoped;
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
 }
 
 auto RenderContext::is_using_imgui() noexcept -> bool {
+    ZoneScoped;
     return ImGui::GetIO().WantCaptureMouse;
 }

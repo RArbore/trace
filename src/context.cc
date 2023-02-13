@@ -28,6 +28,7 @@ static auto glfw_key_callback(GLFWwindow* window, int key, [[maybe_unused]] int 
 }
 
 auto RenderContext::init() noexcept -> void {
+    ZoneScoped;
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -64,6 +65,7 @@ auto RenderContext::init() noexcept -> void {
 }
 
 auto RenderContext::create_one_off_objects() noexcept -> void {
+    ZoneScoped;
     main_ring_buffer = create_ringbuffer();
 
     projection_buffer = create_buffer(sizeof(glm::mat4) * NUM_PROJECTION_ENTRIES, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "PROJECTION_BUFFER");
@@ -160,6 +162,7 @@ auto RenderContext::render() noexcept -> void {
 }
 
 auto RenderContext::cleanup() noexcept -> void {
+    ZoneScoped;
     for (auto [buffer, _] : buffer_cleanup_queue) {
 	cleanup_buffer(buffer);
     }
@@ -188,6 +191,7 @@ auto RenderContext::cleanup() noexcept -> void {
 }
 
 auto RenderContext::cleanup_one_off_objects() noexcept -> void {
+    ZoneScoped;
     cleanup_ringbuffer(main_ring_buffer);
     cleanup_buffer(projection_buffer);
     cleanup_image_view(blue_noise_image_view);

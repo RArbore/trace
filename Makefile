@@ -16,12 +16,12 @@ endif
 TRACY ?= 0
 TRACY_OBJS :=
 ifeq ($(TRACY), 1)
-	CPPFLAGS := $(CPPFLAGS) -Itracy/public/tracy -DTRACY_ENABLE
+	CPPFLAGS := $(CPPFLAGS) -DTRACY_ENABLE
 	TRACY_FLAGS := $(TRACY_FLAGS) -c -Itracy -Itracy/public/tracy -DTRACY_ENABLE
 	TRACY_OBJS := build/tracyclient.o
 endif
 
-CPPFLAGS := $(CPPFLAGS) -c -fno-rtti -pipe -Iimgui -Iimgui/backends -std=c++20
+CPPFLAGS := $(CPPFLAGS) -c -fno-rtti -pipe -Iimgui -Iimgui/backends -Itracy/public/tracy -std=c++20
 GLSLFLAGS := $(GLSLFLAGS) --target-spv=spv1.5 --target-env=vulkan1.2
 LDFLAGS := $(LDFLAGS) -fuse-ld=mold
 WFLAGS := $(WFLAGS) -Wall -Wextra -Wshadow -Wconversion -Wpedantic

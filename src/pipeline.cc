@@ -15,11 +15,14 @@
 #include <filesystem>
 #include <fstream>
 
+#include "Tracy.hpp"
+
 #include "context.h"
 
 static constexpr std::string_view DEFAULT_SHADER_PATH = "build";
 
 auto RenderContext::create_shaders() noexcept -> void {
+    ZoneScoped;
     ASSERT(std::filesystem::exists(DEFAULT_SHADER_PATH) && std::filesystem::is_directory(DEFAULT_SHADER_PATH), "");
     for (const auto& entry : std::filesystem::directory_iterator(DEFAULT_SHADER_PATH)) {
 	const auto filename = entry.path().filename();
@@ -41,12 +44,14 @@ auto RenderContext::create_shaders() noexcept -> void {
 }
 
 auto RenderContext::cleanup_shaders() noexcept -> void {
+    ZoneScoped;
     for (auto [_, module] : shader_modules) {
 	vkDestroyShaderModule(device, module, NULL);
     }
 }
 
 auto RenderContext::create_raster_pipeline() noexcept -> void {
+    ZoneScoped;
     VkShaderModule vertex_shader = shader_modules["filter_vertex"];
     VkShaderModule fragment_shader = shader_modules["filter_fragment"];
 
@@ -191,12 +196,14 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 }
 
 auto RenderContext::cleanup_raster_pipeline() noexcept -> void {
+    ZoneScoped;
     vkDestroyPipeline(device, raster_pipeline, NULL);
     vkDestroyRenderPass(device, raster_render_pass, NULL);
     vkDestroyPipelineLayout(device, raster_pipeline_layout, NULL);
 }
 
 auto RenderContext::create_ray_trace_pipeline() noexcept -> void {
+    ZoneScoped;
     VkShaderModule rgen_shader = shader_modules["pbr_rgen"];
     VkShaderModule rmiss_shader = shader_modules["pbr_rmiss"];
     VkShaderModule rchit_shader = shader_modules["pbr_rchit"];
@@ -268,11 +275,13 @@ auto RenderContext::create_ray_trace_pipeline() noexcept -> void {
 }
 
 auto RenderContext::cleanup_ray_trace_pipeline() noexcept -> void {
+    ZoneScoped;
     vkDestroyPipeline(device, ray_trace_pipeline, NULL);
     vkDestroyPipelineLayout(device, ray_trace_pipeline_layout, NULL);
 }
 
 auto RenderContext::create_compute_pipeline() noexcept -> void {
+    ZoneScoped;
     VkShaderModule compute_shader = shader_modules["filter_atrous"];
 
     VkPipelineShaderStageCreateInfo compute_shader_stage_create_info {};
@@ -304,11 +313,13 @@ auto RenderContext::create_compute_pipeline() noexcept -> void {
 }
 
 auto RenderContext::cleanup_compute_pipeline() noexcept -> void {
+    ZoneScoped;
     vkDestroyPipeline(device, compute_pipeline, NULL);
     vkDestroyPipelineLayout(device, compute_pipeline_layout, NULL);
 }
 
 auto RenderContext::create_framebuffers() noexcept -> void {
+    ZoneScoped;
     swapchain_framebuffers.resize(swapchain_images.size());
 
     for (std::size_t i = 0; i < swapchain_framebuffers.size(); ++i) {
@@ -328,6 +339,7 @@ auto RenderContext::create_framebuffers() noexcept -> void {
 }
 
 auto RenderContext::cleanup_framebuffers() noexcept -> void {
+    ZoneScoped;
     for (auto framebuffer : swapchain_framebuffers) {
 	vkDestroyFramebuffer(device, framebuffer, NULL);
     }

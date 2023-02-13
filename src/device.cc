@@ -12,6 +12,8 @@
  * along with trace. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Tracy.hpp"
+
 #include "context.h"
 
 #ifndef RELEASE
@@ -31,6 +33,7 @@ static const char* device_extensions[] = {
 };
 
 auto RenderContext::create_instance() noexcept -> void {
+    ZoneScoped;
     VkApplicationInfo app_info {};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     app_info.pApplicationName = "trace";
@@ -59,10 +62,12 @@ auto RenderContext::create_instance() noexcept -> void {
 }
 
 auto RenderContext::create_surface() noexcept -> void {
+    ZoneScoped;
     ASSERT(glfwCreateWindowSurface(instance, window, NULL, &surface), "Couldn't create GLFW window surface.");
 }
 
 auto RenderContext::physical_check_queue_family(VkPhysicalDevice physical, VkQueueFlagBits bits) noexcept -> uint32_t {
+    ZoneScoped;
     uint32_t queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical, &queue_family_count, NULL);
     ASSERT(queue_family_count > 0, "No queue families.");
@@ -84,6 +89,7 @@ auto RenderContext::physical_check_queue_family(VkPhysicalDevice physical, VkQue
 }
 
 auto RenderContext::physical_check_extensions(VkPhysicalDevice physical) noexcept -> int32_t {
+    ZoneScoped;
     uint32_t extension_count = 0;
     vkEnumerateDeviceExtensionProperties(physical, NULL, &extension_count, NULL);
 
@@ -111,6 +117,7 @@ auto RenderContext::physical_check_extensions(VkPhysicalDevice physical) noexcep
 }
 
 auto RenderContext::physical_check_swapchain_support(VkPhysicalDevice specific_physical_device) noexcept -> SwapchainSupport {
+    ZoneScoped;
     uint32_t num_formats, num_present_modes;
     vkGetPhysicalDeviceSurfaceFormatsKHR(specific_physical_device, surface, &num_formats, NULL);
     vkGetPhysicalDeviceSurfacePresentModesKHR(specific_physical_device, surface, &num_present_modes, NULL);
@@ -124,6 +131,7 @@ auto RenderContext::physical_check_swapchain_support(VkPhysicalDevice specific_p
 }
 
 auto RenderContext::physical_check_features_support(VkPhysicalDevice physical) noexcept -> int32_t {
+    ZoneScoped;
     VkPhysicalDeviceBufferDeviceAddressFeatures buffer_device_address_features {};
     buffer_device_address_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
     buffer_device_address_features.pNext = NULL;
@@ -165,6 +173,7 @@ auto RenderContext::physical_check_features_support(VkPhysicalDevice physical) n
 }
 
 auto RenderContext::physical_score(const VkPhysicalDevice physical) noexcept -> int32_t {
+    ZoneScoped;
     VkPhysicalDeviceProperties device_properties;
     vkGetPhysicalDeviceProperties(physical, &device_properties);
 
@@ -213,6 +222,7 @@ auto RenderContext::physical_score(const VkPhysicalDevice physical) noexcept -> 
 }
 
 auto RenderContext::create_physical_device() noexcept -> void {
+    ZoneScoped;
     uint32_t device_count = 0;
     vkEnumeratePhysicalDevices(instance, &device_count, NULL);
     ASSERT(device_count > 0, "No physical devices.");
@@ -244,6 +254,7 @@ auto RenderContext::create_physical_device() noexcept -> void {
 }
 
 auto RenderContext::create_device() noexcept -> void {
+    ZoneScoped;
     const uint32_t queue_family = physical_check_queue_family(physical_device, (VkQueueFlagBits) (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT));
     ASSERT(queue_family, "Could not find queue family.");
 
@@ -303,13 +314,16 @@ auto RenderContext::create_device() noexcept -> void {
 }
 
 auto RenderContext::cleanup_instance() noexcept -> void {
+    ZoneScoped;
     vkDestroyInstance(instance, NULL);
 }
 
 auto RenderContext::cleanup_surface() noexcept -> void {
+    ZoneScoped;
     vkDestroySurfaceKHR(instance, surface, NULL);
 }
 
 auto RenderContext::cleanup_device() noexcept -> void {
+    ZoneScoped;
     vkDestroyDevice(device, NULL);
 }
