@@ -63,11 +63,11 @@ struct RenderContext {
     bool active = true, resized = false;
     uint32_t current_frame = 0;
 
-    glm::mat4 camera_matrix;
-    glm::mat4 last_frame_camera_matrix;
-    glm::vec3 camera_position;
     double camera_theta, camera_phi;
+    glm::vec3 camera_position;
     glm::vec3 view_dir;
+    glm::vec3 last_frame_camera_position;
+    glm::vec3 last_frame_view_dir;
     
     VkInstance instance;
     VkSurfaceKHR surface;
@@ -104,7 +104,7 @@ struct RenderContext {
     VkStridedDeviceAddressRegionKHR hit_sbt_region;
     VkStridedDeviceAddressRegionKHR call_sbt_region;
 
-    static constexpr uint32_t NUM_PROJECTION_ENTRIES = 11;
+    static constexpr uint32_t PROJECTION_BUFFER_SIZE = 256;
     Buffer projection_buffer;
     Image blue_noise_image;
     VkImageView blue_noise_image_view;

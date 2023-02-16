@@ -79,19 +79,14 @@ layout(set = 0, binding = 0) uniform lights_uniform {
 };
 
 layout(set = 0, binding = 1) uniform projection_uniform {
-    mat4 camera;
-    mat4 last_frame_camera;
-    mat4 inverse_camera;
-    mat4 last_frame_inverse_camera;
-    mat4 centered_camera;
-    mat4 last_frame_centered_camera;
-    mat4 inverse_centered_camera;
-    mat4 last_frame_inverse_centered_camera;
     vec3 camera_position;
-    vec2 camera_angles;
     vec3 view_dir;
     vec3 basis_right;
     vec3 basis_up;
+    vec3 last_frame_camera_position;
+    vec3 last_frame_view_dir;
+    vec3 last_frame_basis_right;
+    vec3 last_frame_basis_up;
 };
 
 layout(set = 0, binding = 2) uniform sampler2D textures[];
