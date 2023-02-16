@@ -201,6 +201,9 @@ auto RenderContext::ringbuffer_copy_projection_matrices_into_buffer() noexcept -
     glm::vec4 *data_vec = (glm::vec4 *) &data_mat[8];
     *((glm::vec3 *) &data_vec[0]) = camera_position;
     *((glm::vec2 *) &data_vec[1]) = glm::vec2((float) camera_phi, (float) camera_theta);
+    *((glm::vec3 *) &data_vec[2]) = view_dir;
+    *((glm::vec3 *) &data_vec[3]) = glm::normalize(glm::cross(view_dir, glm::vec3(0.0f, 0.0f, 1.0f)));
+    *((glm::vec3 *) &data_vec[4]) = glm::cross(view_dir, *((glm::vec3 *) &data_vec[3]));
     ringbuffer_submit_buffer(main_ring_buffer, projection_buffer);
 }
 

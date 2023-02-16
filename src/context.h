@@ -67,6 +67,7 @@ struct RenderContext {
     glm::mat4 last_frame_camera_matrix;
     glm::vec3 camera_position;
     double camera_theta, camera_phi;
+    glm::vec3 view_dir;
     
     VkInstance instance;
     VkSurfaceKHR surface;

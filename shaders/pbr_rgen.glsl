@@ -110,9 +110,6 @@ void main() {
     vec3 weight = vec3(1.0);
     
     vec3 ray_pos = camera_position;
-    vec3 view_dir = normalize(vec3(cos(camera_angles.x) * sin(camera_angles.y), sin(camera_angles.x) * sin(camera_angles.y), cos(camera_angles.y)));
-    vec3 basis_right = normalize(cross(view_dir, vec3(0.0, 0.0, 1.0)));
-    vec3 basis_up = cross(view_dir, basis_right);
     vec2 pixel_center_offset = vec2(gl_LaunchIDEXT.xy) - vec2(imageSize(ray_tracing_albedo_image)) / 2.0;
     vec3 ray_dir = normalize(view_dir * CAMERA_FOV_DIST + basis_right * pixel_center_offset.x + basis_up * pixel_center_offset.y);
 

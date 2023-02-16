@@ -89,6 +89,9 @@ layout(set = 0, binding = 1) uniform projection_uniform {
     mat4 last_frame_inverse_centered_camera;
     vec3 camera_position;
     vec2 camera_angles;
+    vec3 view_dir;
+    vec3 basis_right;
+    vec3 basis_up;
 };
 
 layout(set = 0, binding = 2) uniform sampler2D textures[];

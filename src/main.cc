@@ -112,9 +112,9 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	elapsed_time_subsecond += dt;
 	++num_frames_subsecond;
 	
-	const glm::vec3 view_dir = glm::vec3(sin(context.camera_theta) * cos(context.camera_phi), sin(context.camera_theta) * sin(context.camera_phi), cos(context.camera_theta));
+	context.view_dir = glm::vec3(sin(context.camera_theta) * cos(context.camera_phi), sin(context.camera_theta) * sin(context.camera_phi), cos(context.camera_theta));
 	context.last_frame_camera_matrix = context.camera_matrix;
-	context.camera_matrix = glm::lookAt(context.camera_position, context.camera_position + view_dir, glm::vec3(0.0f, 0.0f, 1.0f));
+	context.camera_matrix = glm::lookAt(context.camera_position, context.camera_position + context.view_dir, glm::vec3(0.0f, 0.0f, 1.0f));
 	context.push_constants.seed = context.current_frame;
 	context.push_constants.alpha = context.current_frame ? context.imgui_data.alpha : 0.0f;
 	context.push_constants.sigma_normal = context.imgui_data.sigma_normal;
