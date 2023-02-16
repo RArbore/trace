@@ -27,6 +27,7 @@ const float SURFACE_OFFSET = 0.002;
 const float FLOAT_MAX = 3.402823466e+38;
 const float FLOAT_MIN = 1.175494351e-38;
 const float FAR_AWAY = 1000.0;
+const float CAMERA_FOV_DIST = 500.0;
 
 #ifdef RAY_TRACING
 struct hit_payload {
@@ -78,8 +79,6 @@ layout(set = 0, binding = 0) uniform lights_uniform {
 };
 
 layout(set = 0, binding = 1) uniform projection_uniform {
-    mat4 perspective;
-    mat4 inverse_perspective;
     mat4 camera;
     mat4 last_frame_camera;
     mat4 inverse_camera;
@@ -89,6 +88,7 @@ layout(set = 0, binding = 1) uniform projection_uniform {
     mat4 inverse_centered_camera;
     mat4 last_frame_inverse_centered_camera;
     vec3 camera_position;
+    vec2 camera_angles;
 };
 
 layout(set = 0, binding = 2) uniform sampler2D textures[];

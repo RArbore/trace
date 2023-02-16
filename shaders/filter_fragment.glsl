@@ -23,15 +23,6 @@ layout(location = 0) out vec4 out_color;
 void main() {
     ivec2 pixel_coord = ivec2(gl_FragCoord.xy);
 
-    /*vec4 new_NDC = perspective * camera * vec4(new_sample.position, 1.0);
-    vec4 old_NDC = perspective * last_frame_camera * vec4(new_sample.position, 1.0);
-    vec3 new_device = new_NDC.xyz / new_NDC.w;
-    vec3 old_device = old_NDC.xyz / old_NDC.w;
-    vec2 device_velocity = new_device.xy - old_device.xy;
-
-    ivec2 reprojected_pixel_coord = device_coord_to_pixel_coord(pixel_coord_to_device_coord(pixel_coord) - device_velocity);
-    pixel_sample reprojected_sample = get_old_sample(reprojected_pixel_coord);*/
-
     pixel_sample new_sample = get_new_sample(pixel_coord);
     pixel_sample old_sample = get_old_sample(pixel_coord);
     float depth = length(new_sample.position - camera_position);

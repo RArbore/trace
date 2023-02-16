@@ -99,7 +99,8 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     double elapsed_time_subsecond = 0.0;
     uint32_t num_frames_subsecond = 0;
     double elapsed_time = 0.0;
-    double camera_theta = 3.0 * M_PI / 4.0, camera_phi = 5.0 * M_PI / 4.0;
+    context.camera_theta = 3.0 * M_PI / 4.0;
+    context.camera_phi = 5.0 * M_PI / 4.0;
     const double sensitivity = 100.0, move_speed = 5.0;
     FrameMark;
     while (context.active) {
@@ -111,7 +112,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	elapsed_time_subsecond += dt;
 	++num_frames_subsecond;
 	
-	const glm::vec3 view_dir = glm::vec3(sin(camera_theta) * cos(camera_phi), sin(camera_theta) * sin(camera_phi), cos(camera_theta));
+	const glm::vec3 view_dir = glm::vec3(sin(context.camera_theta) * cos(context.camera_phi), sin(context.camera_theta) * sin(context.camera_phi), cos(context.camera_theta));
 	context.last_frame_camera_matrix = context.camera_matrix;
 	context.camera_matrix = glm::lookAt(context.camera_position, context.camera_position + view_dir, glm::vec3(0.0f, 0.0f, 1.0f));
 	context.push_constants.seed = context.current_frame;
@@ -122,23 +123,23 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	    const double mouse_dx = context.mouse_x - context.last_mouse_x;
 	    const double mouse_dy = context.mouse_y - context.last_mouse_y;
 	    if (context.pressed_buttons[GLFW_MOUSE_BUTTON_LEFT] == GLFW_PRESS) {
-		camera_phi -= mouse_dx / sensitivity;
-		camera_theta += mouse_dy / sensitivity;
-		camera_theta = glm::clamp(camera_theta, 0.01, M_PI - 0.01);
-		if (camera_phi < 0.0) camera_phi += 2.0 * M_PI;
-		if (camera_phi >= 2.0 * M_PI) camera_phi -= 2.0 * M_PI;
+		context.camera_phi -= mouse_dx / sensitivity;
+		context.camera_theta += mouse_dy / sensitivity;
+		context.camera_theta = glm::clamp(context.camera_theta, 0.01, M_PI - 0.01);
+		if (context.camera_phi < 0.0) context.camera_phi += 2.0 * M_PI;
+		if (context.camera_phi >= 2.0 * M_PI) context.camera_phi -= 2.0 * M_PI;
 	    }
 	    if (context.pressed_keys[GLFW_KEY_W] == GLFW_PRESS) {
-		context.camera_position += (float) (dt * move_speed) * glm::vec3(cos(camera_phi), sin(camera_phi), 0.0);
+		context.camera_position += (float) (dt * move_speed) * glm::vec3(cos(context.camera_phi), sin(context.camera_phi), 0.0);
 	    }
 	    if (context.pressed_keys[GLFW_KEY_A] == GLFW_PRESS) {
-		context.camera_position += (float) (dt * move_speed) * glm::vec3(-sin(camera_phi), cos(camera_phi), 0.0);
+		context.camera_position += (float) (dt * move_speed) * glm::vec3(-sin(context.camera_phi), cos(context.camera_phi), 0.0);
 	    }
 	    if (context.pressed_keys[GLFW_KEY_S] == GLFW_PRESS) {
-		context.camera_position += (float) (dt * move_speed) * glm::vec3(-cos(camera_phi), -sin(camera_phi), 0.0);
+		context.camera_position += (float) (dt * move_speed) * glm::vec3(-cos(context.camera_phi), -sin(context.camera_phi), 0.0);
 	    }
 	    if (context.pressed_keys[GLFW_KEY_D] == GLFW_PRESS) {
-		context.camera_position += (float) (dt * move_speed) * glm::vec3(sin(camera_phi), -cos(camera_phi), 0.0);
+		context.camera_position += (float) (dt * move_speed) * glm::vec3(sin(context.camera_phi), -cos(context.camera_phi), 0.0);
 	    }
 	    if (context.pressed_keys[GLFW_KEY_LEFT_SHIFT] == GLFW_PRESS) {
 		context.camera_position += (float) (dt * move_speed) * glm::vec3(0.0, 0.0, -1.0);
