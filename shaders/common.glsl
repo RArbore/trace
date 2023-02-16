@@ -112,6 +112,10 @@ layout(set = 1, binding = 9, rgba32f) uniform image2D last_frame_lighting_image;
 layout(set = 1, binding = 10, rgba16f) uniform image2D last_frame_position_image;
 layout(set = 1, binding = 11, rgba8) uniform image2D last_frame_normal_image;
 
+layout(set = 1, binding = 12) uniform sampler2D ray_tracing_lighting1_texture;
+layout(set = 1, binding = 13) uniform sampler2D ray_tracing_lighting2_texture;
+layout(set = 1, binding = 14) uniform sampler2D last_frame_lighting_texture;
+
 #ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };
 layout(buffer_reference, scalar) buffer indices_buf {uvec3 i[]; };

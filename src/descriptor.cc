@@ -183,6 +183,15 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
 	ray_trace_image_layout_bindings[i].pImmutableSamplers = NULL;
 	ray_trace_image_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
     }
+
+    VkDescriptorSetLayoutBinding ray_trace_texture_layout_bindings[3];
+    for (uint32_t i = 0; i < 3; ++i) {
+	ray_trace_texture_layout_bindings[i].binding = 12 + i;
+	ray_trace_texture_layout_bindings[i].descriptorCount = 1;
+	ray_trace_texture_layout_bindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	ray_trace_texture_layout_bindings[i].pImmutableSamplers = NULL;
+	ray_trace_texture_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+    }
     
     VkDescriptorSetLayoutBinding bindings[] = {
 	tlas_layout_binding,
@@ -197,6 +206,9 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
 	ray_trace_image_layout_bindings[6],
 	ray_trace_image_layout_bindings[7],
 	ray_trace_image_layout_bindings[8],
+	ray_trace_texture_layout_bindings[0],
+	ray_trace_texture_layout_bindings[1],
+	ray_trace_texture_layout_bindings[2],
     };
     
     VkDescriptorSetLayoutCreateInfo layout_create_info {};
@@ -399,4 +411,17 @@ auto RenderContext::update_descriptors_ray_trace_images() noexcept -> void {
 	descriptor_image_info.imageView = last_frame_image_views[i];
 	vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
     }
+
+    descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    descriptor_image_info.sampler = sampler;
+    write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    write_descriptor_set.dstBinding = 12;
+    descriptor_image_info.imageView = ray_trace_image_views[1];
+    vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
+    write_descriptor_set.dstBinding = 13;
+    descriptor_image_info.imageView = ray_trace_image_views[2];
+    vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
+    write_descriptor_set.dstBinding = 14;
+    descriptor_image_info.imageView = last_frame_image_views[1];
+    vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
 }
