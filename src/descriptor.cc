@@ -412,7 +412,7 @@ auto RenderContext::update_descriptors_ray_trace_images() noexcept -> void {
 	vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
     }
 
-    descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
     descriptor_image_info.sampler = sampler;
     write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     write_descriptor_set.dstBinding = 12;

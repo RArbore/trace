@@ -22,12 +22,22 @@ layout(location = 0) out vec4 out_color;
 
 void main() {
     vec2 pixel_coord = gl_FragCoord.xy;
-
     pixel_sample new_sample = get_new_sample(pixel_coord);
 
-    pixel_sample reprojected_sample = get_old_sample(pixel_coord);
+    pixel_sample reprojected_sample;
+    bool moved_camera = view_dir != last_frame_view_dir || camera_position != last_frame_camera_position;
+    if (moved_camera) {
+	vec3 last_frame_ray_dir = normalize(new_sample.position - last_frame_camera_position);
+	last_frame_ray_dir *= CAMERA_FOV_DIST / dot(last_frame_ray_dir, last_frame_view_dir);
+	vec2 last_frame_pixel_center_offset = vec2(dot(last_frame_ray_dir, last_frame_basis_right), dot(last_frame_ray_dir, last_frame_basis_up));
+	vec2 last_frame_pixel_coord = last_frame_pixel_center_offset + vec2(imageSize(ray_tracing_albedo_image)) / 2.0;
+	reprojected_sample = get_old_sample(last_frame_pixel_coord);
+    } else {
+	reprojected_sample = get_old_sample(pixel_coord);
+    }
+
     float depth = length(new_sample.position - camera_position);
-    bool blend = view_dir == last_frame_view_dir && camera_position == last_frame_camera_position;
+    bool blend = true;
     vec3 blended_lighting = mix(reprojected_sample.lighting, new_sample.lighting, alpha);
     pixel_sample blended_sample = new_sample;
     blended_sample.lighting = blend ? blended_lighting : new_sample.lighting;
