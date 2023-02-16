@@ -21,13 +21,14 @@
 layout(location = 0) out vec4 out_color;
 
 void main() {
-    ivec2 pixel_coord = ivec2(gl_FragCoord.xy);
+    vec2 pixel_coord = gl_FragCoord.xy;
 
     pixel_sample new_sample = get_new_sample(pixel_coord);
-    pixel_sample old_sample = get_old_sample(pixel_coord);
+
+    pixel_sample reprojected_sample = get_old_sample(pixel_coord);
     float depth = length(new_sample.position - camera_position);
     bool blend = view_dir == last_frame_view_dir && camera_position == last_frame_camera_position;
-    vec3 blended_lighting = mix(old_sample.lighting, new_sample.lighting, alpha);
+    vec3 blended_lighting = mix(reprojected_sample.lighting, new_sample.lighting, alpha);
     pixel_sample blended_sample = new_sample;
     blended_sample.lighting = blend ? blended_lighting : new_sample.lighting;
     
