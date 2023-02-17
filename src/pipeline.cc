@@ -52,8 +52,8 @@ auto RenderContext::cleanup_shaders() noexcept -> void {
 
 auto RenderContext::create_raster_pipeline() noexcept -> void {
     ZoneScoped;
-    VkShaderModule vertex_shader = shader_modules["filter_vertex"];
-    VkShaderModule fragment_shader = shader_modules["filter_fragment"];
+    VkShaderModule vertex_shader = shader_modules["vertex_quad"];
+    VkShaderModule fragment_shader = shader_modules["filter_taa"];
 
     VkPipelineShaderStageCreateInfo vertex_shader_stage_create_info {};
     vertex_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -75,6 +75,16 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     vertex_input_create_info.pVertexBindingDescriptions = NULL;
     vertex_input_create_info.vertexAttributeDescriptionCount = 0;
     vertex_input_create_info.pVertexAttributeDescriptions = NULL;
+
+    auto binding_descriptions = Scene::binding_descriptions();
+    auto attribute_descriptions = Scene::attribute_descriptions();
+
+    VkPipelineVertexInputStateCreateInfo motion_vector_vertex_input_create_info {};
+    motion_vector_vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    motion_vector_vertex_input_create_info.vertexBindingDescriptionCount = binding_descriptions.size();
+    motion_vector_vertex_input_create_info.pVertexBindingDescriptions = binding_descriptions.data();
+    motion_vector_vertex_input_create_info.vertexAttributeDescriptionCount = attribute_descriptions.size();
+    motion_vector_vertex_input_create_info.pVertexAttributeDescriptions = attribute_descriptions.data();
 
     VkPipelineInputAssemblyStateCreateInfo input_assembly_create_info {};
     input_assembly_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -175,6 +185,14 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     ASSERT(vkCreateRenderPass(device, &render_pass_create_info, NULL, &raster_render_pass), "Unable to create raster render pass.");
 
+    color_attachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    subpass_dependency.srcAccessMask = 0;
+    subpass_dependency.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    subpass_dependency.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    ASSERT(vkCreateRenderPass(device, &render_pass_create_info, NULL, &motion_vector_render_pass), "Unable to create motion vector render pass.");
+
     VkGraphicsPipelineCreateInfo raster_pipeline_create_info {};
     raster_pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     raster_pipeline_create_info.stageCount = 2;
@@ -193,12 +211,19 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     raster_pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
 
     ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &raster_pipeline_create_info, NULL, &raster_pipeline), "Unable to create raster pipeline.");
+
+    raster_pipeline_create_info.pVertexInputState = &motion_vector_vertex_input_create_info;
+    raster_pipeline_create_info.renderPass = motion_vector_render_pass;
+
+    ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &raster_pipeline_create_info, NULL, &motion_vector_pipeline), "Unable to create motion vector pipeline.");
 }
 
 auto RenderContext::cleanup_raster_pipeline() noexcept -> void {
     ZoneScoped;
     vkDestroyPipeline(device, raster_pipeline, NULL);
     vkDestroyRenderPass(device, raster_render_pass, NULL);
+    vkDestroyPipeline(device, motion_vector_pipeline, NULL);
+    vkDestroyRenderPass(device, motion_vector_render_pass, NULL);
     vkDestroyPipelineLayout(device, raster_pipeline_layout, NULL);
 }
 

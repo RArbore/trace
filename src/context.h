@@ -89,8 +89,8 @@ struct RenderContext {
 
     std::map<std::string, VkShaderModule> shader_modules;
     VkPipelineLayout raster_pipeline_layout;
-    VkRenderPass raster_render_pass;
-    VkPipeline raster_pipeline;
+    VkRenderPass raster_render_pass, motion_vector_render_pass;
+    VkPipeline raster_pipeline, motion_vector_pipeline;
 
     std::vector<VkRayTracingShaderGroupCreateInfoKHR> ray_trace_shader_groups;
     VkPipelineLayout ray_trace_pipeline_layout;
