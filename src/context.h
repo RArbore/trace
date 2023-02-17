@@ -150,7 +150,7 @@ struct RenderContext {
     std::array<bool, GLFW_KEY_LAST + 1> last_pressed_keys;
 
     auto init() noexcept -> void;
-    auto render() noexcept -> void;
+    auto render(const Scene &scene) noexcept -> void;
     auto cleanup() noexcept -> void;
 
     auto create_instance() noexcept -> void;
@@ -216,7 +216,7 @@ struct RenderContext {
     auto create_image_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
     auto cleanup_image_view(VkImageView view) noexcept -> void;
 
-    auto record_render_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void;
+    auto record_render_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, const Scene &scene) noexcept -> void;
 
     auto create_semaphore() noexcept -> VkSemaphore;
     auto create_fence() noexcept -> VkFence;

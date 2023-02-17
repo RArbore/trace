@@ -16,7 +16,7 @@
 #pragma shader_stage(compute)
 #extension GL_GOOGLE_include_directive : enable
 
-layout (local_size_x = 16, local_size_y = 16) in;
+layout (local_size_x = 32, local_size_y = 32) in;
 
 #include "common.glsl"
 
