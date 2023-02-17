@@ -19,6 +19,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_scalar_block_layout : require
+#define FILTER_SAMPLE 0
 
 const float PI = 3.14159265358979;
 const uint NUM_BOUNCES = 3;
@@ -170,13 +171,23 @@ vec2 device_coord_to_pixel_coord(vec2 device_coord) {
 }
 
 pixel_sample get_new_sample(vec2 pixel_coord) {
+#if FILTER_SAMPLE
     vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
+#endif
     pixel_sample s;
     s.albedo = imageLoad(ray_tracing_albedo_image, ivec2(pixel_coord)).xyz;
     if (filter_iter % 2 == 0) {
+#if FILTER_SAMPLE
 	s.lighting = texture(ray_tracing_lighting1_texture, uv).xyz;
+#else
+	s.lighting = imageLoad(ray_tracing_lighting1_image, ivec2(pixel_coord)).xyz;
+#endif
     } else {
+#if FILTER_SAMPLE
 	s.lighting = texture(ray_tracing_lighting2_texture, uv).xyz;
+#else
+	s.lighting = imageLoad(ray_tracing_lighting2_image, ivec2(pixel_coord)).xyz;
+#endif
     }
     s.position = imageLoad(ray_tracing_position_image, ivec2(pixel_coord)).xyz;
     s.normal = imageLoad(ray_tracing_normal_image, ivec2(pixel_coord)).xyz * 2.0 - 1.0;
@@ -184,10 +195,16 @@ pixel_sample get_new_sample(vec2 pixel_coord) {
 }
 
 pixel_sample get_old_sample(vec2 pixel_coord) {
+#if FILTER_SAMPLE
     vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
+#endif
     pixel_sample s;
     s.albedo = imageLoad(last_frame_albedo_image, ivec2(pixel_coord)).xyz;
+#if FILTER_SAMPLE
     s.lighting = texture(last_frame_lighting_texture, uv).xyz;
+#else
+    s.lighting = imageLoad(last_frame_lighting_image, ivec2(pixel_coord)).xyz;
+#endif
     s.position = imageLoad(last_frame_position_image, ivec2(pixel_coord)).xyz;
     s.normal = imageLoad(last_frame_normal_image, ivec2(pixel_coord)).xyz * 2.0 - 1.0;
     return s;
