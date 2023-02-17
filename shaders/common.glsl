@@ -80,6 +80,16 @@ layout(set = 0, binding = 0) uniform lights_uniform {
 };
 
 layout(set = 0, binding = 1) uniform projection_uniform {
+    mat4 perspective;
+    mat4 inverse_perspective;
+    mat4 camera;
+    mat4 last_frame_camera;
+    mat4 inverse_camera;
+    mat4 inverse_last_frame_camera;
+    mat4 centered_camera;
+    mat4 centered_last_frame_camera;
+    mat4 centered_inverse_camera;
+    mat4 centered_inverse_last_frame_camera;
     vec3 camera_position;
     vec3 view_dir;
     vec3 basis_right;

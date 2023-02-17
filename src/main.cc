@@ -114,7 +114,9 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	
 	context.last_frame_view_dir = context.view_dir;
 	context.last_frame_camera_position = context.camera_position;
+	context.last_frame_camera_matrix = context.camera_matrix;
 	context.view_dir = glm::vec3(sin(context.camera_theta) * cos(context.camera_phi), sin(context.camera_theta) * sin(context.camera_phi), cos(context.camera_theta));
+	context.camera_matrix = glm::lookAt(context.camera_position, context.camera_position + context.view_dir, glm::vec3(0.0f, 0.0f, 1.0f));
 	context.push_constants.seed = context.current_frame;
 	context.push_constants.alpha = context.current_frame ? context.imgui_data.alpha : 0.0f;
 	context.push_constants.sigma_normal = context.imgui_data.sigma_normal;
@@ -151,6 +153,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	if (!context.current_frame) {
 	    context.last_frame_view_dir = context.view_dir;
 	    context.last_frame_camera_position = context.camera_position;
+	    context.last_frame_camera_matrix = context.camera_matrix;
 	}
 	context.last_pressed_keys = context.pressed_keys;
 
