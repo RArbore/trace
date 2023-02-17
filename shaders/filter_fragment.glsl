@@ -23,7 +23,6 @@ layout(location = 0) out vec4 out_color;
 void main() {
     vec2 pixel_coord = gl_FragCoord.xy;
     pixel_sample new_sample = get_new_sample(pixel_coord);
-
     pixel_sample reprojected_sample = get_old_sample(pixel_coord);
 
     float depth = length(new_sample.position - camera_position);

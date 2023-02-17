@@ -109,9 +109,9 @@ void main() {
     vec3 outward_radiance = vec3(0.0);
     vec3 weight = vec3(1.0);
     
+    vec2 device_coord = pixel_coord_to_device_coord(gl_LaunchIDEXT.xy);
     vec3 ray_pos = camera_position;
-    vec2 pixel_center_offset = vec2(gl_LaunchIDEXT.xy) - vec2(imageSize(ray_tracing_albedo_image)) / 2.0;
-    vec3 ray_dir = normalize(view_dir * CAMERA_FOV_DIST + basis_right * pixel_center_offset.x + basis_up * pixel_center_offset.y);
+    vec3 ray_dir = normalize((centered_inverse_camera * inverse_perspective * vec4(device_coord, 0.0, 1.0)).xyz);
 
     hit_payload hits[NUM_BOUNCES];
     vec3 first_hit_albedo = vec3(1.0);

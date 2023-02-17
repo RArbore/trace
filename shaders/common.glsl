@@ -28,7 +28,6 @@ const float SURFACE_OFFSET = 0.002;
 const float FLOAT_MAX = 3.402823466e+38;
 const float FLOAT_MIN = 1.175494351e-38;
 const float FAR_AWAY = 1000.0;
-const float CAMERA_FOV_DIST = 500.0;
 
 #ifdef RAY_TRACING
 struct hit_payload {
