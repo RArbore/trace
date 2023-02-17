@@ -201,6 +201,7 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     ASSERT(vkCreateRenderPass(device, &render_pass_create_info, NULL, &raster_render_pass), "Unable to create raster render pass.");
 
+    color_attachment.format = VK_FORMAT_R16G16_SFLOAT;
     color_attachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     subpass_dependency.srcAccessMask = 0;
@@ -365,19 +366,28 @@ auto RenderContext::create_framebuffers() noexcept -> void {
     swapchain_framebuffers.resize(swapchain_images.size());
 
     for (std::size_t i = 0; i < swapchain_framebuffers.size(); ++i) {
-	VkImageView attachments[] = {swapchain_image_views[i]};
-
 	VkFramebufferCreateInfo create_info {};
 	create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	create_info.renderPass = raster_render_pass;
 	create_info.attachmentCount = 1;
-	create_info.pAttachments = attachments;
+	create_info.pAttachments = &swapchain_image_views[i];
 	create_info.width = swapchain_extent.width;
 	create_info.height = swapchain_extent.height;
 	create_info.layers = 1;
 
 	ASSERT(vkCreateFramebuffer(device, &create_info, NULL, &swapchain_framebuffers[i]), "Unable to create framebuffer.");
     }
+
+    VkFramebufferCreateInfo create_info {};
+    create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    create_info.renderPass = motion_vector_render_pass;
+    create_info.attachmentCount = 1;
+    create_info.pAttachments = &motion_vector_image_view;
+    create_info.width = swapchain_extent.width;
+    create_info.height = swapchain_extent.height;
+    create_info.layers = 1;
+    
+    ASSERT(vkCreateFramebuffer(device, &create_info, NULL, &motion_vector_framebuffer), "Unable to create framebuffer.");
 }
 
 auto RenderContext::cleanup_framebuffers() noexcept -> void {
@@ -385,4 +395,5 @@ auto RenderContext::cleanup_framebuffers() noexcept -> void {
     for (auto framebuffer : swapchain_framebuffers) {
 	vkDestroyFramebuffer(device, framebuffer, NULL);
     }
+    vkDestroyFramebuffer(device, motion_vector_framebuffer, NULL);
 }

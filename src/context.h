@@ -109,6 +109,9 @@ struct RenderContext {
     Buffer projection_buffer;
     Image blue_noise_image;
     VkImageView blue_noise_image_view;
+    Image motion_vector_image;
+    VkImageView motion_vector_image_view;
+    VkFramebuffer motion_vector_framebuffer;
     PushConstants push_constants;
     RingBuffer main_ring_buffer;
 

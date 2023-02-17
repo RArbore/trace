@@ -175,6 +175,9 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 	    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
 	}
     });
+
+    motion_vector_image = create_image(0, VK_FORMAT_R16G16_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "MOTION_VECTORS_IMAGE");
+    motion_vector_image_view = create_image_view(motion_vector_image.image, VK_FORMAT_R16G16_SFLOAT, subresource_range);
 }
 
 auto RenderContext::cleanup_ray_trace_images() noexcept -> void {
@@ -188,6 +191,9 @@ auto RenderContext::cleanup_ray_trace_images() noexcept -> void {
 	cleanup_image_view(last_frame_image_views[i]);
 	cleanup_image(last_frame_images[i]);
     }
+
+    cleanup_image(motion_vector_image);
+    cleanup_image_view(motion_vector_image_view);
 }
 
 auto RenderContext::recreate_swapchain() noexcept -> void {
