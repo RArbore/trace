@@ -51,11 +51,13 @@ auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer,
 
     ASSERT(vkBeginCommandBuffer(command_buffer, &begin_info), "Unable to begin recording command buffer.");
 
-    VkClearValue clear_values;
-    clear_values.color.float32[0] = 0.0f / 100.0f;
-    clear_values.color.float32[1] = 0.0f / 100.0f;
-    clear_values.color.float32[2] = 0.0f / 100.0f;
-    clear_values.color.float32[3] = 1.0f;
+    VkClearValue clear_values[2];
+    clear_values[0].color.float32[0] = 0.0f / 100.0f;
+    clear_values[0].color.float32[1] = 0.0f / 100.0f;
+    clear_values[0].color.float32[2] = 0.0f / 100.0f;
+    clear_values[0].color.float32[3] = 1.0f;
+    clear_values[1].depthStencil.depth = 1.0f;
+    clear_values[1].depthStencil.stencil = 0;
 
     VkViewport viewport {};
     viewport.x = 0.0f;
@@ -77,8 +79,8 @@ auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer,
     render_pass_begin_info.renderArea.offset.x = 0;
     render_pass_begin_info.renderArea.offset.y = 0;
     render_pass_begin_info.renderArea.extent = swapchain_extent;
-    render_pass_begin_info.clearValueCount = 1;
-    render_pass_begin_info.pClearValues = &clear_values;
+    render_pass_begin_info.clearValueCount = 2;
+    render_pass_begin_info.pClearValues = clear_values;
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, motion_vector_pipeline);
     vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
@@ -122,6 +124,7 @@ auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer,
     }
     push_constants.filter_iter = imgui_data.num_filter_iters % 2;
 
+    render_pass_begin_info.clearValueCount = 1;
     render_pass_begin_info.renderPass = raster_render_pass;
     render_pass_begin_info.framebuffer = swapchain_framebuffers[image_index];
 

@@ -176,8 +176,12 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 	}
     });
 
-    motion_vector_image = create_image(0, VK_FORMAT_R16G16_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "MOTION_VECTORS_IMAGE");
-    motion_vector_image_view = create_image_view(motion_vector_image.image, VK_FORMAT_R16G16_SFLOAT, subresource_range);
+    motion_vector_image = create_image(0, VK_FORMAT_R32G32_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "MOTION_VECTORS_IMAGE");
+    motion_vector_image_view = create_image_view(motion_vector_image.image, VK_FORMAT_R32G32_SFLOAT, subresource_range);
+
+    subresource_range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    motion_vector_depth_image = create_image(0, VK_FORMAT_D32_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "MOTION_VECTORS_IMAGE");
+    motion_vector_depth_image_view = create_image_view(motion_vector_depth_image.image, VK_FORMAT_D32_SFLOAT, subresource_range);
 }
 
 auto RenderContext::cleanup_ray_trace_images() noexcept -> void {
@@ -194,6 +198,9 @@ auto RenderContext::cleanup_ray_trace_images() noexcept -> void {
 
     cleanup_image(motion_vector_image);
     cleanup_image_view(motion_vector_image_view);
+
+    cleanup_image(motion_vector_depth_image);
+    cleanup_image_view(motion_vector_depth_image_view);
 }
 
 auto RenderContext::recreate_swapchain() noexcept -> void {

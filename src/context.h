@@ -111,6 +111,8 @@ struct RenderContext {
     VkImageView blue_noise_image_view;
     Image motion_vector_image;
     VkImageView motion_vector_image_view;
+    Image motion_vector_depth_image;
+    VkImageView motion_vector_depth_image_view;
     VkFramebuffer motion_vector_framebuffer;
     PushConstants push_constants;
     RingBuffer main_ring_buffer;
