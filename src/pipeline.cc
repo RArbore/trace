@@ -52,8 +52,10 @@ auto RenderContext::cleanup_shaders() noexcept -> void {
 
 auto RenderContext::create_raster_pipeline() noexcept -> void {
     ZoneScoped;
-    VkShaderModule vertex_shader = shader_modules["vertex_quad"];
-    VkShaderModule fragment_shader = shader_modules["filter_taa"];
+    VkShaderModule vertex_shader = shader_modules["taa_vertex"];
+    VkShaderModule fragment_shader = shader_modules["taa_fragment"];
+    VkShaderModule motion_vector_vertex_shader = shader_modules["motion_vector_vertex"];
+    VkShaderModule motion_vector_fragment_shader = shader_modules["motion_vector_fragment"];
 
     VkPipelineShaderStageCreateInfo vertex_shader_stage_create_info {};
     vertex_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -68,6 +70,20 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     fragment_shader_stage_create_info.pName = "main";
 
     VkPipelineShaderStageCreateInfo shader_stage_create_infos[] = {vertex_shader_stage_create_info, fragment_shader_stage_create_info};
+
+    VkPipelineShaderStageCreateInfo motion_vector_vertex_shader_stage_create_info {};
+    motion_vector_vertex_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    motion_vector_vertex_shader_stage_create_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    motion_vector_vertex_shader_stage_create_info.module = motion_vector_vertex_shader;
+    motion_vector_vertex_shader_stage_create_info.pName = "main";
+
+    VkPipelineShaderStageCreateInfo motion_vector_fragment_shader_stage_create_info {};
+    motion_vector_fragment_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    motion_vector_fragment_shader_stage_create_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    motion_vector_fragment_shader_stage_create_info.module = motion_vector_fragment_shader;
+    motion_vector_fragment_shader_stage_create_info.pName = "main";
+
+    VkPipelineShaderStageCreateInfo motion_vector_shader_stage_create_infos[] = {motion_vector_vertex_shader_stage_create_info, motion_vector_fragment_shader_stage_create_info};
 
     VkPipelineVertexInputStateCreateInfo vertex_input_create_info {};
     vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -212,6 +228,7 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &raster_pipeline_create_info, NULL, &raster_pipeline), "Unable to create raster pipeline.");
 
+    raster_pipeline_create_info.pStages = motion_vector_shader_stage_create_infos;
     raster_pipeline_create_info.pVertexInputState = &motion_vector_vertex_input_create_info;
     raster_pipeline_create_info.renderPass = motion_vector_render_pass;
 
