@@ -215,6 +215,7 @@ auto RenderContext::recreate_swapchain() noexcept -> void {
     create_framebuffers();
 
     update_descriptors_ray_trace_images();
+    update_descriptors_motion_vector_texture();
 
     recreate_imgui();
 }

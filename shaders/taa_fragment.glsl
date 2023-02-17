@@ -18,15 +18,20 @@
 
 #include "common.glsl"
 
+layout(location = 0) in vec2 in_position;
+
 layout(location = 0) out vec4 out_color;
 
 void main() {
+    vec2 fragment_UV = in_position * 0.5 + 0.5;
+    vec2 motion_vector = texture(motion_vector_texture, fragment_UV).xy;
+    
     vec2 pixel_coord = gl_FragCoord.xy;
     pixel_sample new_sample = get_new_sample(pixel_coord);
-    pixel_sample reprojected_sample = get_old_sample(pixel_coord);
+    pixel_sample reprojected_sample = get_old_sample(pixel_coord - motion_vector);
 
     float depth = length(new_sample.position - camera_position);
-    bool blend = view_dir == last_frame_view_dir && camera_position == last_frame_camera_position;
+    bool blend = dot(new_sample.normal, reprojected_sample.normal) > 0.95 && length(new_sample.position - reprojected_sample.position) < 0.1;
     vec3 blended_lighting = mix(reprojected_sample.lighting, new_sample.lighting, alpha);
     pixel_sample blended_sample = new_sample;
     blended_sample.lighting = blend ? blended_lighting : new_sample.lighting;

@@ -91,6 +91,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     context.build_top_level_acceleration_structure_for_scene(scene);
     context.update_descriptors_tlas(scene);
     context.update_descriptors_ray_trace_objects(scene);
+    context.update_descriptors_motion_vector_texture();
     
     //const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
     context.camera_position = glm::vec3(3.0f, 3.0f, 4.0f);

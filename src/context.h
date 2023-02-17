@@ -252,6 +252,7 @@ struct RenderContext {
     auto update_descriptors_ray_trace_images() noexcept -> void;
     auto update_descriptors_ray_trace_objects(const Scene &scene) noexcept -> void;
     auto update_descriptors_blue_noise_images() noexcept -> void;
+    auto update_descriptors_motion_vector_texture() noexcept -> void;
 
     auto get_device_address(const Buffer &buffer) noexcept -> VkDeviceAddress;
     auto get_device_address(const VkAccelerationStructureKHR &acceleration_structure) noexcept -> VkDeviceAddress;
