@@ -221,6 +221,23 @@ pixel_sample get_old_sample(vec2 pixel_coord) {
     return s;
 }
 
+vec3 get_new_lighting(vec2 pixel_coord) {
+#if FILTER_SAMPLE
+    vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
+    if (filter_iter % 2 == 0) {
+	return texture(ray_tracing_lighting1_texture, uv).xyz;
+    } else {
+	return texture(ray_tracing_lighting2_texture, uv).xyz;
+    }
+#else
+    if (filter_iter % 2 == 0) {
+	return imageLoad(ray_tracing_lighting1_image, ivec2(pixel_coord)).xyz;
+    } else {
+	return imageLoad(ray_tracing_lighting2_image, ivec2(pixel_coord)).xyz;
+    }
+#endif
+}
+
 void set_new_lighting(vec3 lighting, vec2 pixel_coord) {
     if (filter_iter % 2 == 0) {
 	imageStore(ray_tracing_lighting2_image, ivec2(pixel_coord), vec4(lighting, 1.0));

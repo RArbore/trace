@@ -23,15 +23,39 @@ layout(location = 0) in vec2 in_position;
 layout(location = 0) out vec4 out_color;
 
 void main() {
+    /*
     vec2 fragment_UV = in_position * 0.5 + 0.5;
     vec2 motion_vector = texture(motion_vector_texture, fragment_UV).xy;
     
     vec2 pixel_coord = gl_FragCoord.xy;
     pixel_sample new_sample = get_new_sample(pixel_coord);
     pixel_sample reprojected_sample = get_old_sample(pixel_coord - motion_vector);
+    vec3 min_lighting = vec3(FLOAT_MAX);
+    vec3 max_lighting = vec3(0.0);
+    for (float x = -1.0; x <= 1.0; x += 1.0) {
+	for (float y = -1.0; y <= 1.0; y += 1.0) {
+	    min_lighting = min(min_lighting, get_new_lighting(pixel_coord + vec2(x, y)));
+	    max_lighting = max(max_lighting, get_new_lighting(pixel_coord + vec2(x, y)));
+	}
+    }
 
-    float depth = length(new_sample.position - camera_position);
-    bool blend = dot(new_sample.normal, reprojected_sample.normal) > 0.95 && length(new_sample.position - reprojected_sample.position) < 0.1;
+    bool blend =
+	dot(new_sample.normal, reprojected_sample.normal) > 0.95 &&
+	length(new_sample.position - reprojected_sample.position) < 0.1 &&
+	clamp(reprojected_sample.lighting, min_lighting, max_lighting) == reprojected_sample.lighting;
+    vec3 blended_lighting = mix(reprojected_sample.lighting, new_sample.lighting, alpha);
+    pixel_sample blended_sample = new_sample;
+    blended_sample.lighting = blend ? blended_lighting : new_sample.lighting;
+    
+    set_old_sample(blended_sample, pixel_coord);
+    out_color = sample_to_color(blended_sample);
+    */
+
+    vec2 pixel_coord = gl_FragCoord.xy;
+    pixel_sample new_sample = get_new_sample(pixel_coord);
+    pixel_sample reprojected_sample = get_old_sample(pixel_coord);
+
+    bool blend = last_frame_camera == camera;
     vec3 blended_lighting = mix(reprojected_sample.lighting, new_sample.lighting, alpha);
     pixel_sample blended_sample = new_sample;
     blended_sample.lighting = blend ? blended_lighting : new_sample.lighting;
