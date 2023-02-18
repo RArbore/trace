@@ -81,6 +81,26 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 							      );
     scene.add_object(glm::scale(glm::mat4(1), glm::vec3(10.0f, 10.0f, 1.0f)), model_id_floor);
     
+    const uint16_t model_id_wall = context.load_custom_model(
+							      {
+								  {{-1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+        							  {{-1.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+								  {{-1.0f, -1.0f, 2.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
+								  {{-1.0f, 1.0f, 2.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
+							      },
+        						      {
+								  0, 1, 2,
+								  1, 3, 2,
+							      },
+							      250,
+							      150,
+							      250,
+							      200,
+							      20,
+							      scene
+							      );
+    scene.add_object(glm::scale(glm::mat4(1), glm::vec3(10.0f, 10.0f, 10.0f)), model_id_wall);
+    
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors_lights(scene);
     context.update_descriptors_perspective();
@@ -88,6 +108,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     context.build_bottom_level_acceleration_structure_for_model(model_id_red_dragon, scene);
     context.build_bottom_level_acceleration_structure_for_model(model_id_blue_dragon, scene);
     context.build_bottom_level_acceleration_structure_for_model(model_id_floor, scene);
+    context.build_bottom_level_acceleration_structure_for_model(model_id_wall, scene);
     context.build_top_level_acceleration_structure_for_scene(scene);
     context.update_descriptors_tlas(scene);
     context.update_descriptors_ray_trace_objects(scene);
@@ -118,10 +139,11 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	context.last_frame_camera_matrix = context.camera_matrix;
 	context.view_dir = glm::vec3(sin(context.camera_theta) * cos(context.camera_phi), sin(context.camera_theta) * sin(context.camera_phi), cos(context.camera_theta));
 	context.camera_matrix = glm::lookAt(context.camera_position, context.camera_position + context.view_dir, glm::vec3(0.0f, 0.0f, 1.0f));
-	context.push_constants.seed = context.current_frame;
+	context.push_constants.current_frame = context.current_frame;
 	context.push_constants.alpha = context.current_frame ? context.imgui_data.alpha : 0.0f;
 	context.push_constants.sigma_normal = context.imgui_data.sigma_normal;
 	context.push_constants.sigma_position = context.imgui_data.sigma_position;
+	context.push_constants.num_filter_iters = context.imgui_data.num_filter_iters;
 	if (!context.is_using_imgui()) {
 	    const double mouse_dx = context.mouse_x - context.last_mouse_x;
 	    const double mouse_dy = context.mouse_y - context.last_mouse_y;

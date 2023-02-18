@@ -133,21 +133,12 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 	VK_FORMAT_R16G16B16A16_SFLOAT,
 	VK_FORMAT_R8G8B8A8_UNORM
     };
-    VkFormat last_frame_formats[4] = {
-	VK_FORMAT_R8G8B8A8_UNORM,
-	VK_FORMAT_R32G32B32A32_SFLOAT,
-	VK_FORMAT_R16G16B16A16_SFLOAT,
-	VK_FORMAT_R8G8B8A8_UNORM
-    };
 
     for (uint32_t i = 0; i < sizeof(ray_trace_formats) / sizeof(ray_trace_formats[0]); ++i) {
-	ray_trace_images[i] = create_image(0, ray_trace_formats[i], swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "RAY_TRACING_STORAGE_IMAGE");
-	ray_trace_image_views[i] = create_image_view(ray_trace_images[i].image, ray_trace_formats[i], subresource_range);
-    }
-
-    for (uint32_t i = 0; i < sizeof(last_frame_formats) / sizeof(last_frame_formats[0]); ++i) {
-	last_frame_images[i] = create_image(0, last_frame_formats[i], swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "RAY_TRACING_STORAGE_IMAGE");
-	last_frame_image_views[i] = create_image_view(last_frame_images[i].image, last_frame_formats[i], subresource_range);
+	ray_trace1_images[i] = create_image(0, ray_trace_formats[i], swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "RAY_TRACING_STORAGE_IMAGE");
+	ray_trace1_image_views[i] = create_image_view(ray_trace1_images[i].image, ray_trace_formats[i], subresource_range);
+	ray_trace2_images[i] = create_image(0, ray_trace_formats[i], swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "RAY_TRACING_STORAGE_IMAGE");
+	ray_trace2_image_views[i] = create_image_view(ray_trace2_images[i].image, ray_trace_formats[i], subresource_range);
     }
 
     inefficient_run_commands([&](VkCommandBuffer cmd) {
@@ -166,12 +157,9 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 	image_memory_barrier.dstAccessMask = 0;
 
 	for (uint32_t i = 0; i < sizeof(ray_trace_formats) / sizeof(ray_trace_formats[0]); ++i) {
-	    image_memory_barrier.image = ray_trace_images[i].image;
+	    image_memory_barrier.image = ray_trace1_images[i].image;
 	    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
-	}
-	    
-	for (uint32_t i = 0; i < sizeof(last_frame_formats) / sizeof(last_frame_formats[0]); ++i) {
-	    image_memory_barrier.image = last_frame_images[i].image;
+	    image_memory_barrier.image = ray_trace2_images[i].image;
 	    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
 	}
     });
@@ -186,16 +174,15 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 
 auto RenderContext::cleanup_ray_trace_images() noexcept -> void {
     ZoneScoped;
-    for (uint32_t i = 0; i < ray_trace_images.size(); ++i) {
-	cleanup_image_view(ray_trace_image_views[i]);
-	cleanup_image(ray_trace_images[i]);
+    for (uint32_t i = 0; i < ray_trace1_images.size(); ++i) {
+	cleanup_image_view(ray_trace1_image_views[i]);
+	cleanup_image(ray_trace1_images[i]);
+    }
+    for (uint32_t i = 0; i < ray_trace2_images.size(); ++i) {
+	cleanup_image_view(ray_trace2_image_views[i]);
+	cleanup_image(ray_trace2_images[i]);
     }
     
-    for (uint32_t i = 0; i < last_frame_images.size(); ++i) {
-	cleanup_image_view(last_frame_image_views[i]);
-	cleanup_image(last_frame_images[i]);
-    }
-
     cleanup_image(motion_vector_image);
     cleanup_image_view(motion_vector_image_view);
 

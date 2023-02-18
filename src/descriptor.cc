@@ -175,8 +175,8 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
     blue_noise_image_layout_binding.pImmutableSamplers = NULL;
     blue_noise_image_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
 
-    VkDescriptorSetLayoutBinding ray_trace_image_layout_bindings[9];
-    for (uint32_t i = 0; i < 9; ++i) {
+    VkDescriptorSetLayoutBinding ray_trace_image_layout_bindings[10];
+    for (uint32_t i = 0; i < 10; ++i) {
 	ray_trace_image_layout_bindings[i].binding = 3 + i;
 	ray_trace_image_layout_bindings[i].descriptorCount = 1;
 	ray_trace_image_layout_bindings[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -184,9 +184,9 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
 	ray_trace_image_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
     }
 
-    VkDescriptorSetLayoutBinding ray_trace_texture_layout_bindings[3];
-    for (uint32_t i = 0; i < 3; ++i) {
-	ray_trace_texture_layout_bindings[i].binding = 12 + i;
+    VkDescriptorSetLayoutBinding ray_trace_texture_layout_bindings[10];
+    for (uint32_t i = 0; i < 10; ++i) {
+	ray_trace_texture_layout_bindings[i].binding = 13 + i;
 	ray_trace_texture_layout_bindings[i].descriptorCount = 1;
 	ray_trace_texture_layout_bindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	ray_trace_texture_layout_bindings[i].pImmutableSamplers = NULL;
@@ -194,7 +194,7 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
     }
 
     VkDescriptorSetLayoutBinding motion_vector_texture_layout_binding {};
-    motion_vector_texture_layout_binding.binding = 15;
+    motion_vector_texture_layout_binding.binding = 23;
     motion_vector_texture_layout_binding.descriptorCount = 1;
     motion_vector_texture_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     motion_vector_texture_layout_binding.pImmutableSamplers = NULL;
@@ -213,9 +213,17 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
 	ray_trace_image_layout_bindings[6],
 	ray_trace_image_layout_bindings[7],
 	ray_trace_image_layout_bindings[8],
+	ray_trace_image_layout_bindings[9],
 	ray_trace_texture_layout_bindings[0],
 	ray_trace_texture_layout_bindings[1],
 	ray_trace_texture_layout_bindings[2],
+	ray_trace_texture_layout_bindings[3],
+	ray_trace_texture_layout_bindings[4],
+	ray_trace_texture_layout_bindings[5],
+	ray_trace_texture_layout_bindings[6],
+	ray_trace_texture_layout_bindings[7],
+	ray_trace_texture_layout_bindings[8],
+	ray_trace_texture_layout_bindings[9],
 	motion_vector_texture_layout_binding,
     };
     
@@ -408,30 +416,32 @@ auto RenderContext::update_descriptors_ray_trace_images() noexcept -> void {
     write_descriptor_set.pBufferInfo = NULL;
     write_descriptor_set.pTexelBufferView = NULL;
 
-    for (uint32_t i = 0; i < ray_trace_image_views.size(); ++i) {
+    for (uint32_t i = 0; i < ray_trace1_image_views.size(); ++i) {
 	write_descriptor_set.dstBinding = 3 + i;
-	descriptor_image_info.imageView = ray_trace_image_views[i];
+	descriptor_image_info.imageView = ray_trace1_image_views[i];
 	vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
     }
     
-    for (uint32_t i = 0; i < last_frame_image_views.size(); ++i) {
+    for (uint32_t i = 0; i < ray_trace2_image_views.size(); ++i) {
 	write_descriptor_set.dstBinding = 8 + i;
-	descriptor_image_info.imageView = last_frame_image_views[i];
+	descriptor_image_info.imageView = ray_trace2_image_views[i];
 	vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
     }
 
-    descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    descriptor_image_info.sampler = sampler;
     write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    write_descriptor_set.dstBinding = 12;
-    descriptor_image_info.imageView = ray_trace_image_views[1];
-    vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
-    write_descriptor_set.dstBinding = 13;
-    descriptor_image_info.imageView = ray_trace_image_views[2];
-    vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
-    write_descriptor_set.dstBinding = 14;
-    descriptor_image_info.imageView = last_frame_image_views[1];
-    vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
+    descriptor_image_info.sampler = sampler;
+
+    for (uint32_t i = 0; i < ray_trace1_image_views.size(); ++i) {
+	write_descriptor_set.dstBinding = 13 + i;
+	descriptor_image_info.imageView = ray_trace1_image_views[i];
+	vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
+    }
+    
+    for (uint32_t i = 0; i < ray_trace2_image_views.size(); ++i) {
+	write_descriptor_set.dstBinding = 18 + i;
+	descriptor_image_info.imageView = ray_trace2_image_views[i];
+	vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
+    }
 }
 
 auto RenderContext::update_descriptors_motion_vector_texture() noexcept -> void {
@@ -444,7 +454,7 @@ auto RenderContext::update_descriptors_motion_vector_texture() noexcept -> void 
     VkWriteDescriptorSet write_descriptor_set {};
     write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write_descriptor_set.dstSet = ray_trace_descriptor_set;
-    write_descriptor_set.dstBinding = 15;
+    write_descriptor_set.dstBinding = 23;
     write_descriptor_set.dstArrayElement = 0;
     write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     write_descriptor_set.descriptorCount = 1;

@@ -20,17 +20,23 @@ layout (local_size_x = 32, local_size_y = 32) in;
 
 #include "common.glsl"
 
-float blur_kernel[25] = float[25](
-				  1.0 / 273.0, 4.0 / 273.0, 7.0 / 273.0, 4.0 / 273.0, 1.0 / 273.0,
-				  4.0 / 273.0, 16.0 / 273.0, 26.0 / 273.0, 16.0 / 273.0, 4.0 / 273.0,
-				  7.0 / 273.0, 26.0 / 273.0, 41.0 / 273.0, 26.0 / 273.0, 7.0 / 273.0,
-				  4.0 / 273.0, 16.0 / 273.0, 26.0 / 273.0, 16.0 / 273.0, 4.0 / 273.0,
-				  1.0 / 273.0, 4.0 / 273.0, 7.0 / 273.0, 4.0 / 273.0, 1.0 / 273.0
-				  );
+float blur_kernel_5x5[25] = float[25](
+				      1.0 / 273.0, 4.0 / 273.0, 7.0 / 273.0, 4.0 / 273.0, 1.0 / 273.0,
+				      4.0 / 273.0, 16.0 / 273.0, 26.0 / 273.0, 16.0 / 273.0, 4.0 / 273.0,
+				      7.0 / 273.0, 26.0 / 273.0, 41.0 / 273.0, 26.0 / 273.0, 7.0 / 273.0,
+				      4.0 / 273.0, 16.0 / 273.0, 26.0 / 273.0, 16.0 / 273.0, 4.0 / 273.0,
+				      1.0 / 273.0, 4.0 / 273.0, 7.0 / 273.0, 4.0 / 273.0, 1.0 / 273.0
+				      );
+
+float blur_kernel_3x3[9] = float[9](
+				    1.0 / 16.0, 1.0 / 8.0, 1.0 / 16.0,
+				    1.0 / 8.0, 1.0 / 4.0, 1.0 / 8.0,
+				    1.0 / 16.0, 1.0 / 8.0, 1.0 / 16.0
+				    );
 
 void main() {
     ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);
-    ivec2 image_size = imageSize(ray_tracing_albedo_image);
+    ivec2 image_size = imageSize(ray_trace1_albedo_image);
     if (pixel_coord.x >= image_size.x || pixel_coord.y >= image_size.y) {
 	return;
     }
@@ -38,8 +44,8 @@ void main() {
     pixel_sample new_sample = get_new_sample(pixel_coord);
     vec3 atrous_lighting = vec3(0.0);
     float total_weight = 0.0;
-    for (int i = -2; i <= 2; ++i) {
-	for (int j = -2; j <= 2; ++j) {
+    for (int i = -1; i <= 1; ++i) {
+	for (int j = -1; j <= 1; ++j) {
 	    ivec2 offset = ivec2(i, j) * (1 << filter_iter);
 	    pixel_sample blur_sample = get_new_sample(pixel_coord + offset);
 	    
@@ -51,7 +57,7 @@ void main() {
 	    float position_dist2 = dot(position_dist, position_dist);
 	    float position_weight = min(exp(-position_dist2 / sigma_position), 1.0);
 	    
-	    float weight = normal_weight * position_weight * blur_kernel[(i + 2) * 5 + j + 2];
+	    float weight = normal_weight * position_weight * blur_kernel_3x3[(i + 1) * 3 + j + 1];
 	    atrous_lighting += blur_sample.lighting * weight;
 	    total_weight += weight;
 	}

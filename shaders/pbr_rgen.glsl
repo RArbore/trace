@@ -28,7 +28,7 @@ float atan2(in float y, in float x) {
 }
 
 vec2 slice_2_from_4(vec4 random, uint num) {
-    uint slice = (num + seed) % 4;
+    uint slice = (num + current_frame) % 4;
     return random.xy * float(slice == 0) + random.yz * float(slice == 1) + random.zw * float(slice == 2) + random.wx * float(slice == 3);
 }
 
@@ -102,7 +102,7 @@ vec3 BRDF(vec3 omega_in, vec3 omega_out, hit_payload hit) {
 
 void main() {
     const uvec2 blue_noise_size = imageSize(blue_noise_image);
-    const uvec2 blue_noise_coords = (gl_LaunchIDEXT.xy + ivec2(hash(seed), hash(3 * seed))) % blue_noise_size;
+    const uvec2 blue_noise_coords = (gl_LaunchIDEXT.xy + ivec2(hash(current_frame), hash(3 * current_frame))) % blue_noise_size;
     const vec4 random = imageLoad(blue_noise_image,  ivec2(blue_noise_coords));
 
     uint num_lights = floatBitsToUint(lights[0].x);
@@ -138,8 +138,15 @@ void main() {
 	}
     }
 
-    imageStore(ray_tracing_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit_albedo, 1.0));
-    imageStore(ray_tracing_lighting1_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
-    imageStore(ray_tracing_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].hit_position, 1.0));
-    imageStore(ray_tracing_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].normal * 0.5 + 0.5, 1.0));
+    if (current_frame % 2 == 0) {
+	imageStore(ray_trace1_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit_albedo, 1.0));
+	imageStore(ray_trace1_lighting1_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
+	imageStore(ray_trace1_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].hit_position, 1.0));
+	imageStore(ray_trace1_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].normal * 0.5 + 0.5, 1.0));
+    } else {
+	imageStore(ray_trace2_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit_albedo, 1.0));
+	imageStore(ray_trace2_lighting1_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
+	imageStore(ray_trace2_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].hit_position, 1.0));
+	imageStore(ray_trace2_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].normal * 0.5 + 0.5, 1.0));
+    }
 }

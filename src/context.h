@@ -52,11 +52,12 @@ struct ImGuiData {
 
 struct RenderContext {
     struct PushConstants {
-	uint32_t seed;
+	uint32_t current_frame;
 	float alpha;
 	float sigma_normal;
 	float sigma_position;
 	uint32_t filter_iter;
+	uint32_t num_filter_iters;
     };
     
     GLFWwindow *window;
@@ -82,10 +83,10 @@ struct RenderContext {
     std::vector<VkImage> swapchain_images;
     std::vector<VkImageView> swapchain_image_views;
     std::vector<VkFramebuffer> swapchain_framebuffers;
-    std::array<Image, 5> ray_trace_images;
-    std::array<VkImageView, 5> ray_trace_image_views;
-    std::array<Image, 4> last_frame_images;
-    std::array<VkImageView, 4> last_frame_image_views;
+    std::array<Image, 5> ray_trace1_images;
+    std::array<VkImageView, 5> ray_trace1_image_views;
+    std::array<Image, 5> ray_trace2_images;
+    std::array<VkImageView, 5> ray_trace2_image_views;
 
     std::map<std::string, VkShaderModule> shader_modules;
     VkPipelineLayout raster_pipeline_layout;

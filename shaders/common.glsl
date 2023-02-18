@@ -19,7 +19,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_scalar_block_layout : require
-#define FILTER_SAMPLE 0
+#define FILTER_SAMPLE 1
 
 const float PI = 3.14159265358979;
 const uint NUM_BOUNCES = 3;
@@ -67,11 +67,12 @@ struct pixel_sample {
 };
 
 layout (push_constant) uniform PushConstants {
-    uint seed;
+    uint current_frame;
     float alpha;
     float sigma_normal;
     float sigma_position;
     uint filter_iter;
+    uint num_filter_iters;
 };
 
 layout(set = 0, binding = 0) uniform lights_uniform {
@@ -93,10 +94,10 @@ layout(set = 0, binding = 1) uniform projection_uniform {
     vec3 view_dir;
     vec3 basis_right;
     vec3 basis_up;
-    vec3 last_frame_camera_position;
-    vec3 last_frame_view_dir;
-    vec3 last_frame_basis_right;
-    vec3 last_frame_basis_up;
+    vec3 ray_trace2_camera_position;
+    vec3 ray_trace2_view_dir;
+    vec3 ray_trace2_basis_right;
+    vec3 ray_trace2_basis_up;
 };
 
 layout(set = 0, binding = 2) uniform sampler2D textures[];
@@ -111,22 +112,31 @@ layout(set = 1, binding = 1, scalar) buffer objects_buf { obj_desc i[]; } object
 
 layout(set = 1, binding = 2, rgba8) uniform readonly image2D blue_noise_image;
 
-layout(set = 1, binding = 3, rgba8) uniform image2D ray_tracing_albedo_image;
-layout(set = 1, binding = 4, rgba32f) uniform image2D ray_tracing_lighting1_image;
-layout(set = 1, binding = 5, rgba32f) uniform image2D ray_tracing_lighting2_image;
-layout(set = 1, binding = 6, rgba16f) uniform image2D ray_tracing_position_image;
-layout(set = 1, binding = 7, rgba8) uniform image2D ray_tracing_normal_image;
+layout(set = 1, binding = 3, rgba8) uniform image2D ray_trace1_albedo_image;
+layout(set = 1, binding = 4, rgba32f) uniform image2D ray_trace1_lighting1_image;
+layout(set = 1, binding = 5, rgba32f) uniform image2D ray_trace1_lighting2_image;
+layout(set = 1, binding = 6, rgba16f) uniform image2D ray_trace1_position_image;
+layout(set = 1, binding = 7, rgba8) uniform image2D ray_trace1_normal_image;
 
-layout(set = 1, binding = 8, rgba8) uniform image2D last_frame_albedo_image;
-layout(set = 1, binding = 9, rgba32f) uniform image2D last_frame_lighting_image;
-layout(set = 1, binding = 10, rgba16f) uniform image2D last_frame_position_image;
-layout(set = 1, binding = 11, rgba8) uniform image2D last_frame_normal_image;
+layout(set = 1, binding = 8, rgba8) uniform image2D ray_trace2_albedo_image;
+layout(set = 1, binding = 9, rgba32f) uniform image2D ray_trace2_lighting1_image;
+layout(set = 1, binding = 10, rgba32f) uniform image2D ray_trace2_lighting2_image;
+layout(set = 1, binding = 11, rgba16f) uniform image2D ray_trace2_position_image;
+layout(set = 1, binding = 12, rgba8) uniform image2D ray_trace2_normal_image;
 
-layout(set = 1, binding = 12) uniform sampler2D ray_tracing_lighting1_texture;
-layout(set = 1, binding = 13) uniform sampler2D ray_tracing_lighting2_texture;
-layout(set = 1, binding = 14) uniform sampler2D last_frame_lighting_texture;
+layout(set = 1, binding = 13) uniform sampler2D ray_trace1_albedo_texture;
+layout(set = 1, binding = 14) uniform sampler2D ray_trace1_lighting1_texture;
+layout(set = 1, binding = 15) uniform sampler2D ray_trace1_lighting2_texture;
+layout(set = 1, binding = 16) uniform sampler2D ray_trace1_position_texture;
+layout(set = 1, binding = 17) uniform sampler2D ray_trace1_normal_texture;
 
-layout(set = 1, binding = 15) uniform sampler2D motion_vector_texture;
+layout(set = 1, binding = 18) uniform sampler2D ray_trace2_albedo_texture;
+layout(set = 1, binding = 19) uniform sampler2D ray_trace2_lighting1_texture;
+layout(set = 1, binding = 20) uniform sampler2D ray_trace2_lighting2_texture;
+layout(set = 1, binding = 21) uniform sampler2D ray_trace2_position_texture;
+layout(set = 1, binding = 22) uniform sampler2D ray_trace2_normal_texture;
+
+layout(set = 1, binding = 23) uniform sampler2D motion_vector_texture;
 
 #ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };
@@ -172,85 +182,171 @@ vec4 random_vec4(uvec2 coords, uint seed) {
 }
 
 vec2 pixel_coord_to_device_coord(vec2 pixel_coord) {
-    vec2 in_UV = pixel_coord / vec2(imageSize(ray_tracing_albedo_image));
+    vec2 in_UV = pixel_coord / vec2(imageSize(ray_trace1_albedo_image));
     return in_UV * 2.0 - 1.0;
 }
 
 vec2 device_coord_to_pixel_coord(vec2 device_coord) {
     vec2 in_UV = device_coord * 0.5 + 0.5;
-    return in_UV * vec2(imageSize(ray_tracing_albedo_image));
+    return in_UV * vec2(imageSize(ray_trace1_albedo_image));
 }
 
 pixel_sample get_new_sample(vec2 pixel_coord) {
 #if FILTER_SAMPLE
-    vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
-#endif
-    pixel_sample s;
-    s.albedo = imageLoad(ray_tracing_albedo_image, ivec2(pixel_coord)).xyz;
-    if (filter_iter % 2 == 0) {
-#if FILTER_SAMPLE
-	s.lighting = texture(ray_tracing_lighting1_texture, uv).xyz;
-#else
-	s.lighting = imageLoad(ray_tracing_lighting1_image, ivec2(pixel_coord)).xyz;
-#endif
+    if (current_frame % 2 == 0) {
+	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
+	pixel_sample s;
+	s.albedo = texture(ray_trace1_albedo_texture, uv).xyz;
+	if (filter_iter % 2 == 0) {
+	    s.lighting = texture(ray_trace1_lighting1_texture, uv).xyz;
+	} else {
+	    s.lighting = texture(ray_trace1_lighting2_texture, uv).xyz;
+	}
+	s.position = texture(ray_trace1_position_texture, uv).xyz;
+	s.normal = texture(ray_trace1_normal_texture, uv).xyz * 2.0 - 1.0;
+	return s;
     } else {
-#if FILTER_SAMPLE
-	s.lighting = texture(ray_tracing_lighting2_texture, uv).xyz;
-#else
-	s.lighting = imageLoad(ray_tracing_lighting2_image, ivec2(pixel_coord)).xyz;
-#endif
+	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
+	pixel_sample s;
+	s.albedo = texture(ray_trace2_albedo_texture, uv).xyz;
+	if (filter_iter % 2 == 0) {
+	    s.lighting = texture(ray_trace2_lighting1_texture, uv).xyz;
+	} else {
+	    s.lighting = texture(ray_trace2_lighting2_texture, uv).xyz;
+	}
+	s.position = texture(ray_trace2_position_texture, uv).xyz;
+	s.normal = texture(ray_trace2_normal_texture, uv).xyz * 2.0 - 1.0;
+	return s;
     }
-    s.position = imageLoad(ray_tracing_position_image, ivec2(pixel_coord)).xyz;
-    s.normal = imageLoad(ray_tracing_normal_image, ivec2(pixel_coord)).xyz * 2.0 - 1.0;
-    return s;
+#else
+    if (current_frame % 2 == 0) {
+	pixel_sample s;
+	s.albedo = imageLoad(ray_trace1_albedo_image, ivec2(pixel_coord)).xyz;
+	if (filter_iter % 2 == 0) {
+	    s.lighting = imageLoad(ray_trace1_lighting1_image, ivec2(pixel_coord)).xyz;
+	} else {
+	    s.lighting = imageLoad(ray_trace1_lighting2_image, ivec2(pixel_coord)).xyz;
+	}
+	s.position = imageLoad(ray_trace1_position_image, ivec2(pixel_coord)).xyz;
+	s.normal = imageLoad(ray_trace1_normal_image, ivec2(pixel_coord)).xyz * 2.0 - 1.0;
+	return s;
+    } else {
+	pixel_sample s;
+	s.albedo = imageLoad(ray_trace2_albedo_image, ivec2(pixel_coord)).xyz;
+	if (filter_iter % 2 == 0) {
+	    s.lighting = imageLoad(ray_trace2_lighting1_image, ivec2(pixel_coord)).xyz;
+	} else {
+	    s.lighting = imageLoad(ray_trace2_lighting2_image, ivec2(pixel_coord)).xyz;
+	}
+	s.position = imageLoad(ray_trace2_position_image, ivec2(pixel_coord)).xyz;
+	s.normal = imageLoad(ray_trace2_normal_image, ivec2(pixel_coord)).xyz * 2.0 - 1.0;
+	return s;
+    }
+#endif
 }
 
 pixel_sample get_old_sample(vec2 pixel_coord) {
 #if FILTER_SAMPLE
-    vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
-#endif
-    pixel_sample s;
-    s.albedo = imageLoad(last_frame_albedo_image, ivec2(pixel_coord)).xyz;
-#if FILTER_SAMPLE
-    s.lighting = texture(last_frame_lighting_texture, uv).xyz;
+    if (current_frame % 2 == 1) {
+	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
+	pixel_sample s;
+	s.albedo = texture(ray_trace1_albedo_texture, uv).xyz;
+	if (num_filter_iters % 2 == 0) {
+	    s.lighting = texture(ray_trace1_lighting1_texture, uv).xyz;
+	} else {
+	    s.lighting = texture(ray_trace1_lighting2_texture, uv).xyz;
+	}
+	s.position = texture(ray_trace1_position_texture, uv).xyz;
+	s.normal = texture(ray_trace1_normal_texture, uv).xyz * 2.0 - 1.0;
+	return s;
+    } else {
+	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
+	pixel_sample s;
+	s.albedo = texture(ray_trace2_albedo_texture, uv).xyz;
+	if (num_filter_iters % 2 == 0) {
+	    s.lighting = texture(ray_trace2_lighting1_texture, uv).xyz;
+	} else {
+	    s.lighting = texture(ray_trace2_lighting2_texture, uv).xyz;
+	}
+	s.position = texture(ray_trace2_position_texture, uv).xyz;
+	s.normal = texture(ray_trace2_normal_texture, uv).xyz * 2.0 - 1.0;
+	return s;
+    }
 #else
-    s.lighting = imageLoad(last_frame_lighting_image, ivec2(pixel_coord)).xyz;
+    if (current_frame % 2 == 1) {
+	pixel_sample s;
+	s.albedo = imageLoad(ray_trace1_albedo_image, ivec2(pixel_coord)).xyz;
+	if (num_filter_iters % 2 == 0) {
+	    s.lighting = imageLoad(ray_trace1_lighting1_image, ivec2(pixel_coord)).xyz;
+	} else {
+	    s.lighting = imageLoad(ray_trace1_lighting2_image, ivec2(pixel_coord)).xyz;
+	}
+	s.position = imageLoad(ray_trace1_position_image, ivec2(pixel_coord)).xyz;
+	s.normal = imageLoad(ray_trace1_normal_image, ivec2(pixel_coord)).xyz * 2.0 - 1.0;
+	return s;
+    } else {
+	pixel_sample s;
+	s.albedo = imageLoad(ray_trace2_albedo_image, ivec2(pixel_coord)).xyz;
+	if (num_filter_iters % 2 == 0) {
+	    s.lighting = imageLoad(ray_trace2_lighting1_image, ivec2(pixel_coord)).xyz;
+	} else {
+	    s.lighting = imageLoad(ray_trace2_lighting2_image, ivec2(pixel_coord)).xyz;
+	}
+	s.position = imageLoad(ray_trace2_position_image, ivec2(pixel_coord)).xyz;
+	s.normal = imageLoad(ray_trace2_normal_image, ivec2(pixel_coord)).xyz * 2.0 - 1.0;
+	return s;
+    }
 #endif
-    s.position = imageLoad(last_frame_position_image, ivec2(pixel_coord)).xyz;
-    s.normal = imageLoad(last_frame_normal_image, ivec2(pixel_coord)).xyz * 2.0 - 1.0;
-    return s;
 }
 
 vec3 get_new_lighting(vec2 pixel_coord) {
 #if FILTER_SAMPLE
-    vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
-    if (filter_iter % 2 == 0) {
-	return texture(ray_tracing_lighting1_texture, uv).xyz;
+    if (current_frame % 2 == 0) {
+	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
+	if (filter_iter % 2 == 0) {
+	    return texture(ray_trace1_lighting1_texture, uv).xyz;
+	} else {
+	    return texture(ray_trace1_lighting2_texture, uv).xyz;
+	}
     } else {
-	return texture(ray_tracing_lighting2_texture, uv).xyz;
+	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
+	if (filter_iter % 2 == 0) {
+	    return texture(ray_trace2_lighting1_texture, uv).xyz;
+	} else {
+	    return texture(ray_trace2_lighting2_texture, uv).xyz;
+	}
     }
 #else
-    if (filter_iter % 2 == 0) {
-	return imageLoad(ray_tracing_lighting1_image, ivec2(pixel_coord)).xyz;
+    if (current_frame % 2 == 0) {
+	if (filter_iter % 2 == 0) {
+	    return imageLoad(ray_trace1_lighting1_image, ivec2(pixel_coord)).xyz;
+	} else {
+	    return imageLoad(ray_trace1_lighting2_image, ivec2(pixel_coord)).xyz;
+	}
     } else {
-	return imageLoad(ray_tracing_lighting2_image, ivec2(pixel_coord)).xyz;
+	if (filter_iter % 2 == 0) {
+	    return imageLoad(ray_trace2_lighting1_image, ivec2(pixel_coord)).xyz;
+	} else {
+	    return imageLoad(ray_trace2_lighting2_image, ivec2(pixel_coord)).xyz;
+	}
     }
 #endif
 }
 
 void set_new_lighting(vec3 lighting, vec2 pixel_coord) {
-    if (filter_iter % 2 == 0) {
-	imageStore(ray_tracing_lighting2_image, ivec2(pixel_coord), vec4(lighting, 1.0));
+    if (current_frame % 2 == 0) {
+	if (filter_iter % 2 == 0) {
+	    imageStore(ray_trace1_lighting1_image, ivec2(pixel_coord), vec4(lighting, 1.0));
+	} else {
+	    imageStore(ray_trace1_lighting2_image, ivec2(pixel_coord), vec4(lighting, 1.0));
+	}
     } else {
-	imageStore(ray_tracing_lighting1_image, ivec2(pixel_coord), vec4(lighting, 1.0));
+	if (filter_iter % 2 == 0) {
+	    imageStore(ray_trace2_lighting1_image, ivec2(pixel_coord), vec4(lighting, 1.0));
+	} else {
+	    imageStore(ray_trace2_lighting2_image, ivec2(pixel_coord), vec4(lighting, 1.0));
+	}
     }
-}
-
-void set_old_sample(pixel_sample s, vec2 pixel_coord) {
-    imageStore(last_frame_albedo_image, ivec2(pixel_coord), vec4(s.albedo, 1.0));
-    imageStore(last_frame_lighting_image, ivec2(pixel_coord), vec4(s.lighting, 1.0));
-    imageStore(last_frame_position_image, ivec2(pixel_coord), vec4(s.position, 1.0));
-    imageStore(last_frame_normal_image, ivec2(pixel_coord), vec4(s.normal * 0.5 + 0.5, 1.0));
 }
 
 vec4 sample_to_color(pixel_sample s) {
