@@ -19,7 +19,6 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_scalar_block_layout : require
-#define FILTER_SAMPLE 1
 
 const float PI = 3.14159265358979;
 const uint NUM_BOUNCES = 3;
@@ -192,7 +191,6 @@ vec2 device_coord_to_pixel_coord(vec2 device_coord) {
 }
 
 pixel_sample get_new_sample(vec2 pixel_coord) {
-#if FILTER_SAMPLE
     if (current_frame % 2 == 0) {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
@@ -203,7 +201,7 @@ pixel_sample get_new_sample(vec2 pixel_coord) {
 	    s.lighting = texture(ray_trace1_lighting2_texture, uv).xyz;
 	}
 	s.position = texture(ray_trace1_position_texture, uv).xyz;
-	s.normal = texture(ray_trace1_normal_texture, uv).xyz * 2.0 - 1.0;
+	s.normal = normalize(texture(ray_trace1_normal_texture, uv).xyz * 2.0 - 1.0);
 	return s;
     } else {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
@@ -215,92 +213,40 @@ pixel_sample get_new_sample(vec2 pixel_coord) {
 	    s.lighting = texture(ray_trace2_lighting2_texture, uv).xyz;
 	}
 	s.position = texture(ray_trace2_position_texture, uv).xyz;
-	s.normal = texture(ray_trace2_normal_texture, uv).xyz * 2.0 - 1.0;
+	s.normal = normalize(texture(ray_trace2_normal_texture, uv).xyz * 2.0 - 1.0);
 	return s;
     }
-#else
-    if (current_frame % 2 == 0) {
-	pixel_sample s;
-	s.albedo = imageLoad(ray_trace1_albedo_image, ivec2(pixel_coord)).xyz;
-	if (filter_iter % 2 == 0) {
-	    s.lighting = imageLoad(ray_trace1_lighting1_image, ivec2(pixel_coord)).xyz;
-	} else {
-	    s.lighting = imageLoad(ray_trace1_lighting2_image, ivec2(pixel_coord)).xyz;
-	}
-	s.position = imageLoad(ray_trace1_position_image, ivec2(pixel_coord)).xyz;
-	s.normal = imageLoad(ray_trace1_normal_image, ivec2(pixel_coord)).xyz * 2.0 - 1.0;
-	return s;
-    } else {
-	pixel_sample s;
-	s.albedo = imageLoad(ray_trace2_albedo_image, ivec2(pixel_coord)).xyz;
-	if (filter_iter % 2 == 0) {
-	    s.lighting = imageLoad(ray_trace2_lighting1_image, ivec2(pixel_coord)).xyz;
-	} else {
-	    s.lighting = imageLoad(ray_trace2_lighting2_image, ivec2(pixel_coord)).xyz;
-	}
-	s.position = imageLoad(ray_trace2_position_image, ivec2(pixel_coord)).xyz;
-	s.normal = imageLoad(ray_trace2_normal_image, ivec2(pixel_coord)).xyz * 2.0 - 1.0;
-	return s;
-    }
-#endif
 }
 
 pixel_sample get_old_sample(vec2 pixel_coord) {
-#if FILTER_SAMPLE
     if (current_frame % 2 == 1) {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
 	s.albedo = texture(ray_trace1_albedo_texture, uv).xyz;
-	if (num_filter_iters % 2 == 0) {
+	if (num_filter_iters % 2 == 1) {
 	    s.lighting = texture(ray_trace1_lighting1_texture, uv).xyz;
 	} else {
 	    s.lighting = texture(ray_trace1_lighting2_texture, uv).xyz;
 	}
 	s.position = texture(ray_trace1_position_texture, uv).xyz;
-	s.normal = texture(ray_trace1_normal_texture, uv).xyz * 2.0 - 1.0;
+	s.normal = normalize(texture(ray_trace1_normal_texture, uv).xyz * 2.0 - 1.0);
 	return s;
     } else {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
 	s.albedo = texture(ray_trace2_albedo_texture, uv).xyz;
-	if (num_filter_iters % 2 == 0) {
+	if (num_filter_iters % 2 == 1) {
 	    s.lighting = texture(ray_trace2_lighting1_texture, uv).xyz;
 	} else {
 	    s.lighting = texture(ray_trace2_lighting2_texture, uv).xyz;
 	}
 	s.position = texture(ray_trace2_position_texture, uv).xyz;
-	s.normal = texture(ray_trace2_normal_texture, uv).xyz * 2.0 - 1.0;
+	s.normal = normalize(texture(ray_trace2_normal_texture, uv).xyz * 2.0 - 1.0);
 	return s;
     }
-#else
-    if (current_frame % 2 == 1) {
-	pixel_sample s;
-	s.albedo = imageLoad(ray_trace1_albedo_image, ivec2(pixel_coord)).xyz;
-	if (num_filter_iters % 2 == 0) {
-	    s.lighting = imageLoad(ray_trace1_lighting1_image, ivec2(pixel_coord)).xyz;
-	} else {
-	    s.lighting = imageLoad(ray_trace1_lighting2_image, ivec2(pixel_coord)).xyz;
-	}
-	s.position = imageLoad(ray_trace1_position_image, ivec2(pixel_coord)).xyz;
-	s.normal = imageLoad(ray_trace1_normal_image, ivec2(pixel_coord)).xyz * 2.0 - 1.0;
-	return s;
-    } else {
-	pixel_sample s;
-	s.albedo = imageLoad(ray_trace2_albedo_image, ivec2(pixel_coord)).xyz;
-	if (num_filter_iters % 2 == 0) {
-	    s.lighting = imageLoad(ray_trace2_lighting1_image, ivec2(pixel_coord)).xyz;
-	} else {
-	    s.lighting = imageLoad(ray_trace2_lighting2_image, ivec2(pixel_coord)).xyz;
-	}
-	s.position = imageLoad(ray_trace2_position_image, ivec2(pixel_coord)).xyz;
-	s.normal = imageLoad(ray_trace2_normal_image, ivec2(pixel_coord)).xyz * 2.0 - 1.0;
-	return s;
-    }
-#endif
 }
 
 vec3 get_new_lighting(vec2 pixel_coord) {
-#if FILTER_SAMPLE
     if (current_frame % 2 == 0) {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	if (filter_iter % 2 == 0) {
@@ -316,32 +262,17 @@ vec3 get_new_lighting(vec2 pixel_coord) {
 	    return texture(ray_trace2_lighting2_texture, uv).xyz;
 	}
     }
-#else
-    if (current_frame % 2 == 0) {
-	if (filter_iter % 2 == 0) {
-	    return imageLoad(ray_trace1_lighting1_image, ivec2(pixel_coord)).xyz;
-	} else {
-	    return imageLoad(ray_trace1_lighting2_image, ivec2(pixel_coord)).xyz;
-	}
-    } else {
-	if (filter_iter % 2 == 0) {
-	    return imageLoad(ray_trace2_lighting1_image, ivec2(pixel_coord)).xyz;
-	} else {
-	    return imageLoad(ray_trace2_lighting2_image, ivec2(pixel_coord)).xyz;
-	}
-    }
-#endif
 }
 
 void set_new_lighting(vec3 lighting, vec2 pixel_coord) {
     if (current_frame % 2 == 0) {
-	if (filter_iter % 2 == 0) {
+	if (filter_iter % 2 == 1) {
 	    imageStore(ray_trace1_lighting1_image, ivec2(pixel_coord), vec4(lighting, 1.0));
 	} else {
 	    imageStore(ray_trace1_lighting2_image, ivec2(pixel_coord), vec4(lighting, 1.0));
 	}
     } else {
-	if (filter_iter % 2 == 0) {
+	if (filter_iter % 2 == 1) {
 	    imageStore(ray_trace2_lighting1_image, ivec2(pixel_coord), vec4(lighting, 1.0));
 	} else {
 	    imageStore(ray_trace2_lighting2_image, ivec2(pixel_coord), vec4(lighting, 1.0));
