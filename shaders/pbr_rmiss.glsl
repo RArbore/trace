@@ -25,7 +25,7 @@ layout(location = 0) rayPayloadInEXT hit_payload prd;
 void main() {
     prd.albedo = vec3(1.0);
     prd.normal = vec3(0.0);
-    prd.flat_normal = vec3(0.0);
+    prd.flat_normal = vec3(0.0, 0.0, 1.0);
     prd.roughness = 0.0;
     prd.metallicity = 0.0;
     prd.hit_position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * FAR_AWAY;

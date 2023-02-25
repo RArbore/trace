@@ -72,6 +72,11 @@ auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer,
     scissor.offset.y = 0;
     scissor.extent = swapchain_extent;
 
+    VkMemoryBarrier inefficient_total_memory_barrier = {};
+    inefficient_total_memory_barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    inefficient_total_memory_barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    inefficient_total_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
     VkRenderPassBeginInfo render_pass_begin_info {};
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     render_pass_begin_info.renderPass = motion_vector_render_pass;
@@ -107,7 +112,7 @@ auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer,
 
     vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
 			 imgui_data.num_filter_iters ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			 0, 0, NULL, 0, NULL, 0, NULL);
+			 0, 1, &inefficient_total_memory_barrier, 0, NULL, 0, NULL);
 
     if (imgui_data.num_filter_iters) {
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline);
@@ -120,7 +125,7 @@ auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer,
 	vkCmdDispatch(command_buffer, (swapchain_extent.width + 31) / 32, (swapchain_extent.height + 31) / 32, 1);
 	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 			     filter_iter + 1 < (uint32_t) imgui_data.num_filter_iters ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			     0, 0, NULL, 0, NULL, 0, NULL);
+			     0, 1, &inefficient_total_memory_barrier, 0, NULL, 0, NULL);
     }
     push_constants.filter_iter = imgui_data.num_filter_iters % 2;
 

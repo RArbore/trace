@@ -126,7 +126,7 @@ void main() {
 	hits[hit_num] = prd;
 	outward_radiance += hits[hit_num].direct_emittance * weight;
 
-	if (prd.normal == vec3(0.0)) {
+	if (prd.model_id == 0xFFFFFFFF) {
 	    break;
 	} else {
 	    float lambert = dot(hits[hit_num].normal, -ray_dir);

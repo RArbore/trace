@@ -27,20 +27,19 @@ void main() {
     vec2 motion_vector = texture(motion_vector_texture, fragment_UV).xy;
     
     vec2 pixel_coord = gl_FragCoord.xy;
+    vec2 reprojected_pixel_coord = pixel_coord - motion_vector;
     pixel_sample new_sample = get_new_sample(pixel_coord);
-    pixel_sample reprojected_sample = get_old_sample(pixel_coord - motion_vector);
-    /*vec3 min_lighting = vec3(FLOAT_MAX);
-    vec3 max_lighting = vec3(0.0);
-    for (float x = -1.0; x <= 1.0; x += 1.0) {
-	for (float y = -1.0; y <= 1.0; y += 1.0) {
-	    min_lighting = min(min_lighting, get_new_lighting(pixel_coord + vec2(x, y)));
-	    max_lighting = max(max_lighting, get_new_lighting(pixel_coord + vec2(x, y)));
-	}
-    }*/
+    pixel_sample reprojected_sample = get_old_sample(reprojected_pixel_coord);
 
     bool blend =
-	dot(new_sample.normal, reprojected_sample.normal) > 0.9 &&
-	length(new_sample.position - reprojected_sample.position) < 0.01;
+	dot(new_sample.normal, reprojected_sample.normal) > 0.95 &&
+	length(new_sample.position - reprojected_sample.position) < 0.5 &&
+	length(new_sample.position) < FAR_AWAY * 0.5 &&
+	length(reprojected_sample.position) < FAR_AWAY * 0.5 &&
+	reprojected_pixel_coord.x >= 0 &&
+	reprojected_pixel_coord.y >= 0 &&
+	reprojected_pixel_coord.x < textureSize(motion_vector_texture, 0).x &&
+	reprojected_pixel_coord.y < textureSize(motion_vector_texture, 0).y;
     vec3 blended_lighting = mix(reprojected_sample.lighting, new_sample.lighting, alpha);
     pixel_sample blended_sample = new_sample;
     blended_sample.lighting = blend ? blended_lighting : new_sample.lighting;
@@ -49,4 +48,5 @@ void main() {
     out_color = sample_to_color(blended_sample);
     //out_color = vec4(abs(motion_vector), 0.0, 1.0);
     //out_color = vec4(vec3(blend), 1.0);
+    //out_color = vec4(vec3(dot(new_sample.normal, reprojected_sample.normal) > 0.95), 1.0);
 }
