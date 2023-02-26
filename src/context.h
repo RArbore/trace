@@ -47,7 +47,7 @@ struct ImGuiData {
     bool taa = true;
     float sigma_normal = 0.01f;
     float sigma_position = 0.01f;
-    int num_filter_iters = 5;
+    int atrous_filter_iters = 0;
 };
 
 struct RenderContext {
@@ -98,7 +98,8 @@ struct RenderContext {
     VkPipeline ray_trace_pipeline;
 
     VkPipelineLayout compute_pipeline_layout;
-    VkPipeline compute_pipeline;
+    VkPipeline atrous_pipeline;
+    VkPipeline temporal_pipeline;
 
     Buffer shader_binding_table_buffer;
     VkStridedDeviceAddressRegionKHR rgen_sbt_region;

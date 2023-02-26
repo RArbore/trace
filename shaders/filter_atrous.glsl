@@ -35,9 +35,9 @@ float blur_kernel_3x3[9] = float[9](
 				    );
 
 void main() {
-    ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);
-    ivec2 image_size = imageSize(ray_trace1_albedo_image);
-    if (pixel_coord.x >= image_size.x || pixel_coord.y >= image_size.y) {
+    vec2 pixel_coord = vec2(gl_GlobalInvocationID.xy) - 0.5;
+    vec2 texture_size = textureSize(motion_vector_texture, 0);
+    if (gl_GlobalInvocationID.x >= texture_size.x || gl_GlobalInvocationID.y >= texture_size.y) {
 	return;
     }
 
@@ -46,8 +46,9 @@ void main() {
     float total_weight = 0.0;
     for (int i = -1; i <= 1; ++i) {
 	for (int j = -1; j <= 1; ++j) {
-	    ivec2 offset = ivec2(i, j) * (1 << filter_iter);
-	    pixel_sample blur_sample = get_new_sample(pixel_coord + offset);
+	    ivec2 offset = ivec2(i, j) * (1 << (filter_iter - 1));
+	    vec2 sample_pixel_coord = pixel_coord + offset;
+	    pixel_sample blur_sample = get_new_sample(sample_pixel_coord);
 	    
 	    vec3 normal_dist = new_sample.normal - blur_sample.normal;
 	    float normal_dist2 = dot(normal_dist, normal_dist);

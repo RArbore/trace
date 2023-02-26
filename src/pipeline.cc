@@ -345,13 +345,21 @@ auto RenderContext::cleanup_ray_trace_pipeline() noexcept -> void {
 
 auto RenderContext::create_compute_pipeline() noexcept -> void {
     ZoneScoped;
-    VkShaderModule compute_shader = shader_modules["filter_atrous"];
+    VkShaderModule atrous_shader = shader_modules["filter_atrous"];
 
-    VkPipelineShaderStageCreateInfo compute_shader_stage_create_info {};
-    compute_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    compute_shader_stage_create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    compute_shader_stage_create_info.module = compute_shader;
-    compute_shader_stage_create_info.pName = "main";
+    VkPipelineShaderStageCreateInfo atrous_shader_stage_create_info {};
+    atrous_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    atrous_shader_stage_create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    atrous_shader_stage_create_info.module = atrous_shader;
+    atrous_shader_stage_create_info.pName = "main";
+
+    VkShaderModule temporal_shader = shader_modules["filter_temporal"];
+
+    VkPipelineShaderStageCreateInfo temporal_shader_stage_create_info {};
+    temporal_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    temporal_shader_stage_create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    temporal_shader_stage_create_info.module = temporal_shader;
+    temporal_shader_stage_create_info.pName = "main";
 
     VkPushConstantRange push_constant_range {};
     push_constant_range.offset = 0;
@@ -370,14 +378,18 @@ auto RenderContext::create_compute_pipeline() noexcept -> void {
 
     VkComputePipelineCreateInfo compute_pipeline_create_info {};
     compute_pipeline_create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    compute_pipeline_create_info.stage = compute_shader_stage_create_info;
+    compute_pipeline_create_info.stage = atrous_shader_stage_create_info;
     compute_pipeline_create_info.layout = compute_pipeline_layout;
-    ASSERT(vkCreateComputePipelines(device, {}, 1, &compute_pipeline_create_info, nullptr, &compute_pipeline), "Unable to create compute pipeline.");
+    ASSERT(vkCreateComputePipelines(device, {}, 1, &compute_pipeline_create_info, nullptr, &atrous_pipeline), "Unable to create compute pipeline.");
+
+    compute_pipeline_create_info.stage = temporal_shader_stage_create_info;
+    ASSERT(vkCreateComputePipelines(device, {}, 1, &compute_pipeline_create_info, nullptr, &temporal_pipeline), "Unable to create compute pipeline.");
 }
 
 auto RenderContext::cleanup_compute_pipeline() noexcept -> void {
     ZoneScoped;
-    vkDestroyPipeline(device, compute_pipeline, NULL);
+    vkDestroyPipeline(device, atrous_pipeline, NULL);
+    vkDestroyPipeline(device, temporal_pipeline, NULL);
     vkDestroyPipelineLayout(device, compute_pipeline_layout, NULL);
 }
 

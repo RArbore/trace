@@ -218,12 +218,12 @@ pixel_sample get_new_sample(vec2 pixel_coord) {
     }
 }
 
-pixel_sample get_old_sample(vec2 pixel_coord) {
+pixel_sample get_old_sample(vec2 pixel_coord, uint old_filter_iter) {
     if (current_frame % 2 == 1) {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
 	s.albedo = texture(ray_trace1_albedo_texture, uv).xyz;
-	if (num_filter_iters % 2 == 1) {
+	if (old_filter_iter % 2 == 1) {
 	    s.lighting = texture(ray_trace1_lighting1_texture, uv).xyz;
 	} else {
 	    s.lighting = texture(ray_trace1_lighting2_texture, uv).xyz;
@@ -235,7 +235,7 @@ pixel_sample get_old_sample(vec2 pixel_coord) {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
 	s.albedo = texture(ray_trace2_albedo_texture, uv).xyz;
-	if (num_filter_iters % 2 == 1) {
+	if (old_filter_iter % 2 == 1) {
 	    s.lighting = texture(ray_trace2_lighting1_texture, uv).xyz;
 	} else {
 	    s.lighting = texture(ray_trace2_lighting2_texture, uv).xyz;

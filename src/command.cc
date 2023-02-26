@@ -72,11 +72,6 @@ auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer,
     scissor.offset.y = 0;
     scissor.extent = swapchain_extent;
 
-    VkMemoryBarrier inefficient_total_memory_barrier = {};
-    inefficient_total_memory_barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-    inefficient_total_memory_barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    inefficient_total_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
     VkRenderPassBeginInfo render_pass_begin_info {};
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     render_pass_begin_info.renderPass = motion_vector_render_pass;
@@ -110,24 +105,34 @@ auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer,
     vkCmdPushConstants(command_buffer, ray_trace_pipeline_layout, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR, 0, sizeof(PushConstants), &push_constants);
     vkCmdTraceRaysKHR(command_buffer, &rgen_sbt_region, &miss_sbt_region, &hit_sbt_region, &call_sbt_region, swapchain_extent.width, swapchain_extent.height, 1);
 
-    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
-			 imgui_data.num_filter_iters ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			 0, 1, &inefficient_total_memory_barrier, 0, NULL, 0, NULL);
+    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+			 0, 0, NULL, 0, NULL, 0, NULL);
 
-    if (imgui_data.num_filter_iters) {
-	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline);
+    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, temporal_pipeline);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline_layout, 0, 1, &raster_descriptor_set, 0, NULL);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline_layout, 1, 1, &ray_trace_descriptor_set, 0, NULL);
+    vkCmdPushConstants(command_buffer, compute_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants), &push_constants);
+    vkCmdDispatch(command_buffer, (swapchain_extent.width + 31) / 32, (swapchain_extent.height + 31) / 32, 1);
+    ++push_constants.filter_iter;
+
+    if (imgui_data.atrous_filter_iters) {
+	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, atrous_pipeline);
 	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline_layout, 0, 1, &raster_descriptor_set, 0, NULL);
 	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline_layout, 1, 1, &ray_trace_descriptor_set, 0, NULL);
+    } else {
+	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+			     VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			     0, 0, NULL, 0, NULL, 0, NULL);
     }
-    for (uint32_t filter_iter = 0; filter_iter < (uint32_t) imgui_data.num_filter_iters; ++filter_iter) {
-	push_constants.filter_iter = filter_iter;
+    for (uint32_t filter_iter = 0; filter_iter < (uint32_t) imgui_data.atrous_filter_iters; ++filter_iter) {
 	vkCmdPushConstants(command_buffer, compute_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants), &push_constants);
 	vkCmdDispatch(command_buffer, (swapchain_extent.width + 31) / 32, (swapchain_extent.height + 31) / 32, 1);
-	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-			     filter_iter + 1 < (uint32_t) imgui_data.num_filter_iters ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			     0, 1, &inefficient_total_memory_barrier, 0, NULL, 0, NULL);
+	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+			     filter_iter + 1 < (uint32_t) imgui_data.atrous_filter_iters ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			     0, 0, NULL, 0, NULL, 0, NULL);
+	++push_constants.filter_iter;
     }
-    push_constants.filter_iter = imgui_data.num_filter_iters % 2;
 
     render_pass_begin_info.clearValueCount = 1;
     render_pass_begin_info.renderPass = raster_render_pass;
