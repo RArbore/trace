@@ -118,31 +118,35 @@ layout(set = 1, binding = 4, rgba32f) uniform image2D ray_trace1_lighting1_image
 layout(set = 1, binding = 5, rgba32f) uniform image2D ray_trace1_lighting2_image;
 layout(set = 1, binding = 6, rgba16f) uniform image2D ray_trace1_position_image;
 layout(set = 1, binding = 7, rgba8) uniform image2D ray_trace1_normal_image;
+layout(set = 1, binding = 8, rgba32f) uniform image2D ray_trace1_history_image;
 
-layout(set = 1, binding = 8, rgba8) uniform image2D ray_trace2_albedo_image;
-layout(set = 1, binding = 9, rgba32f) uniform image2D ray_trace2_lighting1_image;
-layout(set = 1, binding = 10, rgba32f) uniform image2D ray_trace2_lighting2_image;
-layout(set = 1, binding = 11, rgba16f) uniform image2D ray_trace2_position_image;
-layout(set = 1, binding = 12, rgba8) uniform image2D ray_trace2_normal_image;
+layout(set = 1, binding = 9, rgba8) uniform image2D ray_trace2_albedo_image;
+layout(set = 1, binding = 10, rgba32f) uniform image2D ray_trace2_lighting1_image;
+layout(set = 1, binding = 11, rgba32f) uniform image2D ray_trace2_lighting2_image;
+layout(set = 1, binding = 12, rgba16f) uniform image2D ray_trace2_position_image;
+layout(set = 1, binding = 13, rgba8) uniform image2D ray_trace2_normal_image;
+layout(set = 1, binding = 14, rgba32f) uniform image2D ray_trace2_history_image;
 
-layout(set = 1, binding = 13) uniform sampler2D ray_trace1_albedo_texture;
-layout(set = 1, binding = 14) uniform sampler2D ray_trace1_lighting1_texture;
-layout(set = 1, binding = 15) uniform sampler2D ray_trace1_lighting2_texture;
-layout(set = 1, binding = 16) uniform sampler2D ray_trace1_position_texture;
-layout(set = 1, binding = 17) uniform sampler2D ray_trace1_normal_texture;
+layout(set = 1, binding = 15) uniform sampler2D ray_trace1_albedo_texture;
+layout(set = 1, binding = 16) uniform sampler2D ray_trace1_lighting1_texture;
+layout(set = 1, binding = 17) uniform sampler2D ray_trace1_lighting2_texture;
+layout(set = 1, binding = 18) uniform sampler2D ray_trace1_position_texture;
+layout(set = 1, binding = 19) uniform sampler2D ray_trace1_normal_texture;
+layout(set = 1, binding = 20) uniform sampler2D ray_trace1_history_texture;
 
-layout(set = 1, binding = 18) uniform sampler2D ray_trace2_albedo_texture;
-layout(set = 1, binding = 19) uniform sampler2D ray_trace2_lighting1_texture;
-layout(set = 1, binding = 20) uniform sampler2D ray_trace2_lighting2_texture;
-layout(set = 1, binding = 21) uniform sampler2D ray_trace2_position_texture;
-layout(set = 1, binding = 22) uniform sampler2D ray_trace2_normal_texture;
+layout(set = 1, binding = 21) uniform sampler2D ray_trace2_albedo_texture;
+layout(set = 1, binding = 22) uniform sampler2D ray_trace2_lighting1_texture;
+layout(set = 1, binding = 23) uniform sampler2D ray_trace2_lighting2_texture;
+layout(set = 1, binding = 24) uniform sampler2D ray_trace2_position_texture;
+layout(set = 1, binding = 25) uniform sampler2D ray_trace2_normal_texture;
+layout(set = 1, binding = 26) uniform sampler2D ray_trace2_history_texture;
 
-layout(set = 1, binding = 23) uniform sampler2D motion_vector_texture;
+layout(set = 1, binding = 27) uniform sampler2D motion_vector_texture;
 
-layout(set = 1, binding = 24, rgba32f) uniform image2D taa1_image;
-layout(set = 1, binding = 25, rgba32f) uniform image2D taa2_image;
-layout(set = 1, binding = 26) uniform sampler2D taa1_texture;
-layout(set = 1, binding = 27) uniform sampler2D taa2_texture;
+layout(set = 1, binding = 28, rgba32f) uniform image2D taa1_image;
+layout(set = 1, binding = 29, rgba32f) uniform image2D taa2_image;
+layout(set = 1, binding = 30) uniform sampler2D taa1_texture;
+layout(set = 1, binding = 31) uniform sampler2D taa2_texture;
 
 #ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };
