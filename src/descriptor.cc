@@ -199,6 +199,24 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
     motion_vector_texture_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     motion_vector_texture_layout_binding.pImmutableSamplers = NULL;
     motion_vector_texture_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+
+    VkDescriptorSetLayoutBinding taa_image_layout_bindings[2];
+    for (uint32_t i = 0; i < 2; ++i) {
+	taa_image_layout_bindings[i].binding = 24 + i;
+	taa_image_layout_bindings[i].descriptorCount = 1;
+	taa_image_layout_bindings[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	taa_image_layout_bindings[i].pImmutableSamplers = NULL;
+	taa_image_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+    }
+    
+    VkDescriptorSetLayoutBinding taa_texture_layout_bindings[2];
+    for (uint32_t i = 0; i < 2; ++i) {
+	taa_texture_layout_bindings[i].binding = 26 + i;
+	taa_texture_layout_bindings[i].descriptorCount = 1;
+	taa_texture_layout_bindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	taa_texture_layout_bindings[i].pImmutableSamplers = NULL;
+	taa_texture_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+    }
     
     VkDescriptorSetLayoutBinding bindings[] = {
 	tlas_layout_binding,
@@ -225,6 +243,10 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
 	ray_trace_texture_layout_bindings[8],
 	ray_trace_texture_layout_bindings[9],
 	motion_vector_texture_layout_binding,
+	taa_image_layout_bindings[0],
+	taa_image_layout_bindings[1],
+	taa_texture_layout_bindings[0],
+	taa_texture_layout_bindings[1],
     };
     
     VkDescriptorSetLayoutCreateInfo layout_create_info {};
@@ -463,4 +485,35 @@ auto RenderContext::update_descriptors_motion_vector_texture() noexcept -> void 
     write_descriptor_set.pTexelBufferView = NULL;
 
     vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
+}
+
+auto RenderContext::update_descriptors_taa_images() noexcept -> void {
+    ZoneScoped;
+    VkDescriptorImageInfo descriptor_image_info {};
+    descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+    VkWriteDescriptorSet write_descriptor_set {};
+    write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write_descriptor_set.dstSet = ray_trace_descriptor_set;
+    write_descriptor_set.dstArrayElement = 0;
+    write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    write_descriptor_set.descriptorCount = 1;
+    write_descriptor_set.pImageInfo = &descriptor_image_info;
+    write_descriptor_set.pBufferInfo = NULL;
+    write_descriptor_set.pTexelBufferView = NULL;
+
+    for (uint32_t i = 0; i < 2; ++i) {
+	write_descriptor_set.dstBinding = 24 + i;
+	descriptor_image_info.imageView = taa_image_views[i];
+	vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
+    }
+    
+    write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptor_image_info.sampler = sampler;
+
+    for (uint32_t i = 0; i < 2; ++i) {
+	write_descriptor_set.dstBinding = 26 + i;
+	descriptor_image_info.imageView = taa_image_views[i];
+	vkUpdateDescriptorSets(device, 1, &write_descriptor_set, 0, NULL);
+    }
 }

@@ -72,6 +72,7 @@ layout (push_constant) uniform PushConstants {
     float sigma_position;
     uint filter_iter;
     uint num_filter_iters;
+    uint taa;
 };
 
 layout(set = 0, binding = 0) uniform lights_uniform {
@@ -136,6 +137,11 @@ layout(set = 1, binding = 21) uniform sampler2D ray_trace2_position_texture;
 layout(set = 1, binding = 22) uniform sampler2D ray_trace2_normal_texture;
 
 layout(set = 1, binding = 23) uniform sampler2D motion_vector_texture;
+
+layout(set = 1, binding = 24, rgba32f) uniform image2D taa1_image;
+layout(set = 1, binding = 25, rgba32f) uniform image2D taa2_image;
+layout(set = 1, binding = 26) uniform sampler2D taa1_texture;
+layout(set = 1, binding = 27) uniform sampler2D taa2_texture;
 
 #ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };

@@ -47,7 +47,7 @@ struct ImGuiData {
     bool taa = true;
     float sigma_normal = 0.01f;
     float sigma_position = 0.01f;
-    int atrous_filter_iters = 0;
+    int atrous_filter_iters = 2;
 };
 
 struct RenderContext {
@@ -58,6 +58,7 @@ struct RenderContext {
 	float sigma_position;
 	uint32_t filter_iter;
 	uint32_t num_filter_iters;
+	uint32_t taa;
     };
     
     GLFWwindow *window;
@@ -115,6 +116,8 @@ struct RenderContext {
     VkImageView motion_vector_image_view;
     Image motion_vector_depth_image;
     VkImageView motion_vector_depth_image_view;
+    std::array<Image, 2> taa_images;
+    std::array<VkImageView, 2> taa_image_views;
     VkFramebuffer motion_vector_framebuffer;
     PushConstants push_constants;
     RingBuffer main_ring_buffer;
@@ -257,6 +260,7 @@ struct RenderContext {
     auto update_descriptors_ray_trace_objects(const Scene &scene) noexcept -> void;
     auto update_descriptors_blue_noise_images() noexcept -> void;
     auto update_descriptors_motion_vector_texture() noexcept -> void;
+    auto update_descriptors_taa_images() noexcept -> void;
 
     auto get_device_address(const Buffer &buffer) noexcept -> VkDeviceAddress;
     auto get_device_address(const VkAccelerationStructureKHR &acceleration_structure) noexcept -> VkDeviceAddress;

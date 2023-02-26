@@ -141,6 +141,11 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 	ray_trace2_image_views[i] = create_image_view(ray_trace2_images[i].image, ray_trace_formats[i], subresource_range);
     }
 
+    for (uint32_t i = 0; i < 2; ++i) {
+	taa_images[i] = create_image(0, VK_FORMAT_R32G32B32A32_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "TAA_STORAGE_IMAGE");
+	taa_image_views[i] = create_image_view(taa_images[i].image, VK_FORMAT_R32G32B32A32_SFLOAT, subresource_range);
+    }
+
     inefficient_run_commands([&](VkCommandBuffer cmd) {
 	VkImageMemoryBarrier image_memory_barrier {};
 	image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -160,6 +165,11 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 	    image_memory_barrier.image = ray_trace1_images[i].image;
 	    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
 	    image_memory_barrier.image = ray_trace2_images[i].image;
+	    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
+	}
+
+	for (uint32_t i = 0; i < 2; ++i) {
+	    image_memory_barrier.image = taa_images[i].image;
 	    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
 	}
     });
@@ -188,6 +198,11 @@ auto RenderContext::cleanup_ray_trace_images() noexcept -> void {
 
     cleanup_image(motion_vector_depth_image);
     cleanup_image_view(motion_vector_depth_image_view);
+
+    for (uint32_t i = 0; i < 2; ++i) {
+	cleanup_image(taa_images[i]);
+	cleanup_image_view(taa_image_views[i]);
+    }
 }
 
 auto RenderContext::recreate_swapchain() noexcept -> void {
@@ -210,6 +225,7 @@ auto RenderContext::recreate_swapchain() noexcept -> void {
 
     update_descriptors_ray_trace_images();
     update_descriptors_motion_vector_texture();
+    update_descriptors_taa_images();
 
     recreate_imgui();
 }

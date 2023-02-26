@@ -113,6 +113,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
     context.update_descriptors_tlas(scene);
     context.update_descriptors_ray_trace_objects(scene);
     context.update_descriptors_motion_vector_texture();
+    context.update_descriptors_taa_images();
     
     //const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
     context.camera_position = glm::vec3(3.0f, 3.0f, 4.0f);
@@ -144,6 +145,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	context.push_constants.sigma_normal = context.imgui_data.sigma_normal;
 	context.push_constants.sigma_position = context.imgui_data.sigma_position;
 	context.push_constants.num_filter_iters = context.imgui_data.atrous_filter_iters + 1;
+	context.push_constants.taa = context.imgui_data.taa;
 	if (!context.is_using_imgui()) {
 	    const double mouse_dx = context.mouse_x - context.last_mouse_x;
 	    const double mouse_dy = context.mouse_y - context.last_mouse_y;
