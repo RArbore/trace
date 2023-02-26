@@ -48,6 +48,7 @@ void main() {
 	for (int j = -1; j <= 1; ++j) {
 	    ivec2 offset = ivec2(i, j) * (1 << (filter_iter - 1));
 	    vec2 sample_pixel_coord = pixel_coord + offset;
+	    if (sample_pixel_coord.x >= 0 && sample_pixel_coord.x >= 0 && sample_pixel_coord.x < texture_size.x && sample_pixel_coord.y < texture_size.y) {
 	    pixel_sample blur_sample = get_new_sample(sample_pixel_coord);
 	    
 	    vec3 normal_dist = new_sample.normal - blur_sample.normal;
@@ -61,8 +62,9 @@ void main() {
 	    float weight = normal_weight * position_weight * blur_kernel_3x3[(i + 1) * 3 + j + 1];
 	    atrous_lighting += blur_sample.lighting * weight;
 	    total_weight += weight;
+	    }
 	}
     }
-    vec3 new_lighting = atrous_lighting / total_weight;
+    vec3 new_lighting = total_weight == 0.0 ? vec3(0.0) : atrous_lighting / total_weight;
     set_new_lighting(new_lighting, pixel_coord);
 }
