@@ -90,6 +90,7 @@ layout(set = 0, binding = 1) uniform projection_uniform {
     mat4 centered_last_frame_camera;
     mat4 centered_inverse_camera;
     mat4 centered_inverse_last_frame_camera;
+    mat4 inverse_jittered_perspective;
     vec3 camera_position;
     vec3 view_dir;
     vec3 basis_right;

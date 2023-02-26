@@ -185,6 +185,14 @@ auto RenderContext::ringbuffer_copy_scene_ray_trace_objects_into_buffer(Scene &s
     ringbuffer_submit_buffer(main_ring_buffer, scene.ray_trace_objects_buf);
 }
 
+const glm::vec2 quincunx[5] = {
+    glm::vec2(0.5, 0.5),
+    glm::vec2(-0.5, -0.5),
+    glm::vec2(0.0, 0.0),
+    glm::vec2(-0.5, 0.5),
+    glm::vec2(0.5, -0.5),
+};
+
 auto RenderContext::ringbuffer_copy_projection_matrices_into_buffer() noexcept -> void {
     ZoneScoped;
     glm::mat4 *data_mat = (glm::mat4 *) ringbuffer_claim_buffer(main_ring_buffer, PROJECTION_BUFFER_SIZE);
@@ -201,7 +209,13 @@ auto RenderContext::ringbuffer_copy_projection_matrices_into_buffer() noexcept -
 	data_mat[i + 6][3][1] = 0.0f;
 	data_mat[i + 6][3][2] = 0.0f;
     }
-    glm::vec4 *data_vec = (glm::vec4 *) &data_mat[10];
+    data_mat[10] = data_mat[0];
+    if (imgui_data.taa) {
+	data_mat[10][3][0] += 2.0f * quincunx[current_frame % 5].x / (float) (swapchain_extent.width * swapchain_extent.width);
+	data_mat[10][3][1] += 2.0f * quincunx[current_frame % 5].y / (float) (swapchain_extent.height * swapchain_extent.height);
+    }
+    data_mat[10] = glm::inverse(data_mat[10]);
+    glm::vec4 *data_vec = (glm::vec4 *) &data_mat[11];
     *((glm::vec3 *) &data_vec[0]) = camera_position;
     *((glm::vec3 *) &data_vec[1]) = view_dir;
     *((glm::vec3 *) &data_vec[2]) = glm::normalize(glm::cross(view_dir, glm::vec3(0.0f, 0.0f, 1.0f)));

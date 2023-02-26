@@ -32,6 +32,14 @@ void main() {
 	vec2 motion_vector = texture(motion_vector_texture, fragment_UV).xy;
 	vec2 reprojected_pixel_coord = pixel_coord - motion_vector;
 	pixel_sample reprojected_sample = get_old_sample(reprojected_pixel_coord, 0);
+
+	vec4 new_color = sample_to_color(new_sample);
+	vec4 reprojected_color = vec4(0.0);
+	if (current_frame % 2 == 1) {
+	    reprojected_color = texture(taa1_texture, reprojected_pixel_coord / texture_size);
+	} else {
+	    reprojected_color = texture(taa2_texture, reprojected_pixel_coord / texture_size);
+	}
 	
 	bool blend =
 	    dot(new_sample.normal, reprojected_sample.normal) > 0.95 &&
@@ -43,13 +51,6 @@ void main() {
 	    reprojected_pixel_coord.x < texture_size.x &&
 	    reprojected_pixel_coord.y < texture_size.y;
 	
-	vec4 new_color = sample_to_color(new_sample);
-	vec4 reprojected_color = vec4(0.0);
-	if (current_frame % 2 == 1) {
-	    reprojected_color = texture(taa1_texture, reprojected_pixel_coord / texture_size);
-	} else {
-	    reprojected_color = texture(taa2_texture, reprojected_pixel_coord / texture_size);
-	}
 	vec4 blended_color = mix(reprojected_color, new_color, alpha);
 	out_color = blend ? blended_color : new_color;
 	if (current_frame % 2 == 0) {

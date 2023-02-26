@@ -111,7 +111,7 @@ void main() {
     
     vec2 device_coord = pixel_coord_to_device_coord(gl_LaunchIDEXT.xy);
     vec3 ray_pos = camera_position;
-    vec3 ray_dir = normalize((centered_inverse_camera * inverse_perspective * vec4(device_coord, 0.0, 1.0)).xyz);
+    vec3 ray_dir = normalize((centered_inverse_camera * inverse_jittered_perspective * vec4(device_coord, 0.0, 1.0)).xyz);
 
     hit_payload hits[NUM_BOUNCES];
     vec3 first_hit_albedo = vec3(1.0);
