@@ -65,6 +65,7 @@ struct pixel_sample {
     vec3 normal;
     float luminance_moment1;
     float luminance_moment2;
+    float variance;
     float history_length;
 };
 
@@ -213,37 +214,39 @@ pixel_sample get_new_sample(vec2 pixel_coord) {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
 	s.albedo = texture(ray_trace1_albedo_texture, uv).xyz;
-	vec3 history;
+	vec4 history;
 	if (filter_iter % 2 == 0) {
-	    history = texture(ray_trace1_history1_texture, uv).xyz;
 	    s.lighting = texture(ray_trace1_lighting1_texture, uv).xyz;
+	    history = texture(ray_trace1_history1_texture, uv);
 	} else {
-	    history = texture(ray_trace1_history2_texture, uv).xyz;
 	    s.lighting = texture(ray_trace1_lighting2_texture, uv).xyz;
+	    history = texture(ray_trace1_history2_texture, uv);
 	}
 	s.position = texture(ray_trace1_position_texture, uv).xyz;
 	s.normal = normalize(texture(ray_trace1_normal_texture, uv).xyz * 2.0 - 1.0);
 	s.luminance_moment1 = history.x;
 	s.luminance_moment2 = history.y;
-	s.history_length = history.z;
+	s.variance = history.z;
+	s.history_length = history.w;
 	return s;
     } else {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
 	s.albedo = texture(ray_trace2_albedo_texture, uv).xyz;
-	vec3 history;
+	vec4 history;
 	if (filter_iter % 2 == 0) {
 	    s.lighting = texture(ray_trace2_lighting1_texture, uv).xyz;
-	    history = texture(ray_trace2_history1_texture, uv).xyz;
+	    history = texture(ray_trace2_history1_texture, uv);
 	} else {
 	    s.lighting = texture(ray_trace2_lighting2_texture, uv).xyz;
-	    history = texture(ray_trace2_history2_texture, uv).xyz;
+	    history = texture(ray_trace2_history2_texture, uv);
 	}
 	s.position = texture(ray_trace2_position_texture, uv).xyz;
 	s.normal = normalize(texture(ray_trace2_normal_texture, uv).xyz * 2.0 - 1.0);
 	s.luminance_moment1 = history.x;
 	s.luminance_moment2 = history.y;
-	s.history_length = history.z;
+	s.variance = history.z;
+	s.history_length = history.w;
 	return s;
     }
 }
@@ -253,37 +256,39 @@ pixel_sample get_old_sample(vec2 pixel_coord, uint old_filter_iter) {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
 	s.albedo = texture(ray_trace1_albedo_texture, uv).xyz;
-	vec3 history;
+	vec4 history;
 	if (old_filter_iter % 2 == 1) {
 	    s.lighting = texture(ray_trace1_lighting1_texture, uv).xyz;
-	    history = texture(ray_trace1_history1_texture, uv).xyz;
+	    history = texture(ray_trace1_history1_texture, uv);
 	} else {
 	    s.lighting = texture(ray_trace1_lighting2_texture, uv).xyz;
-	    history = texture(ray_trace1_history2_texture, uv).xyz;
+	    history = texture(ray_trace1_history2_texture, uv);
 	}
 	s.position = texture(ray_trace1_position_texture, uv).xyz;
 	s.normal = normalize(texture(ray_trace1_normal_texture, uv).xyz * 2.0 - 1.0);
 	s.luminance_moment1 = history.x;
 	s.luminance_moment2 = history.y;
-	s.history_length = history.z;
+	s.variance = history.z;
+	s.history_length = history.w;
 	return s;
     } else {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
 	s.albedo = texture(ray_trace2_albedo_texture, uv).xyz;
-	vec3 history;
+	vec4 history;
 	if (old_filter_iter % 2 == 1) {
 	    s.lighting = texture(ray_trace2_lighting1_texture, uv).xyz;
-	    history = texture(ray_trace2_history1_texture, uv).xyz;
+	    history = texture(ray_trace2_history1_texture, uv);
 	} else {
 	    s.lighting = texture(ray_trace2_lighting2_texture, uv).xyz;
-	    history = texture(ray_trace2_history2_texture, uv).xyz;
+	    history = texture(ray_trace2_history2_texture, uv);
 	}
 	s.position = texture(ray_trace2_position_texture, uv).xyz;
 	s.normal = normalize(texture(ray_trace2_normal_texture, uv).xyz * 2.0 - 1.0);
 	s.luminance_moment1 = history.x;
 	s.luminance_moment2 = history.y;
-	s.history_length = history.z;
+	s.variance = history.z;
+	s.history_length = history.w;
 	return s;
     }
 }
