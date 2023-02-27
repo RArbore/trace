@@ -145,6 +145,7 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	context.push_constants.sigma_normal = context.imgui_data.sigma_normal;
 	context.push_constants.sigma_position = context.imgui_data.sigma_position;
 	context.push_constants.num_filter_iters = context.imgui_data.atrous_filter_iters + 1;
+	context.push_constants.temporal = context.imgui_data.temporal_filter;
 	context.push_constants.taa = context.imgui_data.taa;
 	if (!context.is_using_imgui()) {
 	    const double mouse_dx = context.mouse_x - context.last_mouse_x;

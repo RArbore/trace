@@ -76,6 +76,7 @@ layout (push_constant) uniform PushConstants {
     float sigma_position;
     uint filter_iter;
     uint num_filter_iters;
+    uint temporal;
     uint taa;
 };
 
@@ -323,6 +324,22 @@ void set_new_lighting(vec3 lighting, vec2 pixel_coord) {
 	    imageStore(ray_trace2_lighting1_image, ivec2(pixel_coord), vec4(lighting, 1.0));
 	} else {
 	    imageStore(ray_trace2_lighting2_image, ivec2(pixel_coord), vec4(lighting, 1.0));
+	}
+    }
+}
+
+void set_new_history(vec4 history, vec2 pixel_coord) {
+    if (current_frame % 2 == 0) {
+	if (filter_iter % 2 == 1) {
+	    imageStore(ray_trace1_history1_image, ivec2(pixel_coord), history);
+	} else {
+	    imageStore(ray_trace1_history2_image, ivec2(pixel_coord), history);
+	}
+    } else {
+	if (filter_iter % 2 == 1) {
+	    imageStore(ray_trace2_history1_image, ivec2(pixel_coord), history);
+	} else {
+	    imageStore(ray_trace2_history2_image, ivec2(pixel_coord), history);
 	}
     }
 }

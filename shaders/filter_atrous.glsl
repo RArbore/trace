@@ -46,7 +46,7 @@ void main() {
     float total_weight = 0.0;
     for (int i = -1; i <= 1; ++i) {
 	for (int j = -1; j <= 1; ++j) {
-	    ivec2 offset = ivec2(i, j) * (1 << (filter_iter - 1));
+	    ivec2 offset = ivec2(i, j) * (1 << (bool(temporal) ? filter_iter - 1 : filter_iter));
 	    vec2 sample_pixel_coord = pixel_coord + offset;
 	    if (sample_pixel_coord.x >= 0 && sample_pixel_coord.x >= 0 && sample_pixel_coord.x < texture_size.x && sample_pixel_coord.y < texture_size.y) {
 	    pixel_sample blur_sample = get_new_sample(sample_pixel_coord);

@@ -59,6 +59,7 @@ struct RenderContext {
 	float sigma_position;
 	uint32_t filter_iter;
 	uint32_t num_filter_iters;
+	uint32_t temporal;
 	uint32_t taa;
     };
     
