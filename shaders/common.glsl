@@ -63,6 +63,9 @@ struct pixel_sample {
     vec3 lighting;
     vec3 position;
     vec3 normal;
+    float lighting_moment1;
+    float lighting_moment2;
+    float history_length;
 };
 
 layout (push_constant) uniform PushConstants {
@@ -213,6 +216,10 @@ pixel_sample get_new_sample(vec2 pixel_coord) {
 	}
 	s.position = texture(ray_trace1_position_texture, uv).xyz;
 	s.normal = normalize(texture(ray_trace1_normal_texture, uv).xyz * 2.0 - 1.0);
+	vec3 history = texture(ray_trace1_history_texture, uv).xyz;
+	s.lighting_moment1 = history.x;
+	s.lighting_moment2 = history.y;
+	s.history_length = history.z;
 	return s;
     } else {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
@@ -225,6 +232,10 @@ pixel_sample get_new_sample(vec2 pixel_coord) {
 	}
 	s.position = texture(ray_trace2_position_texture, uv).xyz;
 	s.normal = normalize(texture(ray_trace2_normal_texture, uv).xyz * 2.0 - 1.0);
+	vec3 history = texture(ray_trace2_history_texture, uv).xyz;
+	s.lighting_moment1 = history.x;
+	s.lighting_moment2 = history.y;
+	s.history_length = history.z;
 	return s;
     }
 }
@@ -241,6 +252,10 @@ pixel_sample get_old_sample(vec2 pixel_coord, uint old_filter_iter) {
 	}
 	s.position = texture(ray_trace1_position_texture, uv).xyz;
 	s.normal = normalize(texture(ray_trace1_normal_texture, uv).xyz * 2.0 - 1.0);
+	vec3 history = texture(ray_trace1_history_texture, uv).xyz;
+	s.lighting_moment1 = history.x;
+	s.lighting_moment2 = history.y;
+	s.history_length = history.z;
 	return s;
     } else {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
@@ -253,6 +268,10 @@ pixel_sample get_old_sample(vec2 pixel_coord, uint old_filter_iter) {
 	}
 	s.position = texture(ray_trace2_position_texture, uv).xyz;
 	s.normal = normalize(texture(ray_trace2_normal_texture, uv).xyz * 2.0 - 1.0);
+	vec3 history = texture(ray_trace2_history_texture, uv).xyz;
+	s.lighting_moment1 = history.x;
+	s.lighting_moment2 = history.y;
+	s.history_length = history.z;
 	return s;
     }
 }

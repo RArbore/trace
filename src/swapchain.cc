@@ -126,12 +126,13 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
     subresource_range.baseArrayLayer = 0;
     subresource_range.layerCount = 1;
 
-    VkFormat ray_trace_formats[5] = {
+    VkFormat ray_trace_formats[6] = {
 	VK_FORMAT_R8G8B8A8_UNORM,
 	VK_FORMAT_R32G32B32A32_SFLOAT,
 	VK_FORMAT_R32G32B32A32_SFLOAT,
 	VK_FORMAT_R16G16B16A16_SFLOAT,
-	VK_FORMAT_R8G8B8A8_UNORM
+	VK_FORMAT_R8G8B8A8_UNORM,
+	VK_FORMAT_R32G32B32A32_SFLOAT,
     };
 
     for (uint32_t i = 0; i < sizeof(ray_trace_formats) / sizeof(ray_trace_formats[0]); ++i) {

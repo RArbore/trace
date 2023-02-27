@@ -109,12 +109,14 @@ auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer,
 			 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 			 0, 0, NULL, 0, NULL, 0, NULL);
 
-    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, temporal_pipeline);
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline_layout, 0, 1, &raster_descriptor_set, 0, NULL);
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline_layout, 1, 1, &ray_trace_descriptor_set, 0, NULL);
-    vkCmdPushConstants(command_buffer, compute_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants), &push_constants);
-    vkCmdDispatch(command_buffer, (swapchain_extent.width + 31) / 32, (swapchain_extent.height + 31) / 32, 1);
-    ++push_constants.filter_iter;
+    if (imgui_data.temporal_filter) {
+	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, temporal_pipeline);
+	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline_layout, 0, 1, &raster_descriptor_set, 0, NULL);
+	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline_layout, 1, 1, &ray_trace_descriptor_set, 0, NULL);
+	vkCmdPushConstants(command_buffer, compute_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants), &push_constants);
+	vkCmdDispatch(command_buffer, (swapchain_extent.width + 31) / 32, (swapchain_extent.height + 31) / 32, 1);
+	++push_constants.filter_iter;
+    }
 
     if (imgui_data.atrous_filter_iters) {
 	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, atrous_pipeline);
