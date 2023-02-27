@@ -85,10 +85,10 @@ struct RenderContext {
     std::vector<VkImage> swapchain_images;
     std::vector<VkImageView> swapchain_image_views;
     std::vector<VkFramebuffer> swapchain_framebuffers;
-    std::array<Image, 6> ray_trace1_images;
-    std::array<VkImageView, 6> ray_trace1_image_views;
-    std::array<Image, 6> ray_trace2_images;
-    std::array<VkImageView, 6> ray_trace2_image_views;
+    std::array<Image, 7> ray_trace1_images;
+    std::array<VkImageView, 7> ray_trace1_image_views;
+    std::array<Image, 7> ray_trace2_images;
+    std::array<VkImageView, 7> ray_trace2_image_views;
 
     std::map<std::string, VkShaderModule> shader_modules;
     VkPipelineLayout raster_pipeline_layout;

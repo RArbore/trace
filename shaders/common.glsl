@@ -63,8 +63,8 @@ struct pixel_sample {
     vec3 lighting;
     vec3 position;
     vec3 normal;
-    float lighting_moment1;
-    float lighting_moment2;
+    float luminance_moment1;
+    float luminance_moment2;
     float history_length;
 };
 
@@ -121,35 +121,39 @@ layout(set = 1, binding = 4, rgba32f) uniform image2D ray_trace1_lighting1_image
 layout(set = 1, binding = 5, rgba32f) uniform image2D ray_trace1_lighting2_image;
 layout(set = 1, binding = 6, rgba16f) uniform image2D ray_trace1_position_image;
 layout(set = 1, binding = 7, rgba8) uniform image2D ray_trace1_normal_image;
-layout(set = 1, binding = 8, rgba32f) uniform image2D ray_trace1_history_image;
+layout(set = 1, binding = 8, rgba32f) uniform image2D ray_trace1_history1_image;
+layout(set = 1, binding = 9, rgba32f) uniform image2D ray_trace1_history2_image;
 
-layout(set = 1, binding = 9, rgba8) uniform image2D ray_trace2_albedo_image;
-layout(set = 1, binding = 10, rgba32f) uniform image2D ray_trace2_lighting1_image;
-layout(set = 1, binding = 11, rgba32f) uniform image2D ray_trace2_lighting2_image;
-layout(set = 1, binding = 12, rgba16f) uniform image2D ray_trace2_position_image;
-layout(set = 1, binding = 13, rgba8) uniform image2D ray_trace2_normal_image;
-layout(set = 1, binding = 14, rgba32f) uniform image2D ray_trace2_history_image;
+layout(set = 1, binding = 10, rgba8) uniform image2D ray_trace2_albedo_image;
+layout(set = 1, binding = 11, rgba32f) uniform image2D ray_trace2_lighting1_image;
+layout(set = 1, binding = 12, rgba32f) uniform image2D ray_trace2_lighting2_image;
+layout(set = 1, binding = 13, rgba16f) uniform image2D ray_trace2_position_image;
+layout(set = 1, binding = 14, rgba8) uniform image2D ray_trace2_normal_image;
+layout(set = 1, binding = 15, rgba32f) uniform image2D ray_trace2_history1_image;
+layout(set = 1, binding = 16, rgba32f) uniform image2D ray_trace2_history2_image;
 
-layout(set = 1, binding = 15) uniform sampler2D ray_trace1_albedo_texture;
-layout(set = 1, binding = 16) uniform sampler2D ray_trace1_lighting1_texture;
-layout(set = 1, binding = 17) uniform sampler2D ray_trace1_lighting2_texture;
-layout(set = 1, binding = 18) uniform sampler2D ray_trace1_position_texture;
-layout(set = 1, binding = 19) uniform sampler2D ray_trace1_normal_texture;
-layout(set = 1, binding = 20) uniform sampler2D ray_trace1_history_texture;
+layout(set = 1, binding = 17) uniform sampler2D ray_trace1_albedo_texture;
+layout(set = 1, binding = 18) uniform sampler2D ray_trace1_lighting1_texture;
+layout(set = 1, binding = 19) uniform sampler2D ray_trace1_lighting2_texture;
+layout(set = 1, binding = 20) uniform sampler2D ray_trace1_position_texture;
+layout(set = 1, binding = 21) uniform sampler2D ray_trace1_normal_texture;
+layout(set = 1, binding = 22) uniform sampler2D ray_trace1_history1_texture;
+layout(set = 1, binding = 23) uniform sampler2D ray_trace1_history2_texture;
 
-layout(set = 1, binding = 21) uniform sampler2D ray_trace2_albedo_texture;
-layout(set = 1, binding = 22) uniform sampler2D ray_trace2_lighting1_texture;
-layout(set = 1, binding = 23) uniform sampler2D ray_trace2_lighting2_texture;
-layout(set = 1, binding = 24) uniform sampler2D ray_trace2_position_texture;
-layout(set = 1, binding = 25) uniform sampler2D ray_trace2_normal_texture;
-layout(set = 1, binding = 26) uniform sampler2D ray_trace2_history_texture;
+layout(set = 1, binding = 24) uniform sampler2D ray_trace2_albedo_texture;
+layout(set = 1, binding = 25) uniform sampler2D ray_trace2_lighting1_texture;
+layout(set = 1, binding = 26) uniform sampler2D ray_trace2_lighting2_texture;
+layout(set = 1, binding = 27) uniform sampler2D ray_trace2_position_texture;
+layout(set = 1, binding = 28) uniform sampler2D ray_trace2_normal_texture;
+layout(set = 1, binding = 29) uniform sampler2D ray_trace2_history1_texture;
+layout(set = 1, binding = 30) uniform sampler2D ray_trace2_history2_texture;
 
-layout(set = 1, binding = 27) uniform sampler2D motion_vector_texture;
+layout(set = 1, binding = 31) uniform sampler2D motion_vector_texture;
 
-layout(set = 1, binding = 28, rgba32f) uniform image2D taa1_image;
-layout(set = 1, binding = 29, rgba32f) uniform image2D taa2_image;
-layout(set = 1, binding = 30) uniform sampler2D taa1_texture;
-layout(set = 1, binding = 31) uniform sampler2D taa2_texture;
+layout(set = 1, binding = 32, rgba32f) uniform image2D taa1_image;
+layout(set = 1, binding = 33, rgba32f) uniform image2D taa2_image;
+layout(set = 1, binding = 34) uniform sampler2D taa1_texture;
+layout(set = 1, binding = 35) uniform sampler2D taa2_texture;
 
 #ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };
@@ -209,32 +213,36 @@ pixel_sample get_new_sample(vec2 pixel_coord) {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
 	s.albedo = texture(ray_trace1_albedo_texture, uv).xyz;
+	vec3 history;
 	if (filter_iter % 2 == 0) {
+	    history = texture(ray_trace1_history1_texture, uv).xyz;
 	    s.lighting = texture(ray_trace1_lighting1_texture, uv).xyz;
 	} else {
+	    history = texture(ray_trace1_history2_texture, uv).xyz;
 	    s.lighting = texture(ray_trace1_lighting2_texture, uv).xyz;
 	}
 	s.position = texture(ray_trace1_position_texture, uv).xyz;
 	s.normal = normalize(texture(ray_trace1_normal_texture, uv).xyz * 2.0 - 1.0);
-	vec3 history = texture(ray_trace1_history_texture, uv).xyz;
-	s.lighting_moment1 = history.x;
-	s.lighting_moment2 = history.y;
+	s.luminance_moment1 = history.x;
+	s.luminance_moment2 = history.y;
 	s.history_length = history.z;
 	return s;
     } else {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
 	s.albedo = texture(ray_trace2_albedo_texture, uv).xyz;
+	vec3 history;
 	if (filter_iter % 2 == 0) {
 	    s.lighting = texture(ray_trace2_lighting1_texture, uv).xyz;
+	    history = texture(ray_trace2_history1_texture, uv).xyz;
 	} else {
 	    s.lighting = texture(ray_trace2_lighting2_texture, uv).xyz;
+	    history = texture(ray_trace2_history2_texture, uv).xyz;
 	}
 	s.position = texture(ray_trace2_position_texture, uv).xyz;
 	s.normal = normalize(texture(ray_trace2_normal_texture, uv).xyz * 2.0 - 1.0);
-	vec3 history = texture(ray_trace2_history_texture, uv).xyz;
-	s.lighting_moment1 = history.x;
-	s.lighting_moment2 = history.y;
+	s.luminance_moment1 = history.x;
+	s.luminance_moment2 = history.y;
 	s.history_length = history.z;
 	return s;
     }
@@ -245,32 +253,36 @@ pixel_sample get_old_sample(vec2 pixel_coord, uint old_filter_iter) {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
 	s.albedo = texture(ray_trace1_albedo_texture, uv).xyz;
+	vec3 history;
 	if (old_filter_iter % 2 == 1) {
 	    s.lighting = texture(ray_trace1_lighting1_texture, uv).xyz;
+	    history = texture(ray_trace1_history1_texture, uv).xyz;
 	} else {
 	    s.lighting = texture(ray_trace1_lighting2_texture, uv).xyz;
+	    history = texture(ray_trace1_history2_texture, uv).xyz;
 	}
 	s.position = texture(ray_trace1_position_texture, uv).xyz;
 	s.normal = normalize(texture(ray_trace1_normal_texture, uv).xyz * 2.0 - 1.0);
-	vec3 history = texture(ray_trace1_history_texture, uv).xyz;
-	s.lighting_moment1 = history.x;
-	s.lighting_moment2 = history.y;
+	s.luminance_moment1 = history.x;
+	s.luminance_moment2 = history.y;
 	s.history_length = history.z;
 	return s;
     } else {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
 	s.albedo = texture(ray_trace2_albedo_texture, uv).xyz;
+	vec3 history;
 	if (old_filter_iter % 2 == 1) {
 	    s.lighting = texture(ray_trace2_lighting1_texture, uv).xyz;
+	    history = texture(ray_trace2_history1_texture, uv).xyz;
 	} else {
 	    s.lighting = texture(ray_trace2_lighting2_texture, uv).xyz;
+	    history = texture(ray_trace2_history2_texture, uv).xyz;
 	}
 	s.position = texture(ray_trace2_position_texture, uv).xyz;
 	s.normal = normalize(texture(ray_trace2_normal_texture, uv).xyz * 2.0 - 1.0);
-	vec3 history = texture(ray_trace2_history_texture, uv).xyz;
-	s.lighting_moment1 = history.x;
-	s.lighting_moment2 = history.y;
+	s.luminance_moment1 = history.x;
+	s.luminance_moment2 = history.y;
 	s.history_length = history.z;
 	return s;
     }
@@ -312,4 +324,8 @@ void set_new_lighting(vec3 lighting, vec2 pixel_coord) {
 
 vec4 sample_to_color(pixel_sample s) {
     return vec4(s.albedo * s.lighting, 1.0);
+}
+
+float luminance(vec3 radiance){
+    return dot(radiance, vec3(0.2125, 0.7154, 0.0721));
 }

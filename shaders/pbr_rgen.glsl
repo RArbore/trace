@@ -138,15 +138,18 @@ void main() {
 	}
     }
 
+    float lum = luminance(outward_radiance);
     if (current_frame % 2 == 0) {
 	imageStore(ray_trace1_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit_albedo, 1.0));
 	imageStore(ray_trace1_lighting1_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
 	imageStore(ray_trace1_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].hit_position, 1.0));
 	imageStore(ray_trace1_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].normal * 0.5 + 0.5, 1.0));
+	imageStore(ray_trace1_history1_image, ivec2(gl_LaunchIDEXT.xy), vec4(lum, lum * lum, 1.0, 1.0));
     } else {
 	imageStore(ray_trace2_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit_albedo, 1.0));
 	imageStore(ray_trace2_lighting1_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
 	imageStore(ray_trace2_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].hit_position, 1.0));
 	imageStore(ray_trace2_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].normal * 0.5 + 0.5, 1.0));
+	imageStore(ray_trace2_history1_image, ivec2(gl_LaunchIDEXT.xy), vec4(lum, lum * lum, 1.0, 1.0));
     }
 }
