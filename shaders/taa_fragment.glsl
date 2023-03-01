@@ -60,10 +60,5 @@ void main() {
 	}
     } else {
 	out_color = sample_to_color(new_sample);
-	if (current_frame % 2 == 0) {
-	    imageStore(taa1_image, ivec2(pixel_coord), out_color);
-	} else {
-	    imageStore(taa2_image, ivec2(pixel_coord), out_color);
-	}
     }
 }

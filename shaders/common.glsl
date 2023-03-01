@@ -328,7 +328,8 @@ void set_new_lighting(vec3 lighting, vec2 pixel_coord) {
     }
 }
 
-void set_new_history(vec4 history, vec2 pixel_coord) {
+void set_new_history(pixel_sample s, vec2 pixel_coord) {
+    vec4 history = vec4(s.luminance_moment1, s.luminance_moment2, s.variance, s.history_length);
     if (current_frame % 2 == 0) {
 	if (filter_iter % 2 == 1) {
 	    imageStore(ray_trace1_history1_image, ivec2(pixel_coord), history);

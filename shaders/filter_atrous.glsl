@@ -67,4 +67,5 @@ void main() {
     }
     vec3 new_lighting = total_weight == 0.0 ? vec3(0.0) : atrous_lighting / total_weight;
     set_new_lighting(new_lighting, pixel_coord);
+    set_new_history(new_sample, pixel_coord);
 }

@@ -45,6 +45,18 @@ void main() {
     vec3 blended_lighting = mix(reprojected_sample.lighting, new_sample.lighting, alpha);
     pixel_sample blended_sample = new_sample;
     blended_sample.lighting = blend ? blended_lighting : new_sample.lighting;
+
+    float blended_luminance_moment1 = mix(reprojected_sample.luminance_moment1, new_sample.luminance_moment1, alpha);
+    float blended_luminance_moment2 = mix(reprojected_sample.luminance_moment2, new_sample.luminance_moment2, alpha);
+    blended_sample.luminance_moment1 = blend ? blended_luminance_moment1 : new_sample.luminance_moment1;
+    blended_sample.luminance_moment2 = blend ? blended_luminance_moment2 : new_sample.luminance_moment2;
+    blended_sample.history_length = blend ? reprojected_sample.history_length + 1.0 : 1.0;
+    if (blended_sample.history_length >= 4.0 || true) {
+	blended_sample.variance = blended_sample.luminance_moment2 - blended_sample.luminance_moment1 * blended_sample.luminance_moment1;
+    } else {
+	blended_sample.variance = 0.0;
+    }
     
     set_new_lighting(blended_sample.lighting, pixel_coord);
+    set_new_history(blended_sample, pixel_coord);
 }
