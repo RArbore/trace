@@ -48,6 +48,7 @@ struct ImGuiData {
     bool temporal_filter = true;
     float sigma_normal = 0.01f;
     float sigma_position = 0.01f;
+    float sigma_luminance = 0.1f;
     int atrous_filter_iters = 2;
 };
 
@@ -57,11 +58,13 @@ struct RenderContext {
 	float alpha;
 	float sigma_normal;
 	float sigma_position;
+	float sigma_luminance;
 	uint32_t filter_iter;
 	uint32_t num_filter_iters;
 	uint32_t temporal;
 	uint32_t taa;
     };
+    static_assert(sizeof(PushConstants) <= 128, "Push constants must fit in 128 bytes.");
     
     GLFWwindow *window;
     bool active = true, resized = false;

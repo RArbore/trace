@@ -74,6 +74,7 @@ layout (push_constant) uniform PushConstants {
     float alpha;
     float sigma_normal;
     float sigma_position;
+    float sigma_luminance;
     uint filter_iter;
     uint num_filter_iters;
     uint temporal;

@@ -51,10 +51,10 @@ void main() {
     blended_sample.luminance_moment1 = blend ? blended_luminance_moment1 : new_sample.luminance_moment1;
     blended_sample.luminance_moment2 = blend ? blended_luminance_moment2 : new_sample.luminance_moment2;
     blended_sample.history_length = blend ? reprojected_sample.history_length + 1.0 : 1.0;
-    if (blended_sample.history_length >= 4.0 || true) {
+    if (blended_sample.history_length >= 4.0) {
 	blended_sample.variance = blended_sample.luminance_moment2 - blended_sample.luminance_moment1 * blended_sample.luminance_moment1;
     } else {
-	blended_sample.variance = 0.0;
+	blended_sample.variance = 10.0;
     }
     
     set_new_lighting(blended_sample.lighting, pixel_coord);

@@ -118,6 +118,7 @@ auto RenderContext::render_imgui() noexcept -> void {
     ImGui::SliderFloat("Alpha", &imgui_data.alpha, 0.0f, 1.0f);
     ImGui::SliderFloat("Sigma - Normal", &imgui_data.sigma_normal, 0.01f, 2.0f);
     ImGui::SliderFloat("Sigma - Position", &imgui_data.sigma_position, 0.01f, 2.0f);
+    ImGui::SliderFloat("Sigma - Luminance", &imgui_data.sigma_luminance, 0.01f, 2.0f);
     ImGui::SliderInt("Atrous Filter", &imgui_data.atrous_filter_iters, 0, 5);
     ImGui::Checkbox("Temporal Filter", &imgui_data.temporal_filter);
     ImGui::Checkbox("TAA", &imgui_data.taa);
