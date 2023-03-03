@@ -42,6 +42,21 @@ void main() {
     }
 
     pixel_sample new_sample = get_new_sample(pixel_coord);
+    float current_variance = 0.0;
+    float variance_total_weight = 0.0;
+    for (int i = -1; i <= 1; ++i) {
+	for (int j = -1; j <= 1; ++j) {
+	    ivec2 offset = ivec2(i, j);
+	    vec2 sample_pixel_coord = pixel_coord + offset;
+	    if (sample_pixel_coord.x >= 0 && sample_pixel_coord.x >= 0 && sample_pixel_coord.x < texture_size.x && sample_pixel_coord.y < texture_size.y) {
+		pixel_sample variance_sample = get_new_sample(sample_pixel_coord);
+		current_variance += variance_sample.variance * blur_kernel_3x3[(i + 1) * 3 + j + 1];
+		variance_total_weight += blur_kernel_3x3[(i + 1) * 3 + j + 1];
+	    }
+	}
+    }
+    current_variance /= variance_total_weight;
+    
     vec3 atrous_lighting = vec3(0.0);
     float total_weight = 0.0;
     float new_variance = 0.0;
@@ -60,7 +75,7 @@ void main() {
 		float position_dist2 = dot(position_dist, position_dist);
 		float position_weight = min(exp(-position_dist2 / sigma_position), 1.0);
 
-		float luminance_weight = exp(-abs(luminance(new_sample.lighting) - luminance(blur_sample.lighting)) / (sigma_luminance * sqrt(max(new_sample.variance, 0.0)) + 0.01));
+		float luminance_weight = exp(-abs(luminance(new_sample.lighting) - luminance(blur_sample.lighting)) / (sigma_luminance * sqrt(max(current_variance, 0.0)) + 0.01));
 		
 		float weight = normal_weight * position_weight * luminance_weight * blur_kernel_3x3[(i + 1) * 3 + j + 1];
 		atrous_lighting += blur_sample.lighting * weight;
