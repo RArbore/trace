@@ -43,13 +43,13 @@ struct SwapchainSupport {
 struct ImGuiData {
     std::array<float, 50> last_fpss;
     std::array<float, 500> last_heaps;
-    float alpha = 0.02f;
+    float alpha = 0.2f;
     bool taa = true;
     bool temporal_filter = true;
     float sigma_normal = 0.01f;
     float sigma_position = 0.01f;
-    float sigma_luminance = 0.1f;
-    int atrous_filter_iters = 2;
+    float sigma_luminance = 2.0f;
+    int atrous_filter_iters = 5;
 };
 
 struct RenderContext {
