@@ -134,7 +134,7 @@ void main() {
 	    ray_pos = prd.hit_position + prd.flat_normal * SURFACE_OFFSET;
 	    hemisphere_sample samp = uniform_weighted_hemisphere(slice_2_from_4(random, hit_num), prd.normal);
 	    ray_dir = samp.drawn_sample;
-	    weight *= lambert * BRDF(omega_in, ray_dir, hits[hit_num]) / (samp.drawn_pdf * 2.0 * PI);
+	    weight *= lambert * BRDF(omega_in, ray_dir, hits[hit_num]) / (samp.drawn_pdf);
 	}
     }
 
