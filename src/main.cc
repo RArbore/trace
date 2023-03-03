@@ -141,7 +141,8 @@ auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> i
 	context.view_dir = glm::vec3(sin(context.camera_theta) * cos(context.camera_phi), sin(context.camera_theta) * sin(context.camera_phi), cos(context.camera_theta));
 	context.camera_matrix = glm::lookAt(context.camera_position, context.camera_position + context.view_dir, glm::vec3(0.0f, 0.0f, 1.0f));
 	context.push_constants.current_frame = context.current_frame;
-	context.push_constants.alpha = context.current_frame ? context.imgui_data.alpha : 0.0f;
+	context.push_constants.alpha_temporal = context.current_frame ? context.imgui_data.alpha_temporal : 0.0f;
+	context.push_constants.alpha_taa = context.current_frame ? context.imgui_data.alpha_taa : 0.0f;
 	context.push_constants.sigma_normal = context.imgui_data.sigma_normal;
 	context.push_constants.sigma_position = context.imgui_data.sigma_position;
 	context.push_constants.sigma_luminance = context.imgui_data.sigma_luminance;

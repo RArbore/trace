@@ -42,12 +42,12 @@ void main() {
 	reprojected_pixel_coord.y >= 0 &&
 	reprojected_pixel_coord.x < texture_size.x &&
 	reprojected_pixel_coord.y < texture_size.y;
-    vec3 blended_lighting = mix(reprojected_sample.lighting, new_sample.lighting, alpha);
+    vec3 blended_lighting = mix(reprojected_sample.lighting, new_sample.lighting, alpha_temporal);
     pixel_sample blended_sample = new_sample;
     blended_sample.lighting = blend ? blended_lighting : new_sample.lighting;
 
-    float blended_luminance_moment1 = mix(reprojected_sample.luminance_moment1, new_sample.luminance_moment1, alpha);
-    float blended_luminance_moment2 = mix(reprojected_sample.luminance_moment2, new_sample.luminance_moment2, alpha);
+    float blended_luminance_moment1 = mix(reprojected_sample.luminance_moment1, new_sample.luminance_moment1, alpha_temporal);
+    float blended_luminance_moment2 = mix(reprojected_sample.luminance_moment2, new_sample.luminance_moment2, alpha_temporal);
     blended_sample.luminance_moment1 = blend ? blended_luminance_moment1 : new_sample.luminance_moment1;
     blended_sample.luminance_moment2 = blend ? blended_luminance_moment2 : new_sample.luminance_moment2;
     blended_sample.history_length = blend ? reprojected_sample.history_length + 1.0 : 1.0;

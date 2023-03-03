@@ -51,7 +51,7 @@ void main() {
 	    reprojected_pixel_coord.x < texture_size.x &&
 	    reprojected_pixel_coord.y < texture_size.y;
 	
-	vec4 blended_color = mix(reprojected_color, new_color, alpha);
+	vec4 blended_color = mix(reprojected_color, new_color, alpha_taa);
 	out_color = blend ? blended_color : new_color;
 	if (current_frame % 2 == 0) {
 	    imageStore(taa1_image, ivec2(pixel_coord), out_color);

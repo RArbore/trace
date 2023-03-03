@@ -71,7 +71,8 @@ struct pixel_sample {
 
 layout (push_constant) uniform PushConstants {
     uint current_frame;
-    float alpha;
+    float alpha_temporal;
+    float alpha_taa;
     float sigma_normal;
     float sigma_position;
     float sigma_luminance;

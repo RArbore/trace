@@ -43,7 +43,8 @@ struct SwapchainSupport {
 struct ImGuiData {
     std::array<float, 50> last_fpss;
     std::array<float, 500> last_heaps;
-    float alpha = 0.2f;
+    float alpha_temporal = 0.2f;
+    float alpha_taa = 0.15f;
     bool taa = true;
     bool temporal_filter = true;
     float sigma_normal = 0.01f;
@@ -55,7 +56,8 @@ struct ImGuiData {
 struct RenderContext {
     struct PushConstants {
 	uint32_t current_frame;
-	float alpha;
+	float alpha_temporal;
+	float alpha_taa;
 	float sigma_normal;
 	float sigma_position;
 	float sigma_luminance;
