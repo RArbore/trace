@@ -5,23 +5,23 @@ GLSL := glslc
 
 RELEASE ?= 0
 ifeq ($(RELEASE), 1)
-	CPPFLAGS := $(CPPFLAGS) -Ofast -march=native -flto -DRELEASE
+	CXXFLAGS := $(CXXFLAGS) -Ofast -march=native -flto -DRELEASE
 	GLSLFLAGS := $(GLSLFLAGS) -O
 	LDFLAGS := $(LDFLAGS) -flto
 else
-	CPPFLAGS := $(CPPFLAGS) -g
+	CXXFLAGS := $(CXXFLAGS) -g
 	GLSLFLAGS := $(GLSLFLAGS) -g
 endif
 
 TRACY ?= 0
 TRACY_OBJS :=
 ifeq ($(TRACY), 1)
-	CPPFLAGS := $(CPPFLAGS) -DTRACY_ENABLE
+	CXXFLAGS := $(CXXFLAGS) -DTRACY_ENABLE
 	TRACY_FLAGS := $(TRACY_FLAGS) -c -Itracy -Itracy/public/tracy -DTRACY_ENABLE
 	TRACY_OBJS := build/tracyclient.o
 endif
 
-CPPFLAGS := $(CPPFLAGS) -c -fno-rtti -pipe -Iimgui -Iimgui/backends -Itracy/public/tracy -std=c++20
+CXXFLAGS := $(CXXFLAGS) -fno-rtti -pipe -Iimgui -Iimgui/backends -Itracy/public/tracy -std=c++20
 GLSLFLAGS := $(GLSLFLAGS) --target-spv=spv1.5 --target-env=vulkan1.2
 LDFLAGS := $(LDFLAGS) -fuse-ld=mold
 WFLAGS := $(WFLAGS) -Wall -Wextra -Wshadow -Wconversion -Wpedantic
@@ -41,7 +41,7 @@ trace: $(OBJS) $(SPIRVS) $(IMGUI_OBJS) $(TRACY_OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) $(IMGUI_OBJS) $(TRACY_OBJS) -o trace $(LDLIBS)
 
 $(OBJS): build/%.o: src/%.cc $(HEADERS)
-	$(CXX) $(CPPFLAGS) $(WFLAGS) $< -o $@
+	$(CXX) $(CXXFLAGS) $(WFLAGS) -c $< -o $@
 
 $(SPIRVS): build/%.spv: shaders/%.glsl $(SHADER_HEADERS)
 	$(GLSL) $(GLSLFLAGS) $< -o $@
@@ -73,7 +73,10 @@ build/tracyclient.o: tracy/public/TracyClient.cpp
 exe: trace
 	./trace
 
+blue_noise_gen: tools/blue_noise_gen.cc $(TRACY_OBJS)
+	$(CXX) $(CXXFLAGS) $(WFLAGS) $(TRACY_OBJS) $< -o $@
+
 clean:
-	$(RM) build/*.o build/*.spv trace
+	$(RM) build/*.o build/*.spv trace blue_noise_gen
 
 .PHONY: clean exe
