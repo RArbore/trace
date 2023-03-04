@@ -98,8 +98,8 @@ struct RenderContext {
 
     std::map<std::string, VkShaderModule> shader_modules;
     VkPipelineLayout raster_pipeline_layout;
-    VkRenderPass raster_render_pass, motion_vector_render_pass;
-    VkPipeline raster_pipeline, motion_vector_pipeline;
+    VkRenderPass raster_render_pass;
+    VkPipeline raster_pipeline;
 
     std::vector<VkRayTracingShaderGroupCreateInfoKHR> ray_trace_shader_groups;
     VkPipelineLayout ray_trace_pipeline_layout;
@@ -121,11 +121,8 @@ struct RenderContext {
     VkImageView blue_noise_image_view;
     Image motion_vector_image;
     VkImageView motion_vector_image_view;
-    Image motion_vector_depth_image;
-    VkImageView motion_vector_depth_image_view;
     std::array<Image, 2> taa_images;
     std::array<VkImageView, 2> taa_image_views;
-    VkFramebuffer motion_vector_framebuffer;
     PushConstants push_constants;
     RingBuffer main_ring_buffer;
 

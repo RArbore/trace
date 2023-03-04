@@ -152,12 +152,13 @@ layout(set = 1, binding = 28) uniform sampler2D ray_trace2_normal_texture;
 layout(set = 1, binding = 29) uniform sampler2D ray_trace2_history1_texture;
 layout(set = 1, binding = 30) uniform sampler2D ray_trace2_history2_texture;
 
-layout(set = 1, binding = 31) uniform sampler2D motion_vector_texture;
+layout(set = 1, binding = 31, rg32f) uniform image2D motion_vector_image;
+layout(set = 1, binding = 32) uniform sampler2D motion_vector_texture;
 
-layout(set = 1, binding = 32, rgba32f) uniform image2D taa1_image;
-layout(set = 1, binding = 33, rgba32f) uniform image2D taa2_image;
-layout(set = 1, binding = 34) uniform sampler2D taa1_texture;
-layout(set = 1, binding = 35) uniform sampler2D taa2_texture;
+layout(set = 1, binding = 33, rgba32f) uniform image2D taa1_image;
+layout(set = 1, binding = 34, rgba32f) uniform image2D taa2_image;
+layout(set = 1, binding = 35) uniform sampler2D taa1_texture;
+layout(set = 1, binding = 36) uniform sampler2D taa2_texture;
 
 #ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };

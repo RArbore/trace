@@ -148,6 +148,9 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 	taa_image_views[i] = create_image_view(taa_images[i].image, VK_FORMAT_R32G32B32A32_SFLOAT, subresource_range);
     }
 
+    motion_vector_image = create_image(0, VK_FORMAT_R32G32_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "MOTION_VECTORS_IMAGE");
+    motion_vector_image_view = create_image_view(motion_vector_image.image, VK_FORMAT_R32G32_SFLOAT, subresource_range);
+
     inefficient_run_commands([&](VkCommandBuffer cmd) {
 	VkImageMemoryBarrier image_memory_barrier {};
 	image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -174,14 +177,10 @@ auto RenderContext::create_ray_trace_images() noexcept -> void {
 	    image_memory_barrier.image = taa_images[i].image;
 	    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
 	}
+
+	image_memory_barrier.image = motion_vector_image.image;
+	vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
     });
-
-    motion_vector_image = create_image(0, VK_FORMAT_R32G32_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "MOTION_VECTORS_IMAGE");
-    motion_vector_image_view = create_image_view(motion_vector_image.image, VK_FORMAT_R32G32_SFLOAT, subresource_range);
-
-    subresource_range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    motion_vector_depth_image = create_image(0, VK_FORMAT_D32_SFLOAT, swapchain_extent, 1, 1, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "MOTION_VECTORS_IMAGE");
-    motion_vector_depth_image_view = create_image_view(motion_vector_depth_image.image, VK_FORMAT_D32_SFLOAT, subresource_range);
 }
 
 auto RenderContext::cleanup_ray_trace_images() noexcept -> void {
@@ -197,9 +196,6 @@ auto RenderContext::cleanup_ray_trace_images() noexcept -> void {
     
     cleanup_image(motion_vector_image);
     cleanup_image_view(motion_vector_image_view);
-
-    cleanup_image(motion_vector_depth_image);
-    cleanup_image_view(motion_vector_depth_image_view);
 
     for (uint32_t i = 0; i < 2; ++i) {
 	cleanup_image(taa_images[i]);

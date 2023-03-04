@@ -54,8 +54,6 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     ZoneScoped;
     VkShaderModule vertex_shader = shader_modules["taa_vertex"];
     VkShaderModule fragment_shader = shader_modules["taa_fragment"];
-    VkShaderModule motion_vector_vertex_shader = shader_modules["motion_vector_vertex"];
-    VkShaderModule motion_vector_fragment_shader = shader_modules["motion_vector_fragment"];
 
     VkPipelineShaderStageCreateInfo vertex_shader_stage_create_info {};
     vertex_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -71,36 +69,12 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
 
     VkPipelineShaderStageCreateInfo shader_stage_create_infos[] = {vertex_shader_stage_create_info, fragment_shader_stage_create_info};
 
-    VkPipelineShaderStageCreateInfo motion_vector_vertex_shader_stage_create_info {};
-    motion_vector_vertex_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    motion_vector_vertex_shader_stage_create_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    motion_vector_vertex_shader_stage_create_info.module = motion_vector_vertex_shader;
-    motion_vector_vertex_shader_stage_create_info.pName = "main";
-
-    VkPipelineShaderStageCreateInfo motion_vector_fragment_shader_stage_create_info {};
-    motion_vector_fragment_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    motion_vector_fragment_shader_stage_create_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    motion_vector_fragment_shader_stage_create_info.module = motion_vector_fragment_shader;
-    motion_vector_fragment_shader_stage_create_info.pName = "main";
-
-    VkPipelineShaderStageCreateInfo motion_vector_shader_stage_create_infos[] = {motion_vector_vertex_shader_stage_create_info, motion_vector_fragment_shader_stage_create_info};
-
     VkPipelineVertexInputStateCreateInfo vertex_input_create_info {};
     vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertex_input_create_info.vertexBindingDescriptionCount = 0;
     vertex_input_create_info.pVertexBindingDescriptions = NULL;
     vertex_input_create_info.vertexAttributeDescriptionCount = 0;
     vertex_input_create_info.pVertexAttributeDescriptions = NULL;
-
-    auto binding_descriptions = Scene::binding_descriptions();
-    auto attribute_descriptions = Scene::attribute_descriptions();
-
-    VkPipelineVertexInputStateCreateInfo motion_vector_vertex_input_create_info {};
-    motion_vector_vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    motion_vector_vertex_input_create_info.vertexBindingDescriptionCount = binding_descriptions.size();
-    motion_vector_vertex_input_create_info.pVertexBindingDescriptions = binding_descriptions.data();
-    motion_vector_vertex_input_create_info.vertexAttributeDescriptionCount = attribute_descriptions.size();
-    motion_vector_vertex_input_create_info.pVertexAttributeDescriptions = attribute_descriptions.data();
 
     VkPipelineInputAssemblyStateCreateInfo input_assembly_create_info {};
     input_assembly_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -225,8 +199,6 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     render_pass_create_info.attachmentCount = 2;
     render_pass_create_info.pAttachments = attachments;
 
-    ASSERT(vkCreateRenderPass(device, &render_pass_create_info, NULL, &motion_vector_render_pass), "Unable to create motion vector render pass.");
-
     VkGraphicsPipelineCreateInfo raster_pipeline_create_info {};
     raster_pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     raster_pipeline_create_info.stageCount = 2;
@@ -245,23 +217,12 @@ auto RenderContext::create_raster_pipeline() noexcept -> void {
     raster_pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
 
     ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &raster_pipeline_create_info, NULL, &raster_pipeline), "Unable to create raster pipeline.");
-
-    depth_stencil_state_create_info.depthTestEnable = VK_TRUE;
-    depth_stencil_state_create_info.depthWriteEnable = VK_TRUE;
-    depth_stencil_state_create_info.depthCompareOp = VK_COMPARE_OP_LESS;
-    raster_pipeline_create_info.pStages = motion_vector_shader_stage_create_infos;
-    raster_pipeline_create_info.pVertexInputState = &motion_vector_vertex_input_create_info;
-    raster_pipeline_create_info.renderPass = motion_vector_render_pass;
-
-    ASSERT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &raster_pipeline_create_info, NULL, &motion_vector_pipeline), "Unable to create motion vector pipeline.");
 }
 
 auto RenderContext::cleanup_raster_pipeline() noexcept -> void {
     ZoneScoped;
     vkDestroyPipeline(device, raster_pipeline, NULL);
     vkDestroyRenderPass(device, raster_render_pass, NULL);
-    vkDestroyPipeline(device, motion_vector_pipeline, NULL);
-    vkDestroyRenderPass(device, motion_vector_render_pass, NULL);
     vkDestroyPipelineLayout(device, raster_pipeline_layout, NULL);
 }
 
@@ -409,19 +370,6 @@ auto RenderContext::create_framebuffers() noexcept -> void {
 
 	ASSERT(vkCreateFramebuffer(device, &create_info, NULL, &swapchain_framebuffers[i]), "Unable to create framebuffer.");
     }
-
-    VkImageView attachments[] = {motion_vector_image_view, motion_vector_depth_image_view};
-
-    VkFramebufferCreateInfo create_info {};
-    create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    create_info.renderPass = motion_vector_render_pass;
-    create_info.attachmentCount = 2;
-    create_info.pAttachments = attachments;
-    create_info.width = swapchain_extent.width;
-    create_info.height = swapchain_extent.height;
-    create_info.layers = 1;
-    
-    ASSERT(vkCreateFramebuffer(device, &create_info, NULL, &motion_vector_framebuffer), "Unable to create framebuffer.");
 }
 
 auto RenderContext::cleanup_framebuffers() noexcept -> void {
@@ -429,5 +377,4 @@ auto RenderContext::cleanup_framebuffers() noexcept -> void {
     for (auto framebuffer : swapchain_framebuffers) {
 	vkDestroyFramebuffer(device, framebuffer, NULL);
     }
-    vkDestroyFramebuffer(device, motion_vector_framebuffer, NULL);
 }
