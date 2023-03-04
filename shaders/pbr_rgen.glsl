@@ -111,7 +111,6 @@ void main() {
     const uvec2 blue_noise_coords = (gl_LaunchIDEXT.xy + ivec2(hash(current_frame), hash(3 * current_frame))) % blue_noise_size;
     const vec4 random = imageLoad(blue_noise_image,  ivec2(blue_noise_coords));
 
-    uint num_lights = floatBitsToUint(lights[0].x);
     vec3 outward_radiance = vec3(0.0);
     vec3 weight = vec3(1.0);
     
@@ -152,6 +151,11 @@ void main() {
 	weight *= indirect_lambert * BRDF(omega_in, ray_dir, indirect_prd) / indirect_sample.drawn_weight;
     }
 
+    vec3 hit_position = first_hit.hit_position;
+    vec4 new_device = perspective * camera * vec4(hit_position, 1.0);
+    vec4 old_device = perspective * last_frame_camera * vec4(hit_position, 1.0);
+    vec2 pixel_velocity = device_coord_to_pixel_coord(new_device.xy / new_device.w) - device_coord_to_pixel_coord(old_device.xy / old_device.w);
+
     outward_radiance /= 2.0;
     float lum = luminance(outward_radiance);
     if (current_frame % 2 == 0) {
@@ -167,4 +171,5 @@ void main() {
 	imageStore(ray_trace2_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.normal * 0.5 + 0.5, 1.0));
 	imageStore(ray_trace2_history1_image, ivec2(gl_LaunchIDEXT.xy), vec4(lum, lum * lum, 0.0, 1.0));
     }
+    imageStore(motion_vector_image, ivec2(gl_LaunchIDEXT.xy), vec4(pixel_velocity, 0.0, 1.0));
 }
