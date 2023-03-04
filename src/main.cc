@@ -27,7 +27,7 @@ auto operator new(size_t size) -> void * {
     return malloc(size);
 }
 
-auto main([[maybe_unused]] int argc, [[maybe_unused]] char **argv) noexcept -> int {
+auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept -> int32_t {
     ZoneScoped;
     srand((uint32_t) time(NULL));
     

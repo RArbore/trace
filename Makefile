@@ -74,7 +74,7 @@ exe: trace
 	./trace
 
 blue_noise_gen: tools/blue_noise_gen.cc $(TRACY_OBJS)
-	$(CXX) $(CXXFLAGS) $(WFLAGS) $(TRACY_OBJS) $< -o $@
+	$(CXX) $(CXXFLAGS) -pthread $(WFLAGS) $(TRACY_OBJS) $< -o $@ -lpthread
 
 clean:
 	$(RM) build/*.o build/*.spv trace blue_noise_gen

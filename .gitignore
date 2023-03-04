@@ -30,6 +30,7 @@
 *.out
 *.app
 trace
+blue_noise_gen
 
 # Other
 *.ini
