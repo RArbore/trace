@@ -70,13 +70,13 @@ mat3 get_arbitrary_hemisphere_orientation_matrix(vec3 direction) {
     return mat3(x, y, direction);
 }
 
-hemisphere_sample uniform_weighted_hemisphere(vec2 random, vec3 direction) {
-    hemisphere_sample ret;
+ray_sample uniform_weighted_hemisphere(vec2 random, vec3 direction) {
+    ray_sample ret;
     float theta = acos(random.x);
     float phi = 2.0 * PI * random.y;
     vec3 up_hemisphere = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
     ret.drawn_sample = get_arbitrary_hemisphere_orientation_matrix(direction) * up_hemisphere;
-    ret.drawn_pdf = 1.0 / (2.0 * PI);
+    ret.drawn_weight = 1.0 / PI;
     return ret;
 }
 
@@ -100,6 +100,12 @@ vec3 BRDF(vec3 omega_in, vec3 omega_out, hit_payload hit) {
     return kD * hit.albedo / PI + specular;
 }
 
+ray_sample sample_light_sources(vec2 random, vec3 direction) {
+    ray_sample samp = uniform_weighted_hemisphere(random, direction);
+    samp.drawn_weight = 1.0 / (4.0 * PI);
+    return samp;
+}
+
 void main() {
     const uvec2 blue_noise_size = imageSize(blue_noise_image);
     const uvec2 blue_noise_coords = (gl_LaunchIDEXT.xy + ivec2(hash(current_frame), hash(3 * current_frame))) % blue_noise_size;
@@ -113,43 +119,52 @@ void main() {
     vec3 ray_pos = camera_position;
     vec3 ray_dir = normalize((centered_inverse_camera * inverse_jittered_perspective * vec4(device_coord, 0.0, 1.0)).xyz);
 
-    hit_payload hits[NUM_BOUNCES];
-    vec3 first_hit_albedo = vec3(1.0);
-    uint hit_num;
-
-    for (hit_num = 0; hit_num < NUM_BOUNCES; ++hit_num) {
+    hit_payload first_hit;
+    for (uint hit_num = 0; hit_num < NUM_BOUNCES; ++hit_num) {
 	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, ray_dir, FAR_AWAY, 0);
-	if (hit_num == 0) {
-	    first_hit_albedo = prd.albedo;
-	    prd.albedo = vec3(1.0);
-	}
-	hits[hit_num] = prd;
-	outward_radiance += hits[hit_num].direct_emittance * weight;
+	hit_payload indirect_prd = prd;
 
-	if (prd.model_id == 0xFFFFFFFF) {
-	    break;
-	} else {
-	    float lambert = dot(hits[hit_num].normal, -ray_dir);
-	    vec3 omega_in = -ray_dir;
-	    ray_pos = prd.hit_position + prd.flat_normal * SURFACE_OFFSET;
-	    hemisphere_sample samp = uniform_weighted_hemisphere(slice_2_from_4(random, hit_num), prd.normal);
-	    ray_dir = samp.drawn_sample;
-	    weight *= lambert * BRDF(omega_in, ray_dir, hits[hit_num]) / (samp.drawn_pdf);
+	outward_radiance += indirect_prd.direct_emittance * weight;
+	if (hit_num == 0) {
+	    first_hit = indirect_prd;
+	    indirect_prd.albedo = vec3(1.0);
+	    outward_radiance *= 2.0;
 	}
+
+	if (indirect_prd.model_id == 0xFFFFFFFF) {
+	    break;
+	}
+
+	ray_pos = indirect_prd.hit_position + indirect_prd.flat_normal * SURFACE_OFFSET;
+	ray_sample direct_sample = sample_light_sources(slice_2_from_4(random, hit_num), indirect_prd.normal);
+	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, direct_sample.drawn_sample, FAR_AWAY, 0);
+	hit_payload direct_prd = prd;
+
+	vec3 direct_brdf = BRDF(-ray_dir, direct_sample.drawn_sample, indirect_prd);
+	float direct_lambert = dot(direct_sample.drawn_sample, indirect_prd.normal);
+
+	outward_radiance += direct_prd.direct_emittance * weight * direct_lambert * direct_brdf / direct_sample.drawn_weight;
+
+	float indirect_lambert = dot(indirect_prd.normal, -ray_dir);
+	vec3 omega_in = -ray_dir;
+	ray_sample indirect_sample = uniform_weighted_hemisphere(slice_2_from_4(random, hit_num + 2), indirect_prd.normal);
+	ray_dir = indirect_sample.drawn_sample;
+	weight *= indirect_lambert * BRDF(omega_in, ray_dir, indirect_prd) / indirect_sample.drawn_weight;
     }
 
+    outward_radiance /= 2.0;
     float lum = luminance(outward_radiance);
     if (current_frame % 2 == 0) {
-	imageStore(ray_trace1_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit_albedo, 1.0));
+	imageStore(ray_trace1_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.albedo, 1.0));
 	imageStore(ray_trace1_lighting1_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
-	imageStore(ray_trace1_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].hit_position, 1.0));
-	imageStore(ray_trace1_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].normal * 0.5 + 0.5, 1.0));
+	imageStore(ray_trace1_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.hit_position, 1.0));
+	imageStore(ray_trace1_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.normal * 0.5 + 0.5, 1.0));
 	imageStore(ray_trace1_history1_image, ivec2(gl_LaunchIDEXT.xy), vec4(lum, lum * lum, 0.0, 1.0));
     } else {
-	imageStore(ray_trace2_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit_albedo, 1.0));
+	imageStore(ray_trace2_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.albedo, 1.0));
 	imageStore(ray_trace2_lighting1_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
-	imageStore(ray_trace2_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].hit_position, 1.0));
-	imageStore(ray_trace2_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(hits[0].normal * 0.5 + 0.5, 1.0));
+	imageStore(ray_trace2_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.hit_position, 1.0));
+	imageStore(ray_trace2_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.normal * 0.5 + 0.5, 1.0));
 	imageStore(ray_trace2_history1_image, ivec2(gl_LaunchIDEXT.xy), vec4(lum, lum * lum, 0.0, 1.0));
     }
 }

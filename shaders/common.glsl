@@ -53,9 +53,9 @@ struct vertex {
 };
 #endif
 
-struct hemisphere_sample {
+struct ray_sample {
     vec3 drawn_sample;
-    float drawn_pdf;
+    float drawn_weight;
 };
 
 struct pixel_sample {

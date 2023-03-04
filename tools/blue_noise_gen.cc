@@ -17,7 +17,7 @@
 
 #include "Tracy.hpp"
 
-#define NUM_THREADS 8
+#define NUM_THREADS 16
 
 static int32_t texture_width, num_textures;
 static uint8_t *scratch_memory;
@@ -40,6 +40,7 @@ auto hash32(uint32_t x) noexcept -> uint32_t {
 auto blue_noise_gen_texture(uint8_t *texture_mem, int32_t texture_num) noexcept {
     ZoneScoped;
     memset(texture_mem, 0, texture_width * texture_width);
+
     for (int32_t i = 0; i < texture_width * texture_width; i += 4) {
 	uint32_t hash = hash32((uint32_t) i);
 	texture_mem[i] = (uint8_t) (hash >> 24) & 0xFF;
@@ -47,6 +48,7 @@ auto blue_noise_gen_texture(uint8_t *texture_mem, int32_t texture_num) noexcept 
 	texture_mem[i + 2] = (uint8_t) (hash >> 8) & 0xFF;
 	texture_mem[i + 3] = (uint8_t) hash & 0xFF;
     }
+
     char texture_name[128];
     sprintf(texture_name, "assets/blue_noise_texture_%dx%d_num_%d.bin", texture_width, texture_width, texture_num);
     FILE *output_file = fopen(texture_name, "w");
