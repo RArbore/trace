@@ -40,12 +40,28 @@ auto hash32(uint32_t x) noexcept -> uint32_t {
 auto blue_noise_gen_texture(uint8_t *texture_mem, int32_t texture_num) noexcept {
     ZoneScoped;
     memset(texture_mem, 0, texture_width * texture_width);
+    for (int32_t i = 0; i < texture_width * texture_width; i += 4) {
+	uint32_t hash = hash32((uint32_t) i);
+	texture_mem[i] = (uint8_t) (hash >> 24) & 0xFF;
+	texture_mem[i + 1] = (uint8_t) (hash >> 16) & 0xFF;
+	texture_mem[i + 2] = (uint8_t) (hash >> 8) & 0xFF;
+	texture_mem[i + 3] = (uint8_t) hash & 0xFF;
+    }
+    char texture_name[128];
+    sprintf(texture_name, "assets/blue_noise_texture_%dx%d_num_%d.bin", texture_width, texture_width, texture_num);
+    FILE *output_file = fopen(texture_name, "w");
+    if (!output_file) {
+	std::cerr << "PANIC: Couldn't open output file " << texture_name << ".\n";
+	exit(1);
+    }
+    fwrite(texture_mem, 1, texture_width * texture_width, output_file);
+    fclose(output_file);
 }
 
 auto blue_noise_gen_worker(void *thread_id_ptr) -> void * {
     int32_t thread_id = *((int32_t *) thread_id_ptr);
     for (int32_t i = thread_id; i < num_textures; i += NUM_THREADS) {
-	blue_noise_gen_texture(scratch_memory + texture_width * texture_width * i, i);
+	blue_noise_gen_texture(scratch_memory + texture_width * texture_width * thread_id, i);
     }
     return NULL;
 }
