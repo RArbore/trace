@@ -52,12 +52,13 @@ void main() {
 	    reprojected_pixel_coord.y < texture_size.y;
 	
 	vec4 blended_color = mix(reprojected_color, new_color, alpha_taa);
-	out_color = blend ? blended_color : new_color;
+	vec4 taa_color = blend ? blended_color : new_color;
 	if (current_frame % 2 == 0) {
-	    imageStore(taa1_image, ivec2(pixel_coord), out_color);
+	    imageStore(taa1_image, ivec2(pixel_coord), taa_color);
 	} else {
-	    imageStore(taa2_image, ivec2(pixel_coord), out_color);
+	    imageStore(taa2_image, ivec2(pixel_coord), taa_color);
 	}
+	out_color = new_sample.history_length > 10.0 ? taa_color : new_color;
     } else {
 	out_color = sample_to_color(new_sample);
     }
