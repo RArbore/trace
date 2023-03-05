@@ -474,6 +474,79 @@ auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst,
     vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
 }
 
+auto RenderContext::ringbuffer_submit_buffer(RingBuffer &ring_buffer, Volume dst, VkImageLayout dst_layout, VkSemaphore *additional_semaphores, uint32_t num_semaphores) noexcept -> void {
+    ZoneScoped;
+    vmaUnmapMemory(allocator, ring_buffer.elements[ring_buffer.last_id].buffer.allocation);
+
+    VkImageMemoryBarrier image_memory_barrier {};
+    image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    image_memory_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    image_memory_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    image_memory_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    image_memory_barrier.image = dst.image;
+    image_memory_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    image_memory_barrier.subresourceRange.baseMipLevel = 0;
+    image_memory_barrier.subresourceRange.levelCount = 1;
+    image_memory_barrier.subresourceRange.baseArrayLayer = 0;
+    image_memory_barrier.subresourceRange.layerCount = 1;
+    image_memory_barrier.srcAccessMask = 0;
+    image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    VkBufferImageCopy copy_region {};
+    copy_region.bufferOffset = 0;
+    copy_region.bufferRowLength = 0;
+    copy_region.bufferImageHeight = 0;
+    copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    copy_region.imageSubresource.layerCount = 1;
+    copy_region.imageOffset = {0, 0, 0};
+    copy_region.imageExtent = dst.extent;
+
+    VkCommandBufferBeginInfo command_buffer_begin_info {};
+    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    VkCommandBuffer command_buffer = ring_buffer.elements[ring_buffer.last_id].command_buffer;
+    
+    vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
+
+    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
+    vkCmdCopyBufferToImage(command_buffer, ring_buffer.elements[ring_buffer.last_id].buffer.buffer, dst.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
+
+    image_memory_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    image_memory_barrier.newLayout = dst_layout;
+    image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    image_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &image_memory_barrier);
+    
+    vkEndCommandBuffer(command_buffer);
+    
+    VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
+    VkSemaphore signal_semaphore = ring_buffer.elements[ring_buffer.last_id].semaphore;
+    VkSubmitInfo submit_info {};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &command_buffer;
+
+    auto it = ring_buffer.upload_image_semaphores.find(dst.image);
+    VkSemaphore prev_semaphore;
+    if (it != ring_buffer.upload_image_semaphores.end()) {
+	prev_semaphore = it->second;
+	submit_info.waitSemaphoreCount = 1;
+	submit_info.pWaitSemaphores = &prev_semaphore;
+	submit_info.pWaitDstStageMask = wait_stages;
+    } else {
+	prev_semaphore = create_semaphore();
+	ring_buffer.upload_image_semaphores[dst.image] = prev_semaphore;
+    }
+    std::vector<VkSemaphore> signal_semaphores = {prev_semaphore, signal_semaphore};
+    for (uint32_t i = 0; i < num_semaphores; ++i) {
+	signal_semaphores.push_back(additional_semaphores[i]);
+    }
+    submit_info.signalSemaphoreCount = (uint32_t) signal_semaphores.size();
+    submit_info.pSignalSemaphores = signal_semaphores.data();
+    vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
+}
+
 auto RenderContext::get_device_address(const Buffer &buffer) noexcept -> VkDeviceAddress {
     ZoneScoped;
     VkBufferDeviceAddressInfo buffer_device_address_info {};

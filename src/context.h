@@ -252,6 +252,7 @@ struct RenderContext {
     auto ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void *;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Buffer &dst, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;
     auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Image dst, VkImageLayout dst_layout, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;
+    auto ringbuffer_submit_buffer(RingBuffer &ring_buffer, Volume dst, VkImageLayout dst_layout, VkSemaphore *additional_semaphores = NULL, uint32_t num_semaphores = 0) noexcept -> void;
 
     auto load_model(std::string_view model_name, Scene &scene, const uint8_t *custom_mat = NULL) noexcept -> uint16_t;
     auto load_obj_model(std::string_view obj_filepath) noexcept -> Model;
@@ -259,6 +260,9 @@ struct RenderContext {
     auto load_image(std::string_view texture_filepath) noexcept -> std::pair<Image, VkImageView>;
     auto load_custom_model(const std::vector<Model::Vertex> &vertices, const std::vector<uint32_t> &indices, uint8_t red_albedo, uint8_t green_albedo, uint8_t blue_albedo, uint8_t roughness, uint8_t metallicity, Scene &scene) noexcept -> uint16_t;
     auto load_custom_material(uint8_t red_albedo, uint8_t green_albedo, uint8_t blue_albedo, uint8_t roughness, uint8_t metallicity, uint8_t mask = 0xF) noexcept -> std::array<std::pair<Image, VkImageView>, 4>;
+    auto load_voxel_model(std::string_view model_name, Scene &scene) noexcept -> uint16_t;
+    auto load_dot_vox_model(std::string_view vox_filepath) noexcept -> VoxelModel;
+    auto upload_voxel_model(const VoxelModel &voxel_model) noexcept -> std::pair<Volume, VkImageView>;
 
     auto update_descriptors_textures(const Scene &scene, uint32_t update_texture) noexcept -> void;
     auto update_descriptors_lights(const Scene &scene) noexcept -> void;

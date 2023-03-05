@@ -471,7 +471,61 @@ auto RenderContext::load_custom_material(uint8_t red_albedo, uint8_t green_albed
     return ret;
 }
 
+auto RenderContext::load_voxel_model(std::string_view model_name, Scene &scene) noexcept -> uint16_t {
+    ZoneScoped;
+    auto it = scene.loaded_voxel_models.find(std::string(model_name));
+    if (it != scene.loaded_models.end())
+	return it->second;
+    const std::string vox_filepath =
+	std::string("models") +
+	std::string(model_name) +
+	std::string(".obj");
+
+    if (std::filesystem::exists(vox_filepath)) {
+	const uint16_t voxel_model_id = scene.num_voxel_models;
+	scene.voxel_models.emplace_back(load_dot_vox_model(vox_filepath));
+	scene.voxel_volumes.emplace_back(upload_voxel_model(scene.voxel_models.back()));
+	
+	++scene.num_voxel_models;
+	scene.voxel_transforms.emplace_back();
+
+	std::cout << "INFO: Loaded voxel model " << vox_filepath << ".\n";
+	return voxel_model_id;
+    } else {
+	ASSERT(false, "Couldn't find voxel model with given name. Currently, only .vox voxel models are supported.");
+	return {};
+    }
+}
+
+auto RenderContext::load_dot_vox_model(std::string_view vox_filepath) noexcept -> VoxelModel {
+    ZoneScoped;
+    return {};
+}
+
+auto RenderContext::upload_voxel_model(const VoxelModel &voxel_model) noexcept -> std::pair<Volume, VkImageView> {
+    ZoneScoped;
+    std::size_t volume_size = voxel_model.x_len * voxel_model.y_len * voxel_model.z_len;
+
+    VkFormat format = VK_FORMAT_R8_UNORM;
+    VkExtent3D extent =  {voxel_model.x_len, voxel_model.y_len, voxel_model.z_len};
+    Volume dst = create_volume(0, format, extent, 1, 1,VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "VOLUME_IMAGE");
+
+    void *data_image = ringbuffer_claim_buffer(main_ring_buffer, volume_size);
+    memcpy(data_image, voxel_model.voxels.data(), volume_size);
+    ringbuffer_submit_buffer(main_ring_buffer, dst, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    VkImageSubresourceRange subresource_range {};
+    subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresource_range.baseMipLevel = 0;
+    subresource_range.levelCount = 1;
+    subresource_range.baseArrayLayer = 0;
+    subresource_range.layerCount = 1;
+
+    return {dst, create_image3d_view(dst.image, format, subresource_range)};
+}
+
 auto glm4x4_to_vk_transform(const glm::mat4 &in, VkTransformMatrixKHR &out) noexcept -> void {
+    ZoneScoped;
     for (uint16_t i = 0; i < 4; ++i) {
 	out.matrix[0][i] = in[i][0];
 	out.matrix[1][i] = in[i][1];
