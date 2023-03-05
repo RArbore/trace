@@ -38,6 +38,12 @@ struct Image {
     VkExtent2D extent;
 };
 
+struct Volume {
+    VkImage image;
+    VmaAllocation allocation;
+    VkExtent3D extent;
+};
+
 struct RingBuffer {
     struct RingElement {
 	Buffer buffer;

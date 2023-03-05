@@ -85,4 +85,10 @@ namespace std {
     };
 }
 
+struct VoxelModel {
+    std::vector<uint8_t> voxels;
+    uint16_t x_len, y_len, z_len;
+    std::array<uint32_t, 256> palette;
+};
+
 #endif

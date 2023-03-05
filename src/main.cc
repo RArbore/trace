@@ -191,7 +191,7 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
 	context.ringbuffer_copy_scene_lights_into_buffer(scene);*/
 	context.ringbuffer_copy_projection_matrices_into_buffer();
 	
-	context.render(scene);
+	context.render();
 	
 	if (elapsed_time_subsecond >= 0.25f) {
 	    const float fps = (float) num_frames_subsecond / (float) elapsed_time_subsecond;

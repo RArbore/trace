@@ -161,7 +161,7 @@ struct RenderContext {
     std::array<bool, GLFW_KEY_LAST + 1> last_pressed_keys;
 
     auto init() noexcept -> void;
-    auto render(const Scene &scene) noexcept -> void;
+    auto render() noexcept -> void;
     auto cleanup() noexcept -> void;
 
     auto create_instance() noexcept -> void;
@@ -224,10 +224,14 @@ struct RenderContext {
     auto future_cleanup_buffer(Buffer buffer) noexcept -> void;
     auto create_image(VkImageCreateFlags flags, VkFormat format, VkExtent2D extent, uint32_t mip_levels, uint32_t array_layers, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0, const char *name = NULL) noexcept -> Image;
     auto cleanup_image(Image image) noexcept -> void;
+    auto create_volume(VkImageCreateFlags flags, VkFormat format, VkExtent3D extent, uint32_t mip_levels, uint32_t array_layers, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags = 0, const char *name = NULL) noexcept -> Volume;
+    auto cleanup_volume(Volume volume) noexcept -> void;
     auto create_image_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
     auto cleanup_image_view(VkImageView view) noexcept -> void;
+    auto create_image3d_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView;
+    auto cleanup_image3d_view(VkImageView view) noexcept -> void;
 
-    auto record_render_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, const Scene &scene) noexcept -> void;
+    auto record_render_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void;
 
     auto create_semaphore() noexcept -> VkSemaphore;
     auto create_fence() noexcept -> VkFence;

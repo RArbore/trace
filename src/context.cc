@@ -78,7 +78,7 @@ auto RenderContext::create_one_off_objects() noexcept -> void {
     update_descriptors_ray_trace_images();
 } 
 
-auto RenderContext::render(const Scene &scene) noexcept -> void {
+auto RenderContext::render() noexcept -> void {
     ZoneScoped;
     glfwPollEvents();
     if ((pressed_keys[GLFW_KEY_ESCAPE] && !is_using_imgui()) || glfwWindowShouldClose(window)) {
@@ -110,7 +110,7 @@ auto RenderContext::render(const Scene &scene) noexcept -> void {
     vkResetFences(device, 1, &in_flight_fence);
 
     vkResetCommandBuffer(render_command_buffer, 0);
-    record_render_command_buffer(render_command_buffer, image_index, scene);
+    record_render_command_buffer(render_command_buffer, image_index);
 
     const uint16_t num_wait_semaphores = 1 + main_ring_buffer.get_number_occupied(current_frame);
     ring_buffer_semaphore_scratchpad.reserve(num_wait_semaphores);

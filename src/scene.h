@@ -36,10 +36,13 @@ struct Scene {
     std::vector<std::vector<glm::mat4>> transforms;
     std::vector<std::pair<Image, VkImageView>> textures;
     std::vector<glm::vec4> lights;
+    std::vector<VoxelModel> voxel_models;
+    std::vector<std::pair<Volume, VkImageView>> voxel_volumes;
     uint16_t num_models;
     uint32_t num_objects;
     uint16_t num_textures;
     uint16_t num_lights;
+    uint16_t num_voxel_models;
 
     Buffer vertices_buf, indices_buf, instances_buf, indirect_draw_buf, lights_buf, ray_trace_objects_buf;
     std::size_t vertices_buf_contents_size, indices_buf_contents_size, instances_buf_contents_size, indirect_draw_buf_contents_size, lights_buf_contents_size, ray_trace_objects_buf_contents_size;

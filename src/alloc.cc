@@ -155,12 +155,67 @@ auto RenderContext::create_image(VkImageCreateFlags flags, VkFormat format, VkEx
     return {image, allocation, extent};
 }
 
+auto RenderContext::create_volume(VkImageCreateFlags flags, VkFormat format, VkExtent3D extent, uint32_t mip_levels, uint32_t array_layers, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_flags, VmaAllocationCreateFlags vma_flags, const char *name) noexcept -> Volume {
+    ZoneScoped;
+    VkImageCreateInfo create_info {};
+    create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    create_info.flags = flags;
+    create_info.imageType = VK_IMAGE_TYPE_3D;
+    create_info.format = format;
+    create_info.extent = extent;
+    create_info.mipLevels = mip_levels;
+    create_info.arrayLayers = array_layers;
+    create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    create_info.usage = usage;
+    create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    VmaAllocationCreateInfo alloc_info {};
+    alloc_info.flags = vma_flags;
+    alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+    alloc_info.requiredFlags = memory_flags;
+    alloc_info.pUserData = (void *) name;
+
+#ifndef RELEASE
+    if (name) {
+	std::cout << "DEBUG: Creating volume named " << name << ".\n";
+	++allocated_tags[name];
+    }
+#endif
+
+    VkImage image;
+    VmaAllocation allocation;
+    
+    ASSERT(vmaCreateImage(allocator, &create_info, &alloc_info, &image, &allocation, nullptr), "Unable to create image.");
+    return {image, allocation, extent};
+}
+
 auto RenderContext::create_image_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView {
     ZoneScoped;
     VkImageViewCreateInfo create_info {};
     create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     create_info.image = image;
     create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    create_info.format = format;
+    create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.subresourceRange = subresource_range;
+
+    VkImageView view;
+    ASSERT(vkCreateImageView(device, &create_info, NULL, &view), "Unable to create image view.");
+    
+    return view;
+}
+
+auto RenderContext::create_image3d_view(VkImage image, VkFormat format, VkImageSubresourceRange subresource_range) noexcept -> VkImageView {
+    ZoneScoped;
+    VkImageViewCreateInfo create_info {};
+    create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    create_info.image = image;
+    create_info.viewType = VK_IMAGE_VIEW_TYPE_3D;
     create_info.format = format;
     create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
     create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -190,7 +245,28 @@ auto RenderContext::cleanup_image(Image image) noexcept -> void {
     vmaDestroyImage(allocator, image.image, image.allocation);
 }
 
+auto RenderContext::cleanup_volume(Volume volume) noexcept -> void {
+    ZoneScoped;
+#ifndef RELEASE
+    if (!volume.allocation) {
+	std::cout << "DEBUG: About to crash in cleanup_volume. Image: " << volume.image << "   Allocation: " << volume.allocation << "   Width: " << volume.extent.width << "   Height: " << volume.extent.height << ".\n";
+    }
+    VmaAllocationInfo allocation_info;
+    vmaGetAllocationInfo(allocator, volume.allocation, &allocation_info);
+    if (allocation_info.pUserData) {
+	std::cout << "DEBUG: Cleaning up image named " << (const char *) allocation_info.pUserData << ".\n";
+	--allocated_tags[(const char *) allocation_info.pUserData];
+    }
+#endif
+    vmaDestroyImage(allocator, volume.image, volume.allocation);
+}
+
 auto RenderContext::cleanup_image_view(VkImageView view) noexcept -> void {
+    ZoneScoped;
+    vkDestroyImageView(device, view, NULL);
+}
+
+auto RenderContext::cleanup_image3d_view(VkImageView view) noexcept -> void {
     ZoneScoped;
     vkDestroyImageView(device, view, NULL);
 }

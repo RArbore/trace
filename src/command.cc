@@ -44,7 +44,7 @@ auto RenderContext::create_command_buffers() noexcept -> void {
     ASSERT(vkAllocateCommandBuffers(device, &allocate_info, &render_command_buffer), "Unable to create command buffers.");
 }
 
-auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index, const Scene &scene) noexcept -> void {
+auto RenderContext::record_render_command_buffer(VkCommandBuffer command_buffer, uint32_t image_index) noexcept -> void {
     ZoneScoped;
     VkCommandBufferBeginInfo begin_info {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
