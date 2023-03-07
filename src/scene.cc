@@ -105,6 +105,10 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> v
 	cleanup_image_view(image.second);
 	cleanup_image(image.first);
     }
+    for (auto volume : scene.voxel_volumes) {
+	cleanup_image_view(volume.second);
+	cleanup_volume(volume.first);
+    }
     vkDestroyAccelerationStructureKHR(device, scene.tlas, NULL);
     cleanup_buffer(scene.tlas_buffer);
     cleanup_buffer(scene.tlas_instances_buffer);
@@ -474,12 +478,12 @@ auto RenderContext::load_custom_material(uint8_t red_albedo, uint8_t green_albed
 auto RenderContext::load_voxel_model(std::string_view model_name, Scene &scene) noexcept -> uint16_t {
     ZoneScoped;
     auto it = scene.loaded_voxel_models.find(std::string(model_name));
-    if (it != scene.loaded_models.end())
+    if (it != scene.loaded_voxel_models.end())
 	return it->second;
     const std::string vox_filepath =
-	std::string("models") +
+	std::string("models/") +
 	std::string(model_name) +
-	std::string(".obj");
+	std::string(".vox");
 
     if (std::filesystem::exists(vox_filepath)) {
 	const uint16_t voxel_model_id = scene.num_voxel_models;
@@ -499,17 +503,43 @@ auto RenderContext::load_voxel_model(std::string_view model_name, Scene &scene) 
 
 auto RenderContext::load_dot_vox_model(std::string_view vox_filepath) noexcept -> VoxelModel {
     ZoneScoped;
+    VoxelModel model;
     auto file_size = std::filesystem::file_size(vox_filepath);
-    std::vector<char> file_contents(file_size);
+    std::vector<uint32_t> file_contents((file_size + sizeof(uint32_t) - 1) / sizeof(uint32_t));
     FILE *f = fopen(&vox_filepath[0], "r");
     ASSERT(f, "Couldn't open .vox file.");
     auto read_size = fread(file_contents.data(), 1, file_size, f);
     ASSERT(file_size == read_size, "Something went wrong reading .vox file.");
-    ASSERT(file_contents[0] == 'V', ".vox file contains incorrect magic number.");
-    ASSERT(file_contents[1] == 'O', ".vox file contains incorrect magic number.");
-    ASSERT(file_contents[2] == 'X', ".vox file contains incorrect magic number.");
-    ASSERT(file_contents[3] == ' ', ".vox file contains incorrect magic number.");
-    return {};
+
+    auto convertID = [](const char id[4]) {
+	return ((id[3] << 24) | (id[2] << 16) | (id[1] << 8) | id[0]);
+    };
+    ASSERT(file_contents[0] == convertID("VOX "), ".vox file contains incorrect magic number.");
+    ASSERT(file_contents[2] == convertID("MAIN"), ".vox file doesn't contain MAIN chunk.");
+    ASSERT(file_contents[3] == 0, ".vox file MAIN chunk is non-empty.");
+
+    ASSERT(file_contents[5] == convertID("SIZE"), "First child chunk in .vox file is not a SIZE chunk (can only parse single model currently).");
+    ASSERT(file_contents[7] == 0, "SIZE child chunk contains children.");
+    model.x_len = (uint16_t) file_contents[8];
+    model.y_len = (uint16_t) file_contents[9];
+    model.z_len = (uint16_t) file_contents[10];
+
+    ASSERT(file_contents[11] == convertID("XYZI"), "Second child chunk in .vox file is not a XYZI chunk (can only parse single model currently).");
+    model.voxels.resize((uint32_t) model.x_len * (uint32_t) model.y_len * (uint32_t) model.z_len);
+    uint32_t chunk_size = file_contents[12];
+    ASSERT(file_contents[13] == 0, "XYZI child chunk contains children.");
+    uint32_t next_chunk = 14 + chunk_size / (uint32_t) sizeof(uint32_t);
+    uint32_t num_voxels = file_contents[14];
+    for (uint32_t i = 0; i < num_voxels; ++i) {
+	uint32_t voxel = file_contents[15 + i];
+	uint8_t x = (uint8_t) (0xFF & (voxel));
+	uint8_t y = (uint8_t) (0xFF & (voxel >> 8));
+	uint8_t z = (uint8_t) (0xFF & (voxel >> 16));
+	uint8_t v = (uint8_t) (0xFF & (voxel >> 24));
+	model.voxels.at(x * model.y_len * model.z_len + y * model.z_len + z) = v;
+    }
+
+    return model;
 }
 
 auto RenderContext::upload_voxel_model(const VoxelModel &voxel_model) noexcept -> std::pair<Volume, VkImageView> {

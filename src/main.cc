@@ -100,6 +100,8 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
 							      scene
 							      );
     scene.add_object(glm::scale(glm::mat4(1), glm::vec3(10.0f, 10.0f, 10.0f)), model_id_wall);
+
+    const uint16_t test_voxel_model = context.load_voxel_model("test", scene);
     
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors_lights(scene);
