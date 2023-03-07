@@ -4,9 +4,14 @@ RM := rm -f
 GLSL := glslc
 
 RELEASE ?= 0
+OPTIMIZED ?= 0
 ifeq ($(RELEASE), 1)
 	CXXFLAGS := $(CXXFLAGS) -Ofast -march=native -flto -DRELEASE
 	GLSLFLAGS := $(GLSLFLAGS) -O
+	LDFLAGS := $(LDFLAGS) -flto
+else ifeq ($(OPTIMIZED), 1)
+	CXXFLAGS := $(CXXFLAGS) -Ofast -march=native -flto -DRELEASE -g
+	GLSLFLAGS := $(GLSLFLAGS) -O -g
 	LDFLAGS := $(LDFLAGS) -flto
 else
 	CXXFLAGS := $(CXXFLAGS) -g

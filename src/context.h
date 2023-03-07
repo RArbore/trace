@@ -28,6 +28,8 @@
 #include "scene.h"
 #include "util.h"
 
+#define TRACY_CALLSTACK 20
+
 #define VKFN_MEMBER(fn)				\
     PFN_ ## fn fn
 

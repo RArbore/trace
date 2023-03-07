@@ -499,6 +499,16 @@ auto RenderContext::load_voxel_model(std::string_view model_name, Scene &scene) 
 
 auto RenderContext::load_dot_vox_model(std::string_view vox_filepath) noexcept -> VoxelModel {
     ZoneScoped;
+    auto file_size = std::filesystem::file_size(vox_filepath);
+    std::vector<char> file_contents(file_size);
+    FILE *f = fopen(&vox_filepath[0], "r");
+    ASSERT(f, "Couldn't open .vox file.");
+    auto read_size = fread(file_contents.data(), 1, file_size, f);
+    ASSERT(file_size == read_size, "Something went wrong reading .vox file.");
+    ASSERT(file_contents[0] == 'V', ".vox file contains incorrect magic number.");
+    ASSERT(file_contents[1] == 'O', ".vox file contains incorrect magic number.");
+    ASSERT(file_contents[2] == 'X', ".vox file contains incorrect magic number.");
+    ASSERT(file_contents[3] == ' ', ".vox file contains incorrect magic number.");
     return {};
 }
 
@@ -508,7 +518,7 @@ auto RenderContext::upload_voxel_model(const VoxelModel &voxel_model) noexcept -
 
     VkFormat format = VK_FORMAT_R8_UNORM;
     VkExtent3D extent =  {voxel_model.x_len, voxel_model.y_len, voxel_model.z_len};
-    Volume dst = create_volume(0, format, extent, 1, 1,VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "VOLUME_IMAGE");
+    Volume dst = create_volume(0, format, extent, 1, 1, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "VOLUME_IMAGE");
 
     void *data_image = ringbuffer_claim_buffer(main_ring_buffer, volume_size);
     memcpy(data_image, voxel_model.voxels.data(), volume_size);
