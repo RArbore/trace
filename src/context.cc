@@ -69,6 +69,16 @@ auto RenderContext::create_one_off_objects() noexcept -> void {
     main_ring_buffer = create_ringbuffer();
 
     projection_buffer = create_buffer(PROJECTION_BUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "PROJECTION_BUFFER");
+    cube_buffer = create_buffer(sizeof(VkAabbPositionsKHR), VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "CUBE_BUFFER");
+    inefficient_upload_to_buffer([](char *buf) {
+	VkAabbPositionsKHR *cube = (VkAabbPositionsKHR *) buf;
+	cube->minX = 0.0f;
+	cube->minY = 0.0f;
+	cube->minZ = 0.0f;
+	cube->maxX = 1.0f;
+	cube->maxY = 1.0f;
+	cube->maxZ = 1.0f;
+    }, sizeof(VkAabbPositionsKHR), cube_buffer);
 
     auto blue_noise_texture = load_image("assets/LDR_RGBA_0.png");
     blue_noise_image = blue_noise_texture.first;
@@ -194,6 +204,7 @@ auto RenderContext::cleanup_one_off_objects() noexcept -> void {
     ZoneScoped;
     cleanup_ringbuffer(main_ring_buffer);
     cleanup_buffer(projection_buffer);
+    cleanup_buffer(cube_buffer);
     cleanup_image_view(blue_noise_image_view);
     cleanup_image(blue_noise_image);
 }

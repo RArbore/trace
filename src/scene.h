@@ -54,8 +54,10 @@ struct Scene {
 
     VkAccelerationStructureKHR tlas;
     std::vector<VkAccelerationStructureKHR> blass;
+    std::vector<VkAccelerationStructureKHR> voxel_blass;
     Buffer tlas_buffer, tlas_instances_buffer;
     std::vector<Buffer> blas_buffers;
+    std::vector<Buffer> voxel_blas_buffers;
 
     auto add_object(const glm::mat4 &&transform, uint16_t model_id) noexcept -> void {
 	transforms[model_id].emplace_back(transform);

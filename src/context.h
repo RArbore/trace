@@ -119,6 +119,7 @@ struct RenderContext {
 
     static constexpr uint32_t PROJECTION_BUFFER_SIZE = 1024;
     Buffer projection_buffer;
+    Buffer cube_buffer;
     Image blue_noise_image;
     VkImageView blue_noise_image_view;
     Image motion_vector_image;
@@ -279,6 +280,7 @@ struct RenderContext {
     auto get_device_address(const Buffer &buffer) noexcept -> VkDeviceAddress;
     auto get_device_address(const VkAccelerationStructureKHR &acceleration_structure) noexcept -> VkDeviceAddress;
     auto build_bottom_level_acceleration_structure_for_model(uint16_t model_idx, Scene &scene) noexcept -> void;
+    auto build_bottom_level_acceleration_structure_for_voxel_model(uint16_t voxel_model_idx, Scene &scene) noexcept -> void;
     auto build_top_level_acceleration_structure_for_scene(Scene &scene) noexcept -> void;
 
     auto init_imgui() noexcept -> void;
