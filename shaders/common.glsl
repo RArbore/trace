@@ -109,6 +109,7 @@ layout(set = 0, binding = 1) uniform projection_uniform {
 };
 
 layout(set = 0, binding = 2) uniform sampler2D textures[];
+layout(set = 0, binding = 3, r8) uniform readonly image3D volumes[];
 
 #ifdef RAY_TRACING
 layout(set = 1, binding = 0) uniform accelerationStructureEXT tlas;

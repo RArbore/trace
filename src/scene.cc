@@ -499,6 +499,8 @@ auto RenderContext::load_voxel_model(std::string_view model_name, Scene &scene) 
 	scene.voxel_blass.push_back(VK_NULL_HANDLE);
 	scene.voxel_blas_buffers.emplace_back();
 
+	update_descriptors_volumes(scene, voxel_model_id);
+
 	std::cout << "INFO: Loaded voxel model " << vox_filepath << ".\n";
 	return voxel_model_id;
     } else {

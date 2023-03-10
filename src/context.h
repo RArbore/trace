@@ -268,6 +268,7 @@ struct RenderContext {
     auto upload_voxel_model(const VoxelModel &voxel_model) noexcept -> std::pair<Volume, VkImageView>;
 
     auto update_descriptors_textures(const Scene &scene, uint32_t update_texture) noexcept -> void;
+    auto update_descriptors_volumes(const Scene &scene, uint32_t update_volume) noexcept -> void;
     auto update_descriptors_lights(const Scene &scene) noexcept -> void;
     auto update_descriptors_perspective() noexcept -> void;
     auto update_descriptors_tlas(const Scene &scene) noexcept -> void;
