@@ -231,6 +231,7 @@ auto RenderContext::create_ray_trace_pipeline() noexcept -> void {
     VkShaderModule rgen_shader = shader_modules["pbr_rgen"];
     VkShaderModule rmiss_shader = shader_modules["pbr_rmiss"];
     VkShaderModule rchit_shader = shader_modules["pbr_rchit"];
+    VkShaderModule voxel_rchit_shader = shader_modules["voxel_rchit"];
 
     VkPipelineShaderStageCreateInfo rgen_shader_stage_create_info {};
     rgen_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -250,7 +251,13 @@ auto RenderContext::create_ray_trace_pipeline() noexcept -> void {
     rchit_shader_stage_create_info.module = rchit_shader;
     rchit_shader_stage_create_info.pName = "main";
 
-    VkPipelineShaderStageCreateInfo shader_stage_create_infos[] = {rgen_shader_stage_create_info, rmiss_shader_stage_create_info, rchit_shader_stage_create_info};
+    VkPipelineShaderStageCreateInfo voxel_rchit_shader_stage_create_info {};
+    voxel_rchit_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    voxel_rchit_shader_stage_create_info.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+    voxel_rchit_shader_stage_create_info.module = voxel_rchit_shader;
+    voxel_rchit_shader_stage_create_info.pName = "main";
+
+    VkPipelineShaderStageCreateInfo shader_stage_create_infos[] = {rgen_shader_stage_create_info, rmiss_shader_stage_create_info, rchit_shader_stage_create_info, voxel_rchit_shader_stage_create_info};
 
     VkRayTracingShaderGroupCreateInfoKHR shader_group_create_info {};
     shader_group_create_info.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
@@ -270,6 +277,11 @@ auto RenderContext::create_ray_trace_pipeline() noexcept -> void {
     shader_group_create_info.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
     shader_group_create_info.generalShader = VK_SHADER_UNUSED_KHR;
     shader_group_create_info.closestHitShader = 2;
+    ray_trace_shader_groups.push_back(shader_group_create_info);
+
+    shader_group_create_info.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_KHR;
+    shader_group_create_info.generalShader = VK_SHADER_UNUSED_KHR;
+    shader_group_create_info.closestHitShader = 3;
     ray_trace_shader_groups.push_back(shader_group_create_info);
 
     VkPushConstantRange push_constant_range {};

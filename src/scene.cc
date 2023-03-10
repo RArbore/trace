@@ -725,6 +725,18 @@ auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scen
 	    ++bottom_level_instance.instanceCustomIndex;
 	}
     }
+    bottom_level_instance.instanceCustomIndex = 0;
+    for (uint16_t voxel_model_idx = 0; voxel_model_idx < scene.num_voxel_models; ++voxel_model_idx) {
+	for (uint32_t transform_idx = 0; transform_idx < (uint32_t) scene.voxel_transforms[voxel_model_idx].size(); ++transform_idx) {
+	    glm4x4_to_vk_transform(scene.voxel_transforms[voxel_model_idx][transform_idx], bottom_level_instance.transform);
+	    bottom_level_instance.mask = 0xFF;
+	    bottom_level_instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+	    bottom_level_instance.instanceShaderBindingTableRecordOffset = 1;
+	    bottom_level_instance.accelerationStructureReference = get_device_address(scene.voxel_blass[voxel_model_idx]);
+	    bottom_level_instances.push_back(bottom_level_instance);
+	    ++bottom_level_instance.instanceCustomIndex;
+	}
+    }
     
     Buffer instances_buffer = create_buffer(bottom_level_instances.size() * sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT, 0, "SCENE_TLAS_INSTANCES_BUFFER");
     inefficient_upload_to_buffer((void *) bottom_level_instances.data(), bottom_level_instances.size() * sizeof(VkAccelerationStructureInstanceKHR), instances_buffer);
