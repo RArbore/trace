@@ -730,7 +730,6 @@ auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scen
 	for (uint32_t transform_idx = 0; transform_idx < (uint32_t) scene.voxel_transforms[voxel_model_idx].size(); ++transform_idx) {
 	    glm4x4_to_vk_transform(scene.voxel_transforms[voxel_model_idx][transform_idx], bottom_level_instance.transform);
 	    bottom_level_instance.mask = 0xFF;
-	    bottom_level_instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
 	    bottom_level_instance.instanceShaderBindingTableRecordOffset = 1;
 	    bottom_level_instance.accelerationStructureReference = get_device_address(scene.voxel_blass[voxel_model_idx]);
 	    bottom_level_instances.push_back(bottom_level_instance);
@@ -752,7 +751,7 @@ auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scen
     
     VkAccelerationStructureBuildRangeInfoKHR tlas_build_range_info {};
     tlas_build_range_info.firstVertex = 0;
-    tlas_build_range_info.primitiveCount = scene.num_objects;
+    tlas_build_range_info.primitiveCount = scene.num_objects + scene.num_voxel_objects;
     tlas_build_range_info.primitiveOffset = 0;
     tlas_build_range_info.transformOffset = 0;
     VkAccelerationStructureBuildRangeInfoKHR *tlas_build_range_infos[] = {&tlas_build_range_info}; 
@@ -765,7 +764,7 @@ auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scen
     tlas_build_geometry_info.geometryCount = 1;
     tlas_build_geometry_info.pGeometries = &tlas_geometry;
     
-    const uint32_t max_instances_counts[] = {scene.num_objects};
+    const uint32_t max_instances_counts[] = {scene.num_objects + scene.num_voxel_objects};
     
     VkAccelerationStructureBuildSizesInfoKHR tlas_build_sizes_info {};
     tlas_build_sizes_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;

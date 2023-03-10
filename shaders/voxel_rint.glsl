@@ -14,25 +14,24 @@
 
 
 #version 460
-#pragma shader_stage(closest)
+#pragma shader_stage(intersect)
 #extension GL_GOOGLE_include_directive : enable
 
 #define RAY_TRACING
 #include "common.glsl"
 
-layout(location = 0) rayPayloadInEXT hit_payload prd;
-
 void main() {
-    vec3 world_ray_pos = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
+    vec3 world_ray_pos = gl_WorldRayOriginEXT;
     vec3 world_obj_pos = gl_ObjectToWorldEXT * vec4(0.0, 0.0, 0.0, 1.0);
-    vec3 normal = normalize(world_ray_pos - world_obj_pos);
-    
-    prd.albedo = vec3(0.1);
-    prd.normal = normal;
-    prd.flat_normal = normal;
-    prd.roughness = 1.0;
-    prd.metallicity = 0.0;
-    prd.hit_position = world_ray_pos;
-    prd.direct_emittance = 0.0;
-    prd.model_id = gl_InstanceCustomIndexEXT;
+    float radius = 1.0;
+
+    vec3 oc = gl_WorldRayOriginEXT - world_obj_pos;
+    float a = dot(gl_WorldRayDirectionEXT, gl_WorldRayDirectionEXT);
+    float b = 2.0 * dot(oc, gl_WorldRayDirectionEXT);
+    float c = dot(oc, oc) - radius * radius;
+    float discriminant = b * b - 4 * a * c;
+    if(discriminant >= 0) {
+	float t = (-b - sqrt(discriminant)) / (2.0 * a);
+	reportIntersectionEXT(t, 0);
+    }
 }
