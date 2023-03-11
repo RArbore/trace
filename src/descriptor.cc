@@ -127,17 +127,10 @@ auto RenderContext::create_descriptor_set_layout() noexcept -> void {
     bindless_textures_layout_binding.pImmutableSamplers = NULL;
     bindless_textures_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
     
-    VkDescriptorSetLayoutBinding bindless_volumes_layout_binding {};
-    bindless_volumes_layout_binding.binding = 3;
-    bindless_volumes_layout_binding.descriptorCount = MAX_MODELS;
-    bindless_volumes_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    bindless_volumes_layout_binding.pImmutableSamplers = NULL;
-    bindless_volumes_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
-    
-    VkDescriptorSetLayoutBinding bindings[] = {lights_buffer_layout_binding, perspective_buffer_layout_binding, bindless_textures_layout_binding, bindless_volumes_layout_binding};
+    VkDescriptorSetLayoutBinding bindings[] = {lights_buffer_layout_binding, perspective_buffer_layout_binding, bindless_textures_layout_binding};
     
     VkDescriptorBindingFlags bindless_flags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-    VkDescriptorBindingFlags bindings_flags[] = {0, 0, bindless_flags, bindless_flags};
+    VkDescriptorBindingFlags bindings_flags[] = {0, 0, bindless_flags};
 
     VkDescriptorSetLayoutBindingFlagsCreateInfo layout_binding_flags_create_info {};
     layout_binding_flags_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
@@ -232,6 +225,13 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
 	taa_texture_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
     }
     
+    VkDescriptorSetLayoutBinding bindless_volumes_layout_binding {};
+    bindless_volumes_layout_binding.binding = 37;
+    bindless_volumes_layout_binding.descriptorCount = MAX_MODELS;
+    bindless_volumes_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    bindless_volumes_layout_binding.pImmutableSamplers = NULL;
+    bindless_volumes_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+    
     VkDescriptorSetLayoutBinding bindings[] = {
 	tlas_layout_binding,
 	ray_trace_objects_layout_binding,
@@ -270,10 +270,21 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
 	taa_image_layout_bindings[1],
 	taa_texture_layout_bindings[0],
 	taa_texture_layout_bindings[1],
+	bindless_volumes_layout_binding,
     };
+
+    VkDescriptorBindingFlags bindless_flags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+    VkDescriptorBindingFlags bindings_flags[38] = {0};
+    bindings_flags[37] = bindless_flags;
+
+    VkDescriptorSetLayoutBindingFlagsCreateInfo layout_binding_flags_create_info {};
+    layout_binding_flags_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+    layout_binding_flags_create_info.bindingCount = sizeof(bindings_flags) / sizeof(bindings_flags[0]);
+    layout_binding_flags_create_info.pBindingFlags = bindings_flags;
     
     VkDescriptorSetLayoutCreateInfo layout_create_info {};
     layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layout_create_info.pNext = &layout_binding_flags_create_info;
     layout_create_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
     layout_create_info.bindingCount = sizeof(bindings) / sizeof(bindings[0]);
     layout_create_info.pBindings = bindings;
@@ -307,8 +318,16 @@ auto RenderContext::create_descriptor_sets() noexcept -> void {
 
 auto RenderContext::create_ray_trace_descriptor_sets() noexcept -> void {
     ZoneScoped;
+    uint32_t max_variable_count = MAX_MODELS;
+    
+    VkDescriptorSetVariableDescriptorCountAllocateInfo variable_count_allocate_info {};
+    variable_count_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+    variable_count_allocate_info.descriptorSetCount = 1;
+    variable_count_allocate_info.pDescriptorCounts = &max_variable_count;
+
     VkDescriptorSetAllocateInfo allocate_info {};
     allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocate_info.pNext = &variable_count_allocate_info;
     allocate_info.descriptorPool = descriptor_pool;
     allocate_info.descriptorSetCount = 1;
     allocate_info.pSetLayouts = &ray_trace_descriptor_set_layout;
@@ -346,8 +365,8 @@ auto RenderContext::update_descriptors_volumes(const Scene &scene, uint32_t upda
     
     VkWriteDescriptorSet write_descriptor_set {};
     write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write_descriptor_set.dstSet = raster_descriptor_set;
-    write_descriptor_set.dstBinding = 3;
+    write_descriptor_set.dstSet = ray_trace_descriptor_set;
+    write_descriptor_set.dstBinding = 37;
     write_descriptor_set.dstArrayElement = update_volume;
     write_descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     write_descriptor_set.descriptorCount = 1;

@@ -109,7 +109,6 @@ layout(set = 0, binding = 1) uniform projection_uniform {
 };
 
 layout(set = 0, binding = 2) uniform sampler2D textures[];
-layout(set = 0, binding = 3, r8) uniform readonly image3D volumes[];
 
 #ifdef RAY_TRACING
 layout(set = 1, binding = 0) uniform accelerationStructureEXT tlas;
@@ -160,6 +159,8 @@ layout(set = 1, binding = 33, rgba32f) uniform image2D taa1_image;
 layout(set = 1, binding = 34, rgba32f) uniform image2D taa2_image;
 layout(set = 1, binding = 35) uniform sampler2D taa1_texture;
 layout(set = 1, binding = 36) uniform sampler2D taa2_texture;
+
+layout(set = 1, binding = 37, r8) uniform readonly image3D volumes[];
 
 #ifdef RAY_TRACING
 layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };

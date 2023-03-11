@@ -556,11 +556,11 @@ auto RenderContext::upload_voxel_model(const VoxelModel &voxel_model) noexcept -
 
     VkFormat format = VK_FORMAT_R8_UNORM;
     VkExtent3D extent =  {voxel_model.x_len, voxel_model.y_len, voxel_model.z_len};
-    Volume dst = create_volume(0, format, extent, 1, 1, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "VOLUME_IMAGE");
+    Volume dst = create_volume(0, format, extent, 1, 1, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "VOLUME_IMAGE");
 
     void *data_image = ringbuffer_claim_buffer(main_ring_buffer, volume_size);
     memcpy(data_image, voxel_model.voxels.data(), volume_size);
-    ringbuffer_submit_buffer(main_ring_buffer, dst, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    ringbuffer_submit_buffer(main_ring_buffer, dst, VK_IMAGE_LAYOUT_GENERAL);
 
     VkImageSubresourceRange subresource_range {};
     subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
