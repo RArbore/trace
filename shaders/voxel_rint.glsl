@@ -20,18 +20,39 @@
 #define RAY_TRACING
 #include "common.glsl"
 
-void main() {
-    vec3 world_ray_pos = gl_WorldRayOriginEXT;
-    vec3 world_obj_pos = gl_ObjectToWorldEXT * vec4(0.0, 0.0, 0.0, 1.0);
-    float radius = 1.0;
+struct aabb_intersect_result {
+    float t;
+    uint k;
+};
 
-    vec3 oc = gl_WorldRayOriginEXT - world_obj_pos;
-    float a = dot(gl_WorldRayDirectionEXT, gl_WorldRayDirectionEXT);
-    float b = 2.0 * dot(oc, gl_WorldRayDirectionEXT);
-    float c = dot(oc, oc) - radius * radius;
-    float discriminant = b * b - 4 * a * c;
-    if(discriminant >= 0) {
-	float t = (-b - sqrt(discriminant)) / (2.0 * a);
-	reportIntersectionEXT(t, 0);
+aabb_intersect_result hit_aabb(const vec3 minimum, const vec3 maximum, const vec3 origin, const vec3 direction) {
+    aabb_intersect_result r;
+    vec3 invDir = 1.0 / direction;
+    vec3 tbot = invDir * (minimum - origin);
+    vec3 ttop = invDir * (maximum - origin);
+    vec3 tmin = min(ttop, tbot);
+    vec3 tmax = max(ttop, tbot);
+    float t0 = max(tmin.x, max(tmin.y, tmin.z));
+    float t1 = min(tmax.x, min(tmax.y, tmax.z));
+    r.t = t1 > max(t0, 0.0) ? t0 : -1.0;
+    if (t0 == tmin.x) {
+	r.k = tbot.x > ttop.x ? 1 : 0;
+    } else if (t0 == tmin.y) {
+	r.k = tbot.y > ttop.y ? 3 : 2;
+    } else if (t0 == tmin.z) {
+	r.k = tbot.z > ttop.z ? 5 : 4;
+    }
+    return r;
+}
+
+void main() {
+    uint volume_id = gl_InstanceCustomIndexEXT;
+    
+    vec3 obj_ray_pos = gl_WorldToObjectEXT * vec4(gl_WorldRayOriginEXT, 1.0);
+    vec3 obj_ray_dir = gl_WorldToObjectEXT * vec4(gl_WorldRayDirectionEXT, 0.0);
+
+    aabb_intersect_result r = hit_aabb(vec3(0.0), vec3(1.0), obj_ray_pos, obj_ray_dir);
+    if (r.t != -1.0) {
+	reportIntersectionEXT(r.t, r.k);
     }
 }

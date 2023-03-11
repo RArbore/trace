@@ -22,10 +22,19 @@
 
 layout(location = 0) rayPayloadInEXT hit_payload prd;
 
+const vec3 voxel_normals[6] = vec3[6](
+				      vec3(-1.0, 0.0, 0.0),
+				      vec3(1.0, 0.0, 0.0),
+				      vec3(0.0, -1.0, 0.0),
+				      vec3(0.0, 1.0, 0.0),
+				      vec3(0.0, 0.0, -1.0),
+				      vec3(0.0, 0.0, 1.0)
+				      );
+
 void main() {
     vec3 world_ray_pos = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
     vec3 world_obj_pos = gl_ObjectToWorldEXT * vec4(0.0, 0.0, 0.0, 1.0);
-    vec3 normal = normalize(world_ray_pos - world_obj_pos);
+    vec3 normal = gl_ObjectToWorldEXT * vec4(voxel_normals[gl_HitKindEXT], 0.0);
     
     prd.albedo = vec3(0.1);
     prd.normal = normal;

@@ -72,9 +72,9 @@ auto RenderContext::create_one_off_objects() noexcept -> void {
     cube_buffer = create_buffer(sizeof(VkAabbPositionsKHR), VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "CUBE_BUFFER");
     inefficient_upload_to_buffer([](char *buf) {
 	VkAabbPositionsKHR *cube = (VkAabbPositionsKHR *) buf;
-	cube->minX = -1.0f;
-	cube->minY = -1.0f;
-	cube->minZ = -1.0f;
+	cube->minX = 0.0f;
+	cube->minY = 0.0f;
+	cube->minZ = 0.0f;
 	cube->maxX = 1.0f;
 	cube->maxY = 1.0f;
 	cube->maxZ = 1.0f;
