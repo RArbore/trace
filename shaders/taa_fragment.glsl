@@ -45,6 +45,7 @@ void main() {
 	    dot(new_sample.normal, reprojected_sample.normal) > 0.8 &&
 	    length(new_sample.position - reprojected_sample.position) < 0.5 &&
 	    length(new_sample.position) < FAR_AWAY * 0.5 &&
+	    length(new_sample.albedo - reprojected_sample.albedo) < 0.1 &&
 	    length(reprojected_sample.position) < FAR_AWAY * 0.5 &&
 	    reprojected_pixel_coord.x >= 0 &&
 	    reprojected_pixel_coord.y >= 0 &&

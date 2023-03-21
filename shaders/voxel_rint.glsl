@@ -53,6 +53,10 @@ void main() {
 
     aabb_intersect_result r = hit_aabb(vec3(0.0), vec3(1.0), obj_ray_pos, obj_ray_dir);
     if (r.t != -1.0) {
-	reportIntersectionEXT(r.t, r.k);
+	vec3 obj_ray_intersect_point = obj_ray_pos + obj_ray_dir * r.t;
+	float intersect_time = length(gl_ObjectToWorldEXT * vec4(obj_ray_intersect_point, 1.0) - gl_ObjectToWorldEXT * vec4(obj_ray_pos, 1.0));
+	reportIntersectionEXT(intersect_time, r.k);
+	//obj_ray_pos = obj_ray_dir * r.t;
+	//ivec3 volume_size = imageSize(volumes[volume_id]);
     }
 }

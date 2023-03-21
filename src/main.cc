@@ -102,7 +102,7 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
     scene.add_object(glm::scale(glm::mat4(1), glm::vec3(10.0f, 10.0f, 10.0f)), model_id_wall);
 
     const uint16_t test_voxel_model = context.load_voxel_model("test", scene);
-    scene.add_voxel_object(glm::translate(glm::mat4(1), glm::vec3(0.0f, 0.0f, 10.0f)), test_voxel_model);
+    scene.add_voxel_object(glm::rotate(glm::scale(glm::translate(glm::mat4(1), glm::vec3(0.0f, 0.0f, 5.0f)), glm::vec3(2.0f, 2.0f, 2.0f)), 1.0f, glm::vec3(0.0f, 0.2f, 0.8f)), test_voxel_model);
     
     context.allocate_vulkan_objects_for_scene(scene);
     context.update_descriptors_lights(scene);
