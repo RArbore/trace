@@ -518,6 +518,7 @@ auto RenderContext::load_dot_vox_model(std::string_view vox_filepath) noexcept -
     ASSERT(f, "Couldn't open .vox file.");
     auto read_size = fread(file_contents.data(), 1, file_size, f);
     ASSERT(file_size == read_size, "Something went wrong reading .vox file.");
+    fclose(f);
 
     auto convertID = [](const char id[4]) {
 	return ((id[3] << 24) | (id[2] << 16) | (id[1] << 8) | id[0]);
@@ -545,6 +546,12 @@ auto RenderContext::load_dot_vox_model(std::string_view vox_filepath) noexcept -
 	uint8_t z = (uint8_t) (0xFF & (voxel >> 16));
 	uint8_t v = (uint8_t) (0xFF & (voxel >> 24));
 	model.voxels.at(x * model.y_len * model.z_len + y * model.z_len + z) = v;
+    }
+
+    ASSERT(file_contents[next_chunk] == convertID("RGBA"), "Third child chunk in .vox file is not a RGBA chunk (can only parse .vox files with a palette currently).");
+    uint32_t *palette = file_contents.data() + next_chunk + 1;
+    for (int i = 0; i < 256; ++i) {
+	model.palette[i] = palette[i];
     }
 
     return model;
