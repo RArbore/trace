@@ -34,7 +34,7 @@ aabb_intersect_result hit_aabb(const vec3 minimum, const vec3 maximum, const vec
     vec3 tmax = max(ttop, tbot);
     float t0 = max(tmin.x, max(tmin.y, tmin.z));
     float t1 = min(tmax.x, min(tmax.y, tmax.z));
-    r.t = t1 > max(t0, 0.0) ? t0 : -1.0;
+    r.t = t1 > max(t0, 0.0) ? t0 : -FAR_AWAY;
     if (t0 == tmin.x) {
 	r.k = tbot.x > ttop.x ? 1 : 0;
     } else if (t0 == tmin.y) {
@@ -52,9 +52,9 @@ void main() {
     vec3 obj_ray_dir = gl_WorldToObjectEXT * vec4(gl_WorldRayDirectionEXT, 0.0);
 
     aabb_intersect_result r = hit_aabb(vec3(0.0), vec3(1.0), obj_ray_pos, obj_ray_dir);
-    if (r.t != -1.0) {
+    if (r.t != -FAR_AWAY) {
 	ivec3 volume_size = imageSize(volumes[volume_id]);
-	vec3 obj_ray_intersect_point = (obj_ray_pos + obj_ray_dir * r.t) * volume_size;
+	vec3 obj_ray_intersect_point = (obj_ray_pos + obj_ray_dir * max(r.t, 0.0)) * volume_size;
 	ivec3 obj_ray_voxel = ivec3(min(obj_ray_intersect_point, volume_size - 1));
 	ivec3 obj_ray_step = ivec3(sign(obj_ray_dir));
 	vec3 obj_ray_delta = abs(vec3(length(obj_ray_dir)) / obj_ray_dir);
