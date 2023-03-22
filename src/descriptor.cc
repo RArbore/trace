@@ -111,21 +111,21 @@ auto RenderContext::create_descriptor_set_layout() noexcept -> void {
     lights_buffer_layout_binding.descriptorCount = 1;
     lights_buffer_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     lights_buffer_layout_binding.pImmutableSamplers = NULL;
-    lights_buffer_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+    lights_buffer_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
 
     VkDescriptorSetLayoutBinding perspective_buffer_layout_binding {};
     perspective_buffer_layout_binding.binding = 1;
     perspective_buffer_layout_binding.descriptorCount = 1;
     perspective_buffer_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     perspective_buffer_layout_binding.pImmutableSamplers = NULL;
-    perspective_buffer_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+    perspective_buffer_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
     
     VkDescriptorSetLayoutBinding bindless_textures_layout_binding {};
     bindless_textures_layout_binding.binding = 2;
     bindless_textures_layout_binding.descriptorCount = MAX_MODELS;
     bindless_textures_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     bindless_textures_layout_binding.pImmutableSamplers = NULL;
-    bindless_textures_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+    bindless_textures_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
     
     VkDescriptorSetLayoutBinding bindings[] = {lights_buffer_layout_binding, perspective_buffer_layout_binding, bindless_textures_layout_binding};
     
@@ -159,21 +159,21 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
     tlas_layout_binding.descriptorCount = 1;
     tlas_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     tlas_layout_binding.pImmutableSamplers = NULL;
-    tlas_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+    tlas_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
 
     VkDescriptorSetLayoutBinding ray_trace_objects_layout_binding {};
     ray_trace_objects_layout_binding.binding = 1;
     ray_trace_objects_layout_binding.descriptorCount = 1;
     ray_trace_objects_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     ray_trace_objects_layout_binding.pImmutableSamplers = NULL;
-    ray_trace_objects_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+    ray_trace_objects_layout_binding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
 
     VkDescriptorSetLayoutBinding blue_noise_image_layout_binding {};
     blue_noise_image_layout_binding.binding = 2;
     blue_noise_image_layout_binding.descriptorCount = 1;
     blue_noise_image_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     blue_noise_image_layout_binding.pImmutableSamplers = NULL;
-    blue_noise_image_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+    blue_noise_image_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
 
     VkDescriptorSetLayoutBinding ray_trace_image_layout_bindings[14];
     for (uint32_t i = 0; i < 14; ++i) {
@@ -181,7 +181,7 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
 	ray_trace_image_layout_bindings[i].descriptorCount = 1;
 	ray_trace_image_layout_bindings[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 	ray_trace_image_layout_bindings[i].pImmutableSamplers = NULL;
-	ray_trace_image_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+	ray_trace_image_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
     }
 
     VkDescriptorSetLayoutBinding ray_trace_texture_layout_bindings[14];
@@ -190,7 +190,7 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
 	ray_trace_texture_layout_bindings[i].descriptorCount = 1;
 	ray_trace_texture_layout_bindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	ray_trace_texture_layout_bindings[i].pImmutableSamplers = NULL;
-	ray_trace_texture_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+	ray_trace_texture_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
     }
 
     VkDescriptorSetLayoutBinding motion_vector_image_layout_binding {};
@@ -198,14 +198,14 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
     motion_vector_image_layout_binding.descriptorCount = 1;
     motion_vector_image_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     motion_vector_image_layout_binding.pImmutableSamplers = NULL;
-    motion_vector_image_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+    motion_vector_image_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
 
     VkDescriptorSetLayoutBinding motion_vector_texture_layout_binding {};
     motion_vector_texture_layout_binding.binding = 32;
     motion_vector_texture_layout_binding.descriptorCount = 1;
     motion_vector_texture_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     motion_vector_texture_layout_binding.pImmutableSamplers = NULL;
-    motion_vector_texture_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+    motion_vector_texture_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
 
     VkDescriptorSetLayoutBinding taa_image_layout_bindings[2];
     for (uint32_t i = 0; i < 2; ++i) {
@@ -213,7 +213,7 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
 	taa_image_layout_bindings[i].descriptorCount = 1;
 	taa_image_layout_bindings[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 	taa_image_layout_bindings[i].pImmutableSamplers = NULL;
-	taa_image_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+	taa_image_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
     }
     
     VkDescriptorSetLayoutBinding taa_texture_layout_bindings[2];
@@ -222,7 +222,7 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
 	taa_texture_layout_bindings[i].descriptorCount = 1;
 	taa_texture_layout_bindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	taa_texture_layout_bindings[i].pImmutableSamplers = NULL;
-	taa_texture_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+	taa_texture_layout_bindings[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
     }
     
     VkDescriptorSetLayoutBinding bindless_volumes_layout_binding {};
@@ -230,7 +230,7 @@ auto RenderContext::create_ray_trace_descriptor_set_layout() noexcept -> void {
     bindless_volumes_layout_binding.descriptorCount = MAX_MODELS;
     bindless_volumes_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     bindless_volumes_layout_binding.pImmutableSamplers = NULL;
-    bindless_volumes_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
+    bindless_volumes_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
     
     VkDescriptorSetLayoutBinding bindings[] = {
 	tlas_layout_binding,
