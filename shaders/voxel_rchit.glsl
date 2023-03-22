@@ -31,21 +31,27 @@ const vec3 voxel_normals[6] = vec3[6](
 				      vec3(0.0, 0.0, 1.0)
 				      );
 
+const vec3 custom_colors[3] = vec3[3](
+				      vec3(1.0, 0.0, 0.0),
+				      vec3(0.0, 1.0, 0.0),
+				      vec3(0.0, 0.0, 1.0)
+				      );
+
 void main() {
     vec3 world_ray_pos = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
     vec3 world_obj_pos = gl_ObjectToWorldEXT * vec4(0.0, 0.0, 0.0, 1.0);
-    vec3 normal = normalize((voxel_normals[gl_HitKindEXT] * gl_ObjectToWorldEXT).xyz);
+    vec3 normal = normalize((voxel_normals[gl_HitKindEXT] * gl_WorldToObjectEXT).xyz);
 
     vec3 voxel_sample_pos = gl_WorldToObjectEXT * vec4(world_ray_pos, 1.0);
     ivec3 volume_load_pos = ivec3(voxel_sample_pos * vec3(imageSize(volumes[gl_InstanceCustomIndexEXT])) - 0.5 * voxel_normals[gl_HitKindEXT]);
-    float palette = imageLoad(volumes[gl_InstanceCustomIndexEXT], volume_load_pos).r;
+    uint palette = uint(256.0 * imageLoad(volumes[gl_InstanceCustomIndexEXT], volume_load_pos).r);
     
     //prd.albedo = gl_HitTEXT >= 1.0 ? normal * 0.5 + 0.5 : vec3(0.0);
-    prd.albedo = normal * 0.5 + 0.5;
+    prd.albedo = custom_colors[(palette - 1) % 3];
     prd.normal = normal;
     prd.flat_normal = normal;
-    prd.roughness = 0.8;
-    prd.metallicity = 0.2;
+    prd.roughness = 1.0;
+    prd.metallicity = 0.0;
     prd.hit_position = world_ray_pos;
     prd.direct_emittance = 0.0;
     prd.model_id = gl_InstanceCustomIndexEXT;

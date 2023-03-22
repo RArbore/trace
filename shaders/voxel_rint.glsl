@@ -67,7 +67,9 @@ void main() {
 	    
 	    if (palette > 0.0) {
 		r = hit_aabb(vec3(obj_ray_voxel) / volume_size, vec3(obj_ray_voxel + 1) / volume_size, obj_ray_pos, obj_ray_dir);
-		reportIntersectionEXT(r.t, r.k);
+		vec3 obj_ray_voxel_intersect_point = obj_ray_pos + obj_ray_dir * max(r.t, 0.0);
+		float intersect_time = length(gl_ObjectToWorldEXT * vec4(obj_ray_voxel_intersect_point, 1.0) - gl_ObjectToWorldEXT * vec4(obj_ray_pos, 1.0));
+		reportIntersectionEXT(intersect_time, r.k);
 		return;
 	    }
 
