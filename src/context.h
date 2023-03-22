@@ -250,6 +250,7 @@ struct RenderContext {
     auto ringbuffer_copy_scene_indirect_draw_into_buffer(Scene &scene) noexcept -> void;
     auto ringbuffer_copy_scene_lights_into_buffer(Scene &scene) noexcept -> void;
     auto ringbuffer_copy_scene_ray_trace_objects_into_buffer(Scene &scene) noexcept -> void;
+    auto ringbuffer_copy_scene_voxel_palettes_into_buffer(Scene &scene) noexcept -> void;
     auto ringbuffer_copy_projection_matrices_into_buffer() noexcept -> void;
 
     auto ringbuffer_claim_buffer(RingBuffer &ring_buffer, std::size_t size) noexcept -> void *;

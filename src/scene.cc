@@ -52,6 +52,10 @@ auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> 
     scene.ray_trace_objects_buf_contents_size = ray_trace_objects_size;
     scene.ray_trace_objects_buf = create_buffer(ray_trace_objects_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_RAY_TRACE_OBJECTS_BUFFER");
 
+    const std::size_t voxel_palette_size = scene.num_voxel_models * 256 * sizeof(uint32_t);
+    scene.voxel_palette_buf_contents_size = voxel_palette_size;
+    scene.voxel_palette_buf = create_buffer(voxel_palette_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_VOXEL_PALETTES_BUFFER");
+
     ringbuffer_copy_scene_vertices_into_buffer(scene);
     ringbuffer_copy_scene_indices_into_buffer(scene);
     ringbuffer_copy_scene_instances_into_buffer(scene);
@@ -85,11 +89,16 @@ auto RenderContext::update_vulkan_objects_for_scene(Scene &scene) noexcept -> vo
     const std::size_t ray_trace_objects_size = scene.num_objects * sizeof(Scene::RayTraceObject);
     scene.ray_trace_objects_buf_contents_size = ray_trace_objects_size;
 
+    const std::size_t voxel_palette_size = scene.num_voxel_models * 256 * sizeof(uint32_t);
+    scene.voxel_palette_buf_contents_size = voxel_palette_size;
+
     ringbuffer_copy_scene_vertices_into_buffer(scene);
     ringbuffer_copy_scene_indices_into_buffer(scene);
     ringbuffer_copy_scene_instances_into_buffer(scene);
     ringbuffer_copy_scene_indirect_draw_into_buffer(scene);
     ringbuffer_copy_scene_lights_into_buffer(scene);
+    ringbuffer_copy_scene_ray_trace_objects_into_buffer(scene);
+    ringbuffer_copy_scene_voxel_palettes_into_buffer(scene);
     ringbuffer_copy_scene_ray_trace_objects_into_buffer(scene);
 }
 
@@ -101,6 +110,7 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> v
     cleanup_buffer(scene.indirect_draw_buf);
     cleanup_buffer(scene.lights_buf);
     cleanup_buffer(scene.ray_trace_objects_buf);
+    cleanup_buffer(scene.voxel_palette_buf);
     for (auto image : scene.textures) {
 	cleanup_image_view(image.second);
 	cleanup_image(image.first);
@@ -191,6 +201,16 @@ auto RenderContext::ringbuffer_copy_scene_ray_trace_objects_into_buffer(Scene &s
 	}
     }
     ringbuffer_submit_buffer(main_ring_buffer, scene.ray_trace_objects_buf);
+}
+
+auto RenderContext::ringbuffer_copy_scene_voxel_palettes_into_buffer(Scene &scene) noexcept -> void {
+    ZoneScoped;
+    uint32_t *data_voxel_palette = (uint32_t *) ringbuffer_claim_buffer(main_ring_buffer, scene.voxel_palette_buf_contents_size);
+    for (std::size_t i = 0; i < scene.num_voxel_models; ++i) {
+	memcpy(data_voxel_palette, scene.voxel_models[i].palette.data(), 256 * sizeof(uint32_t));
+	data_voxel_palette += 256;
+    }
+    ringbuffer_submit_buffer(main_ring_buffer, scene.voxel_palette_buf);
 }
 
 const glm::vec2 quincunx[5] = {
