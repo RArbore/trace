@@ -62,6 +62,7 @@ auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> 
     ringbuffer_copy_scene_indirect_draw_into_buffer(scene);
     ringbuffer_copy_scene_lights_into_buffer(scene);
     ringbuffer_copy_scene_ray_trace_objects_into_buffer(scene);
+    ringbuffer_copy_scene_voxel_palettes_into_buffer(scene);
 }
 
 auto RenderContext::update_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
@@ -99,7 +100,6 @@ auto RenderContext::update_vulkan_objects_for_scene(Scene &scene) noexcept -> vo
     ringbuffer_copy_scene_lights_into_buffer(scene);
     ringbuffer_copy_scene_ray_trace_objects_into_buffer(scene);
     ringbuffer_copy_scene_voxel_palettes_into_buffer(scene);
-    ringbuffer_copy_scene_ray_trace_objects_into_buffer(scene);
 }
 
 auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
@@ -569,7 +569,7 @@ auto RenderContext::load_dot_vox_model(std::string_view vox_filepath) noexcept -
     }
 
     ASSERT(file_contents[next_chunk] == convertID("RGBA"), "Third child chunk in .vox file is not a RGBA chunk (can only parse .vox files with a palette currently).");
-    uint32_t *palette = file_contents.data() + next_chunk + 1;
+    uint32_t *palette = file_contents.data() + next_chunk + 3;
     for (int i = 0; i < 256; ++i) {
 	model.palette[i] = palette[i];
     }

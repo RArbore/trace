@@ -119,6 +119,7 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
     context.update_descriptors_ray_trace_objects(scene);
     context.update_descriptors_motion_vector_texture();
     context.update_descriptors_taa_images();
+    context.update_descriptors_palettes(scene);
     
     //const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
     context.camera_position = glm::vec3(3.0f, 3.0f, 4.0f);

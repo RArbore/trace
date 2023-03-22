@@ -160,11 +160,13 @@ layout(set = 1, binding = 34, rgba32f) uniform image2D taa2_image;
 layout(set = 1, binding = 35) uniform sampler2D taa1_texture;
 layout(set = 1, binding = 36) uniform sampler2D taa2_texture;
 
-layout(set = 1, binding = 37, r8) uniform readonly image3D volumes[];
+layout(set = 1, binding = 37) buffer palette_buf { uint p[]; };
+
+layout(set = 1, binding = 38, r8) uniform readonly image3D volumes[];
 
 #ifdef RAY_TRACING
-layout(buffer_reference, scalar) buffer vertices_buf {vertex v[]; };
-layout(buffer_reference, scalar) buffer indices_buf {uvec3 i[]; };
+layout(buffer_reference, scalar) buffer vertices_buf { vertex v[]; };
+layout(buffer_reference, scalar) buffer indices_buf { uvec3 i[]; };
 #endif
 
 uint hash(uint x) {

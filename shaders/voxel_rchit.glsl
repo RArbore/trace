@@ -30,12 +30,12 @@ const vec3 voxel_normals[6] = vec3[6](
 				      vec3(0.0, 0.0, -1.0),
 				      vec3(0.0, 0.0, 1.0)
 				      );
-
 const vec3 custom_colors[3] = vec3[3](
 				      vec3(1.0, 0.0, 0.0),
 				      vec3(0.0, 1.0, 0.0),
 				      vec3(0.0, 0.0, 1.0)
 				      );
+
 
 void main() {
     vec3 world_ray_pos = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
@@ -46,8 +46,13 @@ void main() {
     ivec3 volume_load_pos = ivec3(voxel_sample_pos * vec3(imageSize(volumes[gl_InstanceCustomIndexEXT])) - 0.5 * voxel_normals[gl_HitKindEXT]);
     uint palette = uint(256.0 * imageLoad(volumes[gl_InstanceCustomIndexEXT], volume_load_pos).r);
     
-    //prd.albedo = gl_HitTEXT >= 1.0 ? normal * 0.5 + 0.5 : vec3(0.0);
-    prd.albedo = custom_colors[(palette - 1) % 3];
+    uint palette_lookup = p[gl_InstanceCustomIndexEXT * 256 + palette];
+    uint palette_r = palette_lookup >> 24;
+    uint palette_g = (palette_lookup >> 16) & 0xFF;
+    uint palette_b = (palette_lookup >> 8) & 0xFF;
+    
+    prd.albedo = vec3(palette_r, palette_g, palette_b) / 255.0;
+    //prd.albedo = custom_colors[palette];
     prd.normal = normal;
     prd.flat_normal = normal;
     prd.roughness = 1.0;
