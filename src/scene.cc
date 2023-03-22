@@ -549,9 +549,9 @@ auto RenderContext::load_dot_vox_model(std::string_view vox_filepath) noexcept -
 
     ASSERT(file_contents[5] == convertID("SIZE"), "First child chunk in .vox file is not a SIZE chunk (can only parse single model currently).");
     ASSERT(file_contents[7] == 0, "SIZE child chunk contains children.");
-    model.x_len = (uint16_t) file_contents[8];
+    model.z_len = (uint16_t) file_contents[8];
     model.y_len = (uint16_t) file_contents[9];
-    model.z_len = (uint16_t) file_contents[10];
+    model.x_len = (uint16_t) file_contents[10];
 
     ASSERT(file_contents[11] == convertID("XYZI"), "Second child chunk in .vox file is not a XYZI chunk (can only parse single model currently).");
     model.voxels.resize((uint32_t) model.x_len * (uint32_t) model.y_len * (uint32_t) model.z_len);
@@ -561,9 +561,9 @@ auto RenderContext::load_dot_vox_model(std::string_view vox_filepath) noexcept -
     uint32_t num_voxels = file_contents[14];
     for (uint32_t i = 0; i < num_voxels; ++i) {
 	uint32_t voxel = file_contents[15 + i];
-	uint8_t x = (uint8_t) (0xFF & (voxel));
+	uint8_t z = (uint8_t) (0xFF & (voxel));
 	uint8_t y = (uint8_t) (0xFF & (voxel >> 8));
-	uint8_t z = (uint8_t) (0xFF & (voxel >> 16));
+	uint8_t x = (uint8_t) (0xFF & (voxel >> 16));
 	uint8_t v = (uint8_t) (0xFF & (voxel >> 24));
 	model.voxels.at(x * model.y_len * model.z_len + y * model.z_len + z) = v;
     }

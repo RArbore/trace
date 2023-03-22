@@ -47,12 +47,11 @@ void main() {
     uint palette = uint(256.0 * imageLoad(volumes[gl_InstanceCustomIndexEXT], volume_load_pos).r);
     
     uint palette_lookup = p[gl_InstanceCustomIndexEXT * 256 + palette];
-    uint palette_r = palette_lookup >> 24;
-    uint palette_g = (palette_lookup >> 16) & 0xFF;
-    uint palette_b = (palette_lookup >> 8) & 0xFF;
+    uint palette_r = palette_lookup & 0xFF;
+    uint palette_g = (palette_lookup >> 8) & 0xFF;
+    uint palette_b = (palette_lookup >> 16) & 0xFF;
     
     prd.albedo = vec3(palette_r, palette_g, palette_b) / 255.0;
-    //prd.albedo = custom_colors[palette];
     prd.normal = normal;
     prd.flat_normal = normal;
     prd.roughness = 1.0;
