@@ -44,7 +44,7 @@ auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> 
     scene.indirect_draw_buf_contents_size = indirect_draw_size;
     scene.indirect_draw_buf = create_buffer(indirect_draw_size, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_INDIRECT_DRAW_BUFFER");
 
-    const std::size_t lights_size = (scene.num_lights + 1) * sizeof(glm::vec4);
+    const std::size_t lights_size = scene.num_lights * sizeof(glm::vec4);
     scene.lights_buf_contents_size = lights_size;
     scene.lights_buf = create_buffer(lights_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_LIGHTS_BUFFER");
 
@@ -56,6 +56,10 @@ auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> 
     scene.voxel_palette_buf_contents_size = voxel_palette_size;
     scene.voxel_palette_buf = create_buffer(voxel_palette_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_VOXEL_PALETTES_BUFFER");
 
+    const std::size_t light_aabbs_size = scene.num_lights * sizeof(VkAabbPositionsKHR);
+    scene.light_aabbs_buf_contents_size = light_aabbs_size;
+    scene.light_aabbs_buf = create_buffer(light_aabbs_size, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "LIGHT_AABBS_BUFFER");
+
     ringbuffer_copy_scene_vertices_into_buffer(scene);
     ringbuffer_copy_scene_indices_into_buffer(scene);
     ringbuffer_copy_scene_instances_into_buffer(scene);
@@ -63,6 +67,7 @@ auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> 
     ringbuffer_copy_scene_lights_into_buffer(scene);
     ringbuffer_copy_scene_ray_trace_objects_into_buffer(scene);
     ringbuffer_copy_scene_voxel_palettes_into_buffer(scene);
+    ringbuffer_copy_scene_light_aabbs_into_buffer(scene);
 }
 
 auto RenderContext::update_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
@@ -84,7 +89,7 @@ auto RenderContext::update_vulkan_objects_for_scene(Scene &scene) noexcept -> vo
     const std::size_t indirect_draw_size = scene.num_models * sizeof(VkDrawIndexedIndirectCommand);
     scene.indirect_draw_buf_contents_size = indirect_draw_size;
 
-    const std::size_t lights_size = (scene.num_lights + 1) * sizeof(glm::vec4);
+    const std::size_t lights_size = scene.num_lights * sizeof(glm::vec4);
     scene.lights_buf_contents_size = lights_size;
 
     const std::size_t ray_trace_objects_size = scene.num_objects * sizeof(Scene::RayTraceObject);
@@ -93,6 +98,9 @@ auto RenderContext::update_vulkan_objects_for_scene(Scene &scene) noexcept -> vo
     const std::size_t voxel_palette_size = scene.num_voxel_models * 256 * sizeof(uint32_t);
     scene.voxel_palette_buf_contents_size = voxel_palette_size;
 
+    const std::size_t light_aabbs_size = scene.num_lights * sizeof(VkAabbPositionsKHR);
+    scene.light_aabbs_buf_contents_size = light_aabbs_size;
+
     ringbuffer_copy_scene_vertices_into_buffer(scene);
     ringbuffer_copy_scene_indices_into_buffer(scene);
     ringbuffer_copy_scene_instances_into_buffer(scene);
@@ -100,6 +108,7 @@ auto RenderContext::update_vulkan_objects_for_scene(Scene &scene) noexcept -> vo
     ringbuffer_copy_scene_lights_into_buffer(scene);
     ringbuffer_copy_scene_ray_trace_objects_into_buffer(scene);
     ringbuffer_copy_scene_voxel_palettes_into_buffer(scene);
+    ringbuffer_copy_scene_light_aabbs_into_buffer(scene);
 }
 
 auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> void {
@@ -111,6 +120,7 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> v
     cleanup_buffer(scene.lights_buf);
     cleanup_buffer(scene.ray_trace_objects_buf);
     cleanup_buffer(scene.voxel_palette_buf);
+    cleanup_buffer(scene.light_aabbs_buf);
     for (auto image : scene.textures) {
 	cleanup_image_view(image.second);
 	cleanup_image(image.first);
@@ -122,6 +132,8 @@ auto RenderContext::cleanup_vulkan_objects_for_scene(Scene &scene) noexcept -> v
     vkDestroyAccelerationStructureKHR(device, scene.tlas, NULL);
     cleanup_buffer(scene.tlas_buffer);
     cleanup_buffer(scene.tlas_instances_buffer);
+    vkDestroyAccelerationStructureKHR(device, scene.lights_blas, NULL);
+    cleanup_buffer(scene.lights_blas_buffer);
     for (auto blas : scene.blass)
 	vkDestroyAccelerationStructureKHR(device, blas, NULL);
     for (auto buffer : scene.blas_buffers)
@@ -211,6 +223,21 @@ auto RenderContext::ringbuffer_copy_scene_voxel_palettes_into_buffer(Scene &scen
 	data_voxel_palette += 256;
     }
     ringbuffer_submit_buffer(main_ring_buffer, scene.voxel_palette_buf);
+}
+
+auto RenderContext::ringbuffer_copy_scene_light_aabbs_into_buffer(Scene &scene) noexcept -> void {
+    ZoneScoped;
+    constexpr float LIGHT_RADIUS = 0.1f;
+    VkAabbPositionsKHR *data_light_aabb = (VkAabbPositionsKHR *) ringbuffer_claim_buffer(main_ring_buffer, scene.light_aabbs_buf_contents_size);
+    for (std::size_t i = 0; i < scene.num_voxel_models; ++i) {
+	data_light_aabb[i].minX = scene.lights[i].x - LIGHT_RADIUS;
+	data_light_aabb[i].minY = scene.lights[i].y - LIGHT_RADIUS;
+	data_light_aabb[i].minZ = scene.lights[i].z - LIGHT_RADIUS;
+	data_light_aabb[i].maxX = scene.lights[i].x + LIGHT_RADIUS;
+	data_light_aabb[i].maxY = scene.lights[i].y + LIGHT_RADIUS;
+	data_light_aabb[i].maxZ = scene.lights[i].z + LIGHT_RADIUS;
+    }
+    ringbuffer_submit_buffer(main_ring_buffer, scene.light_aabbs_buf);
 }
 
 const glm::vec2 quincunx[5] = {
@@ -687,7 +714,7 @@ auto RenderContext::build_bottom_level_acceleration_structure_for_voxel_model(ui
     VkAccelerationStructureGeometryKHR blas_geometry {};
     blas_geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
     blas_geometry.geometryType = VK_GEOMETRY_TYPE_AABBS_KHR;
-    blas_geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR; // !!!
+    blas_geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
     blas_geometry.geometry.aabbs = geometry_aabbs_data;
     
     VkAccelerationStructureBuildRangeInfoKHR blas_build_range_info {};
@@ -736,6 +763,68 @@ auto RenderContext::build_bottom_level_acceleration_structure_for_voxel_model(ui
     scene.voxel_blas_buffers[voxel_model_idx] = blas_acceleration_structure_buffer;
 }
 
+
+auto RenderContext::build_bottom_level_acceleration_structure_for_lights(Scene &scene) noexcept -> void {
+    ZoneScoped;
+    const VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
+
+    VkAccelerationStructureGeometryAabbsDataKHR geometry_aabbs_data {};
+    geometry_aabbs_data.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_AABBS_DATA_KHR;
+    geometry_aabbs_data.data.deviceAddress = get_device_address(scene.light_aabbs_buf);
+    geometry_aabbs_data.stride = sizeof(VkAabbPositionsKHR);
+    
+    VkAccelerationStructureGeometryKHR blas_geometry {};
+    blas_geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+    blas_geometry.geometryType = VK_GEOMETRY_TYPE_AABBS_KHR;
+    blas_geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+    blas_geometry.geometry.aabbs = geometry_aabbs_data;
+    
+    VkAccelerationStructureBuildRangeInfoKHR blas_build_range_info {};
+    blas_build_range_info.firstVertex = 0;
+    blas_build_range_info.primitiveCount = 1;
+    blas_build_range_info.primitiveOffset = 0;
+    blas_build_range_info.transformOffset = 0;
+    VkAccelerationStructureBuildRangeInfoKHR *blas_build_range_infos[] = {&blas_build_range_info};
+    
+    VkAccelerationStructureBuildGeometryInfoKHR blas_build_geometry_info {};
+    blas_build_geometry_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+    blas_build_geometry_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    blas_build_geometry_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+    blas_build_geometry_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+    blas_build_geometry_info.geometryCount = scene.num_lights;
+    blas_build_geometry_info.pGeometries = &blas_geometry;
+    
+    const uint32_t max_primitive_counts[] = {1};
+    
+    VkAccelerationStructureBuildSizesInfoKHR blas_build_sizes_info {};
+    blas_build_sizes_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
+    vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &blas_build_geometry_info, max_primitive_counts, &blas_build_sizes_info);
+    
+    Buffer blas_build_scratch_buffer = create_buffer_with_alignment(blas_build_sizes_info.buildScratchSize, alignment, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_BLAS_BUILD_SCRATCH_BUFFER");
+    Buffer blas_acceleration_structure_buffer = create_buffer_with_alignment(blas_build_sizes_info.accelerationStructureSize, alignment, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_BLAS_BUFFER");
+    
+    VkAccelerationStructureCreateInfoKHR bottom_level_create_info {};
+    bottom_level_create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+    bottom_level_create_info.buffer = blas_acceleration_structure_buffer.buffer;
+    bottom_level_create_info.offset = 0;
+    bottom_level_create_info.size = blas_build_sizes_info.accelerationStructureSize;
+    bottom_level_create_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    
+    VkAccelerationStructureKHR bottom_level_acceleration_structure;
+    ASSERT(vkCreateAccelerationStructureKHR(device, &bottom_level_create_info, NULL, &bottom_level_acceleration_structure), "Unable to create bottom level acceleration structure.");
+    
+    blas_build_geometry_info.dstAccelerationStructure = bottom_level_acceleration_structure;
+    blas_build_geometry_info.scratchData.deviceAddress = get_device_address(blas_build_scratch_buffer);
+
+    inefficient_run_commands([&](VkCommandBuffer cmd) {
+	vkCmdBuildAccelerationStructuresKHR(cmd, 1, &blas_build_geometry_info, (const VkAccelerationStructureBuildRangeInfoKHR* const*) blas_build_range_infos);
+    });
+
+    cleanup_buffer(blas_build_scratch_buffer);
+    scene.lights_blas = bottom_level_acceleration_structure;
+    scene.lights_blas_buffer = blas_acceleration_structure_buffer;
+}
+
 auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scene) noexcept -> void {
     ZoneScoped;
     const VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
@@ -765,6 +854,12 @@ auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scen
 	    ++bottom_level_instance.instanceCustomIndex;
 	}
     }
+    bottom_level_instance.instanceCustomIndex = 0;
+    glm4x4_to_vk_transform(glm::mat4(1), bottom_level_instance.transform);
+    bottom_level_instance.mask = 0xFF;
+    bottom_level_instance.instanceShaderBindingTableRecordOffset = 2;
+    bottom_level_instance.accelerationStructureReference = get_device_address(scene.lights_blas);
+    bottom_level_instances.push_back(bottom_level_instance);
     
     Buffer instances_buffer = create_buffer(bottom_level_instances.size() * sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT, 0, "SCENE_TLAS_INSTANCES_BUFFER");
     inefficient_upload_to_buffer((void *) bottom_level_instances.data(), bottom_level_instances.size() * sizeof(VkAccelerationStructureInstanceKHR), instances_buffer);

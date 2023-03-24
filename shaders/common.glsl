@@ -20,9 +20,11 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_scalar_block_layout : require
 
-const float PI = 3.14159265358979;
 const uint NUM_BOUNCES = 3;
 const uint MAX_LIGHTS = 512;
+
+const float PI = 3.14159265358979;
+const float LIGHT_RADIUS = 0.1;
 const float SURFACE_OFFSET = 0.002;
 const float FLOAT_MAX = 3.402823466e+38;
 const float FLOAT_MIN = 1.175494351e-38;

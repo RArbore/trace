@@ -46,8 +46,8 @@ struct Scene {
     uint16_t num_voxel_models;
     uint32_t num_voxel_objects;
 
-    Buffer vertices_buf, indices_buf, instances_buf, indirect_draw_buf, lights_buf, ray_trace_objects_buf, voxel_palette_buf;
-    std::size_t vertices_buf_contents_size, indices_buf_contents_size, instances_buf_contents_size, indirect_draw_buf_contents_size, lights_buf_contents_size, ray_trace_objects_buf_contents_size, voxel_palette_buf_contents_size;
+    Buffer vertices_buf, indices_buf, instances_buf, indirect_draw_buf, lights_buf, ray_trace_objects_buf, voxel_palette_buf, light_aabbs_buf;
+    std::size_t vertices_buf_contents_size, indices_buf_contents_size, instances_buf_contents_size, indirect_draw_buf_contents_size, lights_buf_contents_size, ray_trace_objects_buf_contents_size, voxel_palette_buf_contents_size, light_aabbs_buf_contents_size;
     std::vector<std::size_t> model_vertices_offsets, model_indices_offsets;
     std::map<std::string, uint16_t> loaded_models;
     std::map<std::string, uint16_t> loaded_voxel_models;
@@ -55,9 +55,11 @@ struct Scene {
     VkAccelerationStructureKHR tlas;
     std::vector<VkAccelerationStructureKHR> blass;
     std::vector<VkAccelerationStructureKHR> voxel_blass;
+    VkAccelerationStructureKHR lights_blas;
     Buffer tlas_buffer, tlas_instances_buffer;
     std::vector<Buffer> blas_buffers;
     std::vector<Buffer> voxel_blas_buffers;
+    Buffer lights_blas_buffer;
 
     auto add_object(const glm::mat4 &&transform, uint16_t model_id) noexcept -> void {
 	transforms[model_id].emplace_back(transform);
