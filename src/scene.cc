@@ -44,7 +44,7 @@ auto RenderContext::allocate_vulkan_objects_for_scene(Scene &scene) noexcept -> 
     scene.indirect_draw_buf_contents_size = indirect_draw_size;
     scene.indirect_draw_buf = create_buffer(indirect_draw_size, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_INDIRECT_DRAW_BUFFER");
 
-    const std::size_t lights_size = scene.num_lights * sizeof(glm::vec4);
+    const std::size_t lights_size = (scene.num_lights + 1) * sizeof(glm::vec4);
     scene.lights_buf_contents_size = lights_size;
     scene.lights_buf = create_buffer(lights_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, "SCENE_LIGHTS_BUFFER");
 
@@ -89,7 +89,7 @@ auto RenderContext::update_vulkan_objects_for_scene(Scene &scene) noexcept -> vo
     const std::size_t indirect_draw_size = scene.num_models * sizeof(VkDrawIndexedIndirectCommand);
     scene.indirect_draw_buf_contents_size = indirect_draw_size;
 
-    const std::size_t lights_size = scene.num_lights * sizeof(glm::vec4);
+    const std::size_t lights_size = (scene.num_lights + 1) * sizeof(glm::vec4);
     scene.lights_buf_contents_size = lights_size;
 
     const std::size_t ray_trace_objects_size = scene.num_objects * sizeof(Scene::RayTraceObject);
@@ -227,7 +227,7 @@ auto RenderContext::ringbuffer_copy_scene_voxel_palettes_into_buffer(Scene &scen
 
 auto RenderContext::ringbuffer_copy_scene_light_aabbs_into_buffer(Scene &scene) noexcept -> void {
     ZoneScoped;
-    constexpr float LIGHT_RADIUS = 0.1f;
+    constexpr float LIGHT_RADIUS = 0.5f;
     VkAabbPositionsKHR *data_light_aabb = (VkAabbPositionsKHR *) ringbuffer_claim_buffer(main_ring_buffer, scene.light_aabbs_buf_contents_size);
     for (std::size_t i = 0; i < scene.num_voxel_models; ++i) {
 	data_light_aabb[i].minX = scene.lights[i].x - LIGHT_RADIUS;

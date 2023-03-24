@@ -21,7 +21,7 @@
 #include "common.glsl"
 
 void main() {
-    vec4 light = lights[gl_GeometryIndexEXT];
+    vec4 light = lights[gl_GeometryIndexEXT + 1];
 
     vec3 d = gl_WorldRayDirectionEXT;
     vec3 p_r = gl_WorldRayOriginEXT;

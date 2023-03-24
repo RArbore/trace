@@ -93,8 +93,6 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
     scene.add_voxel_object(glm::rotate(glm::scale(glm::translate(glm::mat4(1), glm::vec3(0.0f, 0.0f, 5.0f)), glm::vec3(2.0f, 2.0f, 2.0f)), 1.0f, glm::vec3(0.0f, 0.2f, 0.8f)), test_voxel_model);
     
     context.allocate_vulkan_objects_for_scene(scene);
-    context.update_descriptors_lights(scene);
-    context.update_descriptors_perspective();
     context.build_bottom_level_acceleration_structure_for_model(model_id_dragon, scene);
     context.build_bottom_level_acceleration_structure_for_model(model_id_red_dragon, scene);
     context.build_bottom_level_acceleration_structure_for_model(model_id_blue_dragon, scene);
@@ -108,6 +106,8 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
     context.update_descriptors_motion_vector_texture();
     context.update_descriptors_taa_images();
     context.update_descriptors_palettes(scene);
+    context.update_descriptors_lights(scene);
+    context.update_descriptors_perspective();
     
     //const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
     context.camera_position = glm::vec3(3.0f, 3.0f, 4.0f);
