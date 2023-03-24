@@ -781,7 +781,7 @@ auto RenderContext::build_bottom_level_acceleration_structure_for_lights(Scene &
     
     VkAccelerationStructureBuildRangeInfoKHR blas_build_range_info {};
     blas_build_range_info.firstVertex = 0;
-    blas_build_range_info.primitiveCount = 1;
+    blas_build_range_info.primitiveCount = scene.num_lights;
     blas_build_range_info.primitiveOffset = 0;
     blas_build_range_info.transformOffset = 0;
     VkAccelerationStructureBuildRangeInfoKHR *blas_build_range_infos[] = {&blas_build_range_info};
@@ -791,7 +791,7 @@ auto RenderContext::build_bottom_level_acceleration_structure_for_lights(Scene &
     blas_build_geometry_info.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
     blas_build_geometry_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
     blas_build_geometry_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-    blas_build_geometry_info.geometryCount = scene.num_lights;
+    blas_build_geometry_info.geometryCount = 1;
     blas_build_geometry_info.pGeometries = &blas_geometry;
     
     const uint32_t max_primitive_counts[] = {1};
@@ -875,7 +875,7 @@ auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scen
     
     VkAccelerationStructureBuildRangeInfoKHR tlas_build_range_info {};
     tlas_build_range_info.firstVertex = 0;
-    tlas_build_range_info.primitiveCount = scene.num_objects + scene.num_voxel_objects;
+    tlas_build_range_info.primitiveCount = scene.num_objects + scene.num_voxel_objects + 1;
     tlas_build_range_info.primitiveOffset = 0;
     tlas_build_range_info.transformOffset = 0;
     VkAccelerationStructureBuildRangeInfoKHR *tlas_build_range_infos[] = {&tlas_build_range_info}; 
@@ -888,7 +888,7 @@ auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scen
     tlas_build_geometry_info.geometryCount = 1;
     tlas_build_geometry_info.pGeometries = &tlas_geometry;
     
-    const uint32_t max_instances_counts[] = {scene.num_objects + scene.num_voxel_objects};
+    const uint32_t max_instances_counts[] = {scene.num_objects + scene.num_voxel_objects + 1};
     
     VkAccelerationStructureBuildSizesInfoKHR tlas_build_sizes_info {};
     tlas_build_sizes_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;

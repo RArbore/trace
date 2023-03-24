@@ -19,7 +19,7 @@
 auto RenderContext::create_shader_binding_table() noexcept -> void {
     ZoneScoped;
     const uint32_t miss_count = 1;
-    const uint32_t hit_count = 2;
+    const uint32_t hit_count = 3;
     const uint32_t handle_count = 1 + miss_count + hit_count;
 
     auto align_up = [](uint32_t size, uint32_t alignment) {

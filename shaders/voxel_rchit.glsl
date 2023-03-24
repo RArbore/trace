@@ -30,12 +30,6 @@ const vec3 voxel_normals[6] = vec3[6](
 				      vec3(0.0, 0.0, -1.0),
 				      vec3(0.0, 0.0, 1.0)
 				      );
-const vec3 custom_colors[3] = vec3[3](
-				      vec3(1.0, 0.0, 0.0),
-				      vec3(0.0, 1.0, 0.0),
-				      vec3(0.0, 0.0, 1.0)
-				      );
-
 
 void main() {
     vec3 world_ray_pos = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
