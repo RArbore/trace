@@ -24,6 +24,7 @@ const uint NUM_BOUNCES = 3;
 const uint MAX_LIGHTS = 512;
 
 const float PI = 3.14159265358979;
+const float WEIGHT_CUTOFF = 0.1;
 const float LIGHT_RADIUS = 0.5;
 const float SURFACE_OFFSET = 0.002;
 const float FLOAT_MAX = 3.402823466e+38;

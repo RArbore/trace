@@ -119,7 +119,7 @@ void main() {
     vec3 ray_dir = normalize((centered_inverse_camera * inverse_jittered_perspective * vec4(device_coord, 0.0, 1.0)).xyz);
 
     hit_payload first_hit;
-    for (uint hit_num = 0; hit_num < NUM_BOUNCES; ++hit_num) {
+    for (uint hit_num = 0; hit_num < NUM_BOUNCES && any(greaterThan(weight, vec3(WEIGHT_CUTOFF))); ++hit_num) {
 	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, ray_dir, FAR_AWAY, 0);
 	hit_payload indirect_prd = prd;
 

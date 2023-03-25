@@ -110,7 +110,7 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
     context.update_descriptors_perspective();
     
     //const float aspect_ratio = (float) context.swapchain_extent.width / (float) context.swapchain_extent.height;
-    context.camera_position = glm::vec3(3.0f, 3.0f, 4.0f);
+    context.camera_position = glm::vec3(4.0f, 3.0f, 8.0f);
 
     auto system_time = std::chrono::system_clock::now();
     double elapsed_time_subsecond = 0.0;
