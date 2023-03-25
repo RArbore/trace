@@ -80,6 +80,12 @@ ray_sample uniform_weighted_hemisphere(vec2 random, vec3 direction) {
     return ret;
 }
 
+vec3 uniform_weighted_hemisphere_simple(vec2 random, vec3 direction) {
+    float theta = acos(random.x);
+    float phi = 2.0 * PI * random.y;
+    return get_arbitrary_hemisphere_orientation_matrix(direction) * vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+}
+
 vec3 BRDF(vec3 omega_in, vec3 omega_out, hit_payload hit) {
     vec3 F0_dieletric = vec3(0.04); 
     vec3 F0 = mix(F0_dieletric, hit.albedo, hit.metallicity);
@@ -100,9 +106,21 @@ vec3 BRDF(vec3 omega_in, vec3 omega_out, hit_payload hit) {
     return kD * hit.albedo / PI + specular;
 }
 
-ray_sample sample_light_sources(vec2 random, vec3 direction) {
-    ray_sample samp = uniform_weighted_hemisphere(random, direction);
-    samp.drawn_weight = 1.0 / (4.0 * PI);
+ray_sample sample_light_sources(vec2 random, vec3 origin, vec3 normal) {
+    vec4 light = lights[1]; // "random"
+    if (dot(normal, light.xyz - origin) < 0.0) {
+	ray_sample samp;
+	samp.drawn_sample = vec3(0.0);
+	samp.drawn_weight = 0.0;
+	return samp;
+    }
+    vec3 hemisphere_point = uniform_weighted_hemisphere_simple(random, normal);
+    vec3 sample_point = hemisphere_point * LIGHT_RADIUS + light.xyz;
+    vec3 dist = sample_point - origin;
+    float dist2 = dot(dist, dist);
+    ray_sample samp;
+    samp.drawn_sample = dist2 > 0.01 ? normalize(dist) : vec3(0.0);
+    samp.drawn_weight = dist2 > 0.01 ? 1.0 / dist2 : 0.0;
     return samp;
 }
 
@@ -135,14 +153,15 @@ void main() {
 	}
 
 	ray_pos = indirect_prd.hit_position + indirect_prd.flat_normal * SURFACE_OFFSET;
-	ray_sample direct_sample = sample_light_sources(slice_2_from_4(random, hit_num), indirect_prd.normal);
-	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, direct_sample.drawn_sample, FAR_AWAY, 0);
-	hit_payload direct_prd = prd;
-
-	vec3 direct_brdf = BRDF(-ray_dir, direct_sample.drawn_sample, indirect_prd);
-	float direct_lambert = dot(direct_sample.drawn_sample, indirect_prd.normal);
-
-	outward_radiance += direct_prd.direct_emittance * weight * direct_lambert * direct_brdf / direct_sample.drawn_weight;
+	ray_sample direct_sample = sample_light_sources(slice_2_from_4(random, hit_num), ray_pos, indirect_prd.normal);
+	if (direct_sample.drawn_weight > 0.0) {
+	    traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, direct_sample.drawn_sample, FAR_AWAY, 0);
+	    hit_payload direct_prd = prd;
+	    
+	    vec3 direct_brdf = BRDF(-ray_dir, direct_sample.drawn_sample, indirect_prd);
+	    float direct_lambert = dot(direct_sample.drawn_sample, indirect_prd.normal);
+	    outward_radiance += direct_prd.direct_emittance * weight * direct_lambert * direct_brdf * direct_sample.drawn_weight;
+	}
 
 	float indirect_lambert = dot(indirect_prd.normal, -ray_dir);
 	vec3 omega_in = -ray_dir;
