@@ -22,6 +22,25 @@ layout(location = 0) in vec2 in_position;
 
 layout(location = 0) out vec4 out_color;
 
+const vec4 custom_colors[16] = vec4[](
+				      vec4(1.0, 0.0, 0.0, 1.0),
+				      vec4(0.75, 0.25, 0.0, 1.0),
+				      vec4(0.5, 0.5, 0.0, 1.0),
+				      vec4(0.25, 0.75, 0.0, 1.0),
+				      vec4(0.0, 1.0, 0.0, 1.0),
+				      vec4(0.0, 0.75, 0.25, 1.0),
+				      vec4(0.0, 0.5, 0.5, 1.0),
+				      vec4(0.0, 0.25, 0.75, 1.0),
+				      vec4(0.0, 0.0, 1.0, 1.0),
+				      vec4(0.25, 0.0, 0.75, 1.0),
+				      vec4(0.5, 0.0, 0.5, 1.0),
+				      vec4(0.75, 0.0, 0.25, 1.0),
+				      vec4(0.25, 0.25, 0.25, 1.0),
+				      vec4(0.5, 0.5, 0.5, 1.0),
+				      vec4(0.75, 0.75, 0.75, 1.0),
+				      vec4(1.0, 1.0, 1.0, 1.0)
+				      );
+
 void main() {
     vec2 pixel_coord = gl_FragCoord.xy;
     pixel_sample new_sample = get_new_sample(pixel_coord);
@@ -42,6 +61,7 @@ void main() {
 	}
 	
 	bool blend =
+	    new_sample.model_id == reprojected_sample.model_id && 
 	    dot(new_sample.normal, reprojected_sample.normal) > 0.8 &&
 	    length(new_sample.position - reprojected_sample.position) < 0.5 &&
 	    length(new_sample.position) < FAR_AWAY * 0.5 &&

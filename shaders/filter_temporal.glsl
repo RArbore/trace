@@ -34,6 +34,7 @@ void main() {
     pixel_sample reprojected_sample = get_old_sample(reprojected_pixel_coord, 0);
 
     bool blend =
+	new_sample.model_id == reprojected_sample.model_id && 
 	dot(new_sample.normal, reprojected_sample.normal) > 0.8 &&
 	length(new_sample.position - reprojected_sample.position) < 0.5 &&
 	length(new_sample.position) < FAR_AWAY * 0.5 &&

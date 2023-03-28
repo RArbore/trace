@@ -34,5 +34,5 @@ void main() {
     prd.metallicity = 0.0;
     prd.hit_position = hit_pos;
     prd.direct_emittance = light.w;
-    prd.model_id = 0;
+    prd.model_id = 0xFFFFFFFE;
 }

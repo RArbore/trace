@@ -66,6 +66,7 @@ struct pixel_sample {
     vec3 lighting;
     vec3 position;
     vec3 normal;
+    uint model_id;
     float luminance_moment1;
     float luminance_moment2;
     float variance;
@@ -224,7 +225,9 @@ pixel_sample get_new_sample(vec2 pixel_coord) {
     if (current_frame % 2 == 0) {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
-	s.albedo = texture(ray_trace1_albedo_texture, uv).xyz;
+	vec4 albedo_sample = texture(ray_trace1_albedo_texture, uv);
+	s.albedo = albedo_sample.xyz;
+	s.model_id = uint(albedo_sample.w * 255.0);
 	vec4 history;
 	if (filter_iter % 2 == 0) {
 	    s.lighting = texture(ray_trace1_lighting1_texture, uv).xyz;
@@ -243,7 +246,9 @@ pixel_sample get_new_sample(vec2 pixel_coord) {
     } else {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
-	s.albedo = texture(ray_trace2_albedo_texture, uv).xyz;
+	vec4 albedo_sample = texture(ray_trace2_albedo_texture, uv);
+	s.albedo = albedo_sample.xyz;
+	s.model_id = uint(albedo_sample.w * 255.0);
 	vec4 history;
 	if (filter_iter % 2 == 0) {
 	    s.lighting = texture(ray_trace2_lighting1_texture, uv).xyz;
@@ -266,7 +271,9 @@ pixel_sample get_old_sample(vec2 pixel_coord, uint old_filter_iter) {
     if (current_frame % 2 == 1) {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
-	s.albedo = texture(ray_trace1_albedo_texture, uv).xyz;
+	vec4 albedo_sample = texture(ray_trace1_albedo_texture, uv);
+	s.albedo = albedo_sample.xyz;
+	s.model_id = uint(albedo_sample.w * 255.0);
 	vec4 history;
 	if (old_filter_iter % 2 == 1) {
 	    s.lighting = texture(ray_trace1_lighting1_texture, uv).xyz;
@@ -285,7 +292,9 @@ pixel_sample get_old_sample(vec2 pixel_coord, uint old_filter_iter) {
     } else {
 	vec2 uv = pixel_coord_to_device_coord(pixel_coord) * 0.5 + 0.5;
 	pixel_sample s;
-	s.albedo = texture(ray_trace2_albedo_texture, uv).xyz;
+	vec4 albedo_sample = texture(ray_trace2_albedo_texture, uv);
+	s.albedo = albedo_sample.xyz;
+	s.model_id = uint(albedo_sample.w * 255.0);
 	vec4 history;
 	if (old_filter_iter % 2 == 1) {
 	    s.lighting = texture(ray_trace2_lighting1_texture, uv).xyz;
