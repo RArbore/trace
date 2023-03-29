@@ -29,6 +29,6 @@ void main() {
     prd.roughness = 0.0;
     prd.metallicity = 0.0;
     prd.hit_position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * FAR_AWAY;
-    prd.direct_emittance = 0.1;
+    prd.direct_emittance = 0.3;
     prd.model_id = 0xFFFFFFFF;
 }

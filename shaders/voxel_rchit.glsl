@@ -48,8 +48,8 @@ void main() {
     prd.albedo = vec3(palette_r, palette_g, palette_b) / 255.0;
     prd.normal = normal;
     prd.flat_normal = normal;
-    prd.roughness = 1.0;
-    prd.metallicity = 0.0;
+    prd.roughness = 0.5;
+    prd.metallicity = 0.5;
     prd.hit_position = world_ray_pos;
     prd.direct_emittance = 0.0;
     prd.model_id = gl_InstanceCustomIndexEXT;

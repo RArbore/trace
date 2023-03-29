@@ -36,7 +36,7 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
 
     Scene scene {};
 
-    scene.add_light({3.0, 0.0, 5.0, 100.0});
+    scene.add_light({10.0, 2.0, 7.0, 2000.0});
 
     const uint16_t model_id_dragon = context.load_model("dragon", scene);
     scene.add_object(glm::scale(glm::translate(glm::mat4(1), glm::vec3(-2.5f, 0.0f, 0.0f)), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_dragon);
@@ -48,6 +48,9 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
     const uint8_t mat_blue[] = {150, 220, 255, 75, 255};
     const uint16_t model_id_blue_dragon = context.load_model("dragon", scene, &mat_blue[0]);
     scene.add_object(glm::scale(glm::rotate(glm::translate(glm::mat4(1), glm::vec3(0.0f, -5.5f, 0.0f)), 1.0f, glm::vec3(0.0f, 0.0f, 1.0f)), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_blue_dragon);
+
+    const uint16_t model_id_pico = context.load_model("pico", scene);
+    scene.add_object(glm::scale(glm::translate(glm::mat4(1), glm::vec3(2.0f, -2.0f, 4.0f)), glm::vec3(50.0f)), model_id_pico);
 
     const uint16_t model_id_floor = context.load_custom_model(
 							      {
@@ -96,6 +99,7 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
     context.build_bottom_level_acceleration_structure_for_model(model_id_dragon, scene);
     context.build_bottom_level_acceleration_structure_for_model(model_id_red_dragon, scene);
     context.build_bottom_level_acceleration_structure_for_model(model_id_blue_dragon, scene);
+    context.build_bottom_level_acceleration_structure_for_model(model_id_pico, scene);
     context.build_bottom_level_acceleration_structure_for_model(model_id_floor, scene);
     context.build_bottom_level_acceleration_structure_for_model(model_id_wall, scene);
     context.build_bottom_level_acceleration_structure_for_voxel_model(test_voxel_model, scene);

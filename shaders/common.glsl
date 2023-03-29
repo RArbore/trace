@@ -26,7 +26,7 @@ const uint MAX_LIGHTS = 512;
 const float PI = 3.14159265358979;
 const float WEIGHT_CUTOFF = 0.1;
 const float LIGHT_RADIUS = 0.5;
-const float SURFACE_OFFSET = 0.002;
+const float SURFACE_OFFSET = 0.0001;
 const float FLOAT_MAX = 3.402823466e+38;
 const float FLOAT_MIN = 1.175494351e-38;
 const float FAR_AWAY = 1000.0;
@@ -368,6 +368,6 @@ vec4 sample_to_color(pixel_sample s) {
     return vec4(s.albedo * s.lighting, 1.0);
 }
 
-float luminance(vec3 radiance){
+float luminance(vec3 radiance) {
     return dot(radiance, vec3(0.2125, 0.7154, 0.0721));
 }
