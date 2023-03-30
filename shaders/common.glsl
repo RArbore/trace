@@ -78,6 +78,7 @@ struct ray_sample {
 
 struct aabb_intersect_result {
     float t;
+    float back_t;
     uint k;
 };
 
@@ -402,6 +403,7 @@ aabb_intersect_result hit_aabb(const vec3 minimum, const vec3 maximum, const vec
     float t0 = max(tmin.x, max(tmin.y, tmin.z));
     float t1 = min(tmax.x, min(tmax.y, tmax.z));
     r.t = t1 > max(t0, 0.0) ? t0 : -FAR_AWAY;
+    r.back_t = t1 > max(t0, 0.0) ? t1 : -FAR_AWAY;
     if (t0 == tmin.x) {
 	r.k = tbot.x > ttop.x ? 1 : 0;
     } else if (t0 == tmin.y) {

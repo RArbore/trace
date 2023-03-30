@@ -155,22 +155,26 @@ void main() {
 	    break;
 	}
 
-	ray_pos = indirect_prd.hit_position + indirect_prd.flat_normal * SURFACE_OFFSET;
-	ray_sample direct_sample = sample_light_sources(slice_2_from_4(random, hit_num), ray_pos, indirect_prd.normal);
-	if (direct_sample.drawn_weight > 0.0) {
-	    traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, direct_sample.drawn_sample, FAR_AWAY, 0);
-	    hit_payload direct_prd = prd;
+	if (indirect_prd.model_kind != KIND_VOLUMETRIC) {
+	    ray_pos = indirect_prd.hit_position + indirect_prd.flat_normal * SURFACE_OFFSET;
+	    ray_sample direct_sample = sample_light_sources(slice_2_from_4(random, hit_num), ray_pos, indirect_prd.normal);
+	    if (direct_sample.drawn_weight > 0.0) {
+		traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, direct_sample.drawn_sample, FAR_AWAY, 0);
+		hit_payload direct_prd = prd;
+		
+		vec3 direct_brdf = BRDF(-ray_dir, direct_sample.drawn_sample, indirect_prd);
+		float direct_lambert = dot(direct_sample.drawn_sample, indirect_prd.normal);
+		outward_radiance += direct_prd.direct_emittance * weight * direct_lambert * direct_brdf * direct_sample.drawn_weight;
+	    }
 	    
-	    vec3 direct_brdf = BRDF(-ray_dir, direct_sample.drawn_sample, indirect_prd);
-	    float direct_lambert = dot(direct_sample.drawn_sample, indirect_prd.normal);
-	    outward_radiance += direct_prd.direct_emittance * weight * direct_lambert * direct_brdf * direct_sample.drawn_weight;
+	    float indirect_lambert = dot(indirect_prd.normal, -ray_dir);
+	    vec3 omega_in = -ray_dir;
+	    ray_sample indirect_sample = uniform_weighted_hemisphere(slice_2_from_4(random, hit_num + 2), indirect_prd.normal);
+	    ray_dir = indirect_sample.drawn_sample;
+	    weight *= indirect_lambert * BRDF(omega_in, ray_dir, indirect_prd) / indirect_sample.drawn_weight;
+	} else {
+	    ray_pos = indirect_prd.hit_position;
 	}
-
-	float indirect_lambert = dot(indirect_prd.normal, -ray_dir);
-	vec3 omega_in = -ray_dir;
-	ray_sample indirect_sample = uniform_weighted_hemisphere(slice_2_from_4(random, hit_num + 2), indirect_prd.normal);
-	ray_dir = indirect_sample.drawn_sample;
-	weight *= indirect_lambert * BRDF(omega_in, ray_dir, indirect_prd) / indirect_sample.drawn_weight;
     }
     if (!found_first_non_volumetric_hit) {
 	first_hit = create_miss(ray_pos, ray_dir);
