@@ -55,6 +55,7 @@ struct Scene {
     VkAccelerationStructureKHR tlas;
     std::vector<VkAccelerationStructureKHR> blass;
     std::vector<VkAccelerationStructureKHR> voxel_blass;
+    std::vector<bool> solid_or_volumetric;
     VkAccelerationStructureKHR lights_blas;
     Buffer tlas_buffer, tlas_instances_buffer;
     std::vector<Buffer> blas_buffers;

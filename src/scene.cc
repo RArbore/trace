@@ -545,6 +545,7 @@ auto RenderContext::load_voxel_model(std::string_view model_name, Scene &scene) 
 	scene.voxel_transforms.emplace_back();
 	scene.voxel_blass.push_back(VK_NULL_HANDLE);
 	scene.voxel_blas_buffers.emplace_back();
+	scene.solid_or_volumetric.emplace_back();
 
 	update_descriptors_volumes(scene, voxel_model_id);
 
@@ -702,7 +703,7 @@ auto RenderContext::build_bottom_level_acceleration_structure_for_model(uint16_t
     scene.blas_buffers[model_idx] = blas_acceleration_structure_buffer;
 }
 
-auto RenderContext::build_bottom_level_acceleration_structure_for_voxel_model(uint16_t voxel_model_idx, Scene &scene) noexcept -> void {
+auto RenderContext::build_bottom_level_acceleration_structure_for_voxel_model(uint16_t voxel_model_idx, Scene &scene, bool solid) noexcept -> void {
     ZoneScoped;
     const VkDeviceSize alignment = acceleration_structure_properties.minAccelerationStructureScratchOffsetAlignment;
 
@@ -761,6 +762,7 @@ auto RenderContext::build_bottom_level_acceleration_structure_for_voxel_model(ui
     cleanup_buffer(blas_build_scratch_buffer);
     scene.voxel_blass[voxel_model_idx] = bottom_level_acceleration_structure;
     scene.voxel_blas_buffers[voxel_model_idx] = blas_acceleration_structure_buffer;
+    scene.solid_or_volumetric[voxel_model_idx] = solid;
 }
 
 
@@ -848,7 +850,7 @@ auto RenderContext::build_top_level_acceleration_structure_for_scene(Scene &scen
 	for (uint32_t transform_idx = 0; transform_idx < (uint32_t) scene.voxel_transforms[voxel_model_idx].size(); ++transform_idx) {
 	    glm4x4_to_vk_transform(scene.voxel_transforms[voxel_model_idx][transform_idx], bottom_level_instance.transform);
 	    bottom_level_instance.mask = 0xFF;
-	    bottom_level_instance.instanceShaderBindingTableRecordOffset = 1;
+	    bottom_level_instance.instanceShaderBindingTableRecordOffset = scene.solid_or_volumetric[voxel_model_idx] ? 1 : 3;
 	    bottom_level_instance.accelerationStructureReference = get_device_address(scene.voxel_blass[voxel_model_idx]);
 	    bottom_level_instances.push_back(bottom_level_instance);
 	    ++bottom_level_instance.instanceCustomIndex;
