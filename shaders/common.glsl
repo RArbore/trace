@@ -36,6 +36,15 @@ const float FLOAT_MAX = 3.402823466e+38;
 const float FLOAT_MIN = 1.175494351e-38;
 const float FAR_AWAY = 1000.0;
 
+const vec3 voxel_normals[6] = vec3[6](
+				      vec3(-1.0, 0.0, 0.0),
+				      vec3(1.0, 0.0, 0.0),
+				      vec3(0.0, -1.0, 0.0),
+				      vec3(0.0, 1.0, 0.0),
+				      vec3(0.0, 0.0, -1.0),
+				      vec3(0.0, 0.0, 1.0)
+				      );
+
 #ifdef RAY_TRACING
 struct hit_payload {
     vec3 albedo;
@@ -65,6 +74,11 @@ struct vertex {
 struct ray_sample {
     vec3 drawn_sample;
     float drawn_weight;
+};
+
+struct aabb_intersect_result {
+    float t;
+    uint k;
 };
 
 struct pixel_sample {
@@ -376,6 +390,26 @@ vec4 sample_to_color(pixel_sample s) {
 
 float luminance(vec3 radiance) {
     return dot(radiance, vec3(0.2125, 0.7154, 0.0721));
+}
+
+aabb_intersect_result hit_aabb(const vec3 minimum, const vec3 maximum, const vec3 origin, const vec3 direction) {
+    aabb_intersect_result r;
+    vec3 invDir = 1.0 / direction;
+    vec3 tbot = invDir * (minimum - origin);
+    vec3 ttop = invDir * (maximum - origin);
+    vec3 tmin = min(ttop, tbot);
+    vec3 tmax = max(ttop, tbot);
+    float t0 = max(tmin.x, max(tmin.y, tmin.z));
+    float t1 = min(tmax.x, min(tmax.y, tmax.z));
+    r.t = t1 > max(t0, 0.0) ? t0 : -FAR_AWAY;
+    if (t0 == tmin.x) {
+	r.k = tbot.x > ttop.x ? 1 : 0;
+    } else if (t0 == tmin.y) {
+	r.k = tbot.y > ttop.y ? 3 : 2;
+    } else if (t0 == tmin.z) {
+	r.k = tbot.z > ttop.z ? 5 : 4;
+    }
+    return r;
 }
 
 #ifdef RAY_TRACING

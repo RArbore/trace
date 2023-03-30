@@ -27,22 +27,13 @@ void main() {
     vec3 world_obj_pos = gl_ObjectToWorldEXT * vec4(0.0, 0.0, 0.0, 1.0);
     vec3 normal = normalize((voxel_normals[gl_HitKindEXT] * gl_WorldToObjectEXT).xyz);
 
-    vec3 voxel_sample_pos = gl_WorldToObjectEXT * vec4(world_ray_pos, 1.0);
-    ivec3 volume_load_pos = ivec3(voxel_sample_pos * vec3(imageSize(volumes[gl_InstanceCustomIndexEXT])) - 0.5 * voxel_normals[gl_HitKindEXT]);
-    uint palette = uint(256.0 * imageLoad(volumes[gl_InstanceCustomIndexEXT], volume_load_pos).r);
-    
-    uint palette_lookup = p[gl_InstanceCustomIndexEXT * 256 + palette];
-    uint palette_r = palette_lookup & 0xFF;
-    uint palette_g = (palette_lookup >> 8) & 0xFF;
-    uint palette_b = (palette_lookup >> 16) & 0xFF;
-    
-    prd.albedo = vec3(palette_r, palette_g, palette_b) / 255.0;
+    prd.albedo = vec3(0.5);
     prd.normal = normal;
     prd.flat_normal = normal;
     prd.roughness = 0.5;
     prd.metallicity = 0.5;
     prd.hit_position = world_ray_pos;
     prd.direct_emittance = 0.0;
-    prd.model_kind = KIND_VOXEL;
+    prd.model_kind = KIND_VOLUMETRIC;
     prd.model_id = gl_InstanceCustomIndexEXT;
 }
