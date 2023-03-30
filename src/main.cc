@@ -94,6 +94,9 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
 
     const uint16_t test_voxel_model = context.load_voxel_model("test", scene);
     scene.add_voxel_object(glm::rotate(glm::scale(glm::translate(glm::mat4(1), glm::vec3(0.0f, 0.0f, 5.0f)), glm::vec3(2.0f, 2.0f, 2.0f)), 1.0f, glm::vec3(0.0f, 0.2f, 0.8f)), test_voxel_model);
+
+    const uint16_t cloud_volumetric_model = context.load_volumetric_model("cloud", scene);
+    scene.add_voxel_object(glm::rotate(glm::scale(glm::translate(glm::mat4(1), glm::vec3(0.0f, 0.0f, 10.0f)), glm::vec3(2.0f, 2.0f, 2.0f)), 1.0f, glm::vec3(0.0f, 0.2f, 0.8f)), cloud_volumetric_model);
     
     context.allocate_vulkan_objects_for_scene(scene);
     context.build_bottom_level_acceleration_structure_for_model(model_id_dragon, scene);
@@ -103,6 +106,7 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
     context.build_bottom_level_acceleration_structure_for_model(model_id_floor, scene);
     context.build_bottom_level_acceleration_structure_for_model(model_id_wall, scene);
     context.build_bottom_level_acceleration_structure_for_voxel_model(test_voxel_model, scene);
+    context.build_bottom_level_acceleration_structure_for_voxel_model(cloud_volumetric_model, scene, false);
     context.build_bottom_level_acceleration_structure_for_lights(scene);
     context.build_top_level_acceleration_structure_for_scene(scene);
     context.update_descriptors_tlas(scene);

@@ -268,6 +268,8 @@ struct RenderContext {
     auto load_voxel_model(std::string_view model_name, Scene &scene) noexcept -> uint16_t;
     auto load_dot_vox_model(std::string_view vox_filepath) noexcept -> VoxelModel;
     auto upload_voxel_model(const VoxelModel &voxel_model) noexcept -> std::pair<Volume, VkImageView>;
+    auto load_volumetric_model(std::string_view model_name, Scene &scene) noexcept -> uint16_t;
+    auto load_dot_bin_model(std::string_view bin_filepath) noexcept -> VoxelModel;
 
     auto update_descriptors_textures(const Scene &scene, uint32_t update_texture) noexcept -> void;
     auto update_descriptors_volumes(const Scene &scene, uint32_t update_volume) noexcept -> void;

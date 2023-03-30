@@ -605,6 +605,39 @@ auto RenderContext::load_dot_vox_model(std::string_view vox_filepath) noexcept -
     return model;
 }
 
+auto RenderContext::load_dot_bin_model(std::string_view bin_filepath) noexcept -> VoxelModel {
+    ZoneScoped;
+    VoxelModel model;
+    auto file_size = std::filesystem::file_size(bin_filepath);
+    std::vector<uint32_t> file_contents((file_size + sizeof(uint32_t) - 1) / sizeof(uint32_t));
+    FILE *f = fopen(&bin_filepath[0], "r");
+    ASSERT(f, "Couldn't open .bin file.");
+    auto read_size = fread(file_contents.data(), 1, file_size, f);
+    ASSERT(file_size == read_size, "Something went wrong reading .bin file.");
+    fclose(f);
+
+    // TODO: actually read the bin...
+    model.x_len = 11;
+    model.y_len = 11;
+    model.z_len = 11;
+    model.palette = {0};
+    model.voxels = std::vector<uint8_t>(model.x_len * model.y_len * model.z_len);
+    for (int x = 0; x < 11; ++x) {
+	for (int y = 0; y < 11; ++y) {
+	    for (int z = 0; z < 11; ++z) {
+		int dx = x - 5;
+		int dy = y - 5;
+		int dz = z - 5;
+		float d = sqrt(dx * dx + dy * dy + dz * dz);
+		float v = 1.0f - fmin(d / 5.0f, 1.0f);
+		model.voxels[x * 11 * 11 + y * 11 + z] = (uint8_t) (v * 255.0f);
+	    }
+	}
+    }
+
+    return model;
+}
+
 auto RenderContext::upload_voxel_model(const VoxelModel &voxel_model) noexcept -> std::pair<Volume, VkImageView> {
     ZoneScoped;
     std::size_t volume_size = voxel_model.x_len * voxel_model.y_len * voxel_model.z_len;
@@ -625,6 +658,37 @@ auto RenderContext::upload_voxel_model(const VoxelModel &voxel_model) noexcept -
     subresource_range.layerCount = 1;
 
     return {dst, create_image3d_view(dst.image, format, subresource_range)};
+}
+
+auto RenderContext::load_volumetric_model(std::string_view model_name, Scene &scene) noexcept -> uint16_t {
+    ZoneScoped;
+    auto it = scene.loaded_voxel_models.find(std::string(model_name));
+    if (it != scene.loaded_voxel_models.end())
+	return it->second;
+    const std::string bin_filepath =
+	std::string("models/") +
+	std::string(model_name) +
+	std::string(".bin");
+
+    if (std::filesystem::exists(bin_filepath)) {
+	const uint16_t voxel_model_id = scene.num_voxel_models;
+	scene.voxel_models.emplace_back(load_dot_bin_model(bin_filepath));
+	scene.voxel_volumes.emplace_back(upload_voxel_model(scene.voxel_models.back()));
+	
+	++scene.num_voxel_models;
+	scene.voxel_transforms.emplace_back();
+	scene.voxel_blass.push_back(VK_NULL_HANDLE);
+	scene.voxel_blas_buffers.emplace_back();
+	scene.solid_or_volumetric.emplace_back();
+
+	update_descriptors_volumes(scene, voxel_model_id);
+
+	std::cout << "INFO: Loaded volumetric model " << bin_filepath << ".\n";
+	return voxel_model_id;
+    } else {
+	ASSERT(false, "Couldn't find volumetric model with given name. Currently, only .bin volumetric models are supported.");
+	return {};
+    }
 }
 
 auto glm4x4_to_vk_transform(const glm::mat4 &in, VkTransformMatrixKHR &out) noexcept -> void {
