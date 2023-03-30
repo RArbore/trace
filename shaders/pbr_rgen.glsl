@@ -136,7 +136,7 @@ void main() {
     vec3 ray_pos = camera_position;
     vec3 ray_dir = normalize((centered_inverse_camera * inverse_jittered_perspective * vec4(device_coord, 0.0, 1.0)).xyz);
 
-    bool found_first_non_volumetric_hit = false;
+    bool found_first_hit = false;
     hit_payload first_hit;
     for (uint hit_num = 0; hit_num < NUM_BOUNCES && any(greaterThan(weight, vec3(WEIGHT_CUTOFF))); ++hit_num) {
 	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, ray_dir, FAR_AWAY, 0);
@@ -145,11 +145,11 @@ void main() {
 	if (indirect_prd.model_kind != KIND_LIGHT || hit_num == 0) {
 	    outward_radiance += indirect_prd.direct_emittance * weight;
 	}
-	if (!found_first_non_volumetric_hit && indirect_prd.model_kind != KIND_VOLUMETRIC) {
+	if (!found_first_hit) {
 	    first_hit = indirect_prd;
 	    indirect_prd.albedo = vec3(1.0);
 	    outward_radiance *= 2.0;
-	    found_first_non_volumetric_hit = true;
+	    found_first_hit = true;
 	}
 	if (indirect_prd.model_kind == KIND_MISS) {
 	    break;
@@ -174,9 +174,10 @@ void main() {
 	    weight *= indirect_lambert * BRDF(omega_in, ray_dir, indirect_prd) / indirect_sample.drawn_weight;
 	} else {
 	    ray_pos = indirect_prd.hit_position;
+	    weight *= indirect_prd.volumetric_weight;
 	}
     }
-    if (!found_first_non_volumetric_hit) {
+    if (!found_first_hit) {
 	first_hit = create_miss(ray_pos, ray_dir);
     }
 

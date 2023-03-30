@@ -56,6 +56,7 @@ struct hit_payload {
     float direct_emittance;
     uint model_kind;
     uint model_id;
+    float volumetric_weight;
 };
 
 struct obj_desc {

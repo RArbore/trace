@@ -40,4 +40,5 @@ void main() {
     prd.direct_emittance = 0.0;
     prd.model_kind = KIND_VOLUMETRIC;
     prd.model_id = gl_InstanceCustomIndexEXT;
+    prd.volumetric_weight = 0.2;
 }
