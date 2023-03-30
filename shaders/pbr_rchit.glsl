@@ -75,5 +75,6 @@ void main() {
     prd.metallicity = metallicity;
     prd.hit_position = world_position;
     prd.direct_emittance = 0.0;
+    prd.model_kind = KIND_TRIANGLE;
     prd.model_id = uint(obj.model_id);
 }

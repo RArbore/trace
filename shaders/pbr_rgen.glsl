@@ -141,7 +141,7 @@ void main() {
 	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, ray_dir, FAR_AWAY, 0);
 	hit_payload indirect_prd = prd;
 
-	if (indirect_prd.model_id != 0xFFFFFFFE || hit_num == 0) {
+	if (indirect_prd.model_kind != KIND_LIGHT || hit_num == 0) {
 	    outward_radiance += indirect_prd.direct_emittance * weight;
 	}
 	if (hit_num == 0) {
@@ -149,7 +149,7 @@ void main() {
 	    indirect_prd.albedo = vec3(1.0);
 	    outward_radiance *= 2.0;
 	}
-	if (indirect_prd.model_id == 0xFFFFFFFF) {
+	if (indirect_prd.model_kind == KIND_MISS) {
 	    break;
 	}
 

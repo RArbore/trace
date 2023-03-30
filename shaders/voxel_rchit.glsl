@@ -52,5 +52,6 @@ void main() {
     prd.metallicity = 0.5;
     prd.hit_position = world_ray_pos;
     prd.direct_emittance = 0.0;
+    prd.model_kind = KIND_VOXEL;
     prd.model_id = gl_InstanceCustomIndexEXT;
 }

@@ -22,6 +22,11 @@
 
 const uint NUM_BOUNCES = 3;
 const uint MAX_LIGHTS = 512;
+const uint KIND_TRIANGLE = 0;
+const uint KIND_VOXEL = 1;
+const uint KIND_VOLUMETRIC = 2;
+const uint KIND_LIGHT = 3;
+const uint KIND_MISS = 4;
 
 const float PI = 3.14159265358979;
 const float WEIGHT_CUTOFF = 0.1;
@@ -40,6 +45,7 @@ struct hit_payload {
     float metallicity;
     vec3 hit_position;
     float direct_emittance;
+    uint model_kind;
     uint model_id;
 };
 
