@@ -377,3 +377,19 @@ vec4 sample_to_color(pixel_sample s) {
 float luminance(vec3 radiance) {
     return dot(radiance, vec3(0.2125, 0.7154, 0.0721));
 }
+
+#ifdef RAY_TRACING
+hit_payload create_miss(vec3 origin, vec3 direction) {
+    hit_payload prd;
+    prd.albedo = vec3(1.0);
+    prd.normal = vec3(0.0);
+    prd.flat_normal = vec3(0.0, 0.0, 1.0);
+    prd.roughness = 0.0;
+    prd.metallicity = 0.0;
+    prd.hit_position = origin + direction * FAR_AWAY;
+    prd.direct_emittance = 0.3;
+    prd.model_kind = KIND_MISS;
+    prd.model_id = 0xFFFFFFFF;
+    return prd;
+}
+#endif
