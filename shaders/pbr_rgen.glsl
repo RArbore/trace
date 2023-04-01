@@ -146,13 +146,19 @@ void main() {
     vec3 ray_dir = normalize((centered_inverse_camera * inverse_jittered_perspective * vec4(device_coord, 0.0, 1.0)).xyz);
 
     bool found_first_hit = false;
+    bool found_first_non_volumetric_hit = false;
     hit_payload first_hit;
+    vec3 first_non_volumetric_hit_position = vec3(0.0);
     for (uint hit_num = 0; hit_num < NUM_BOUNCES && any(greaterThan(weight, vec3(WEIGHT_CUTOFF))); ++hit_num) {
 	traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, ray_dir, FAR_AWAY, 0);
 	hit_payload indirect_prd = prd;
 
 	if (indirect_prd.model_kind != KIND_LIGHT || hit_num == 0) {
 	    outward_radiance += indirect_prd.direct_emittance * weight;
+	}
+	if (!found_first_non_volumetric_hit && indirect_prd.model_kind != KIND_VOLUMETRIC) {
+	    first_non_volumetric_hit_position = indirect_prd.hit_position;
+	    found_first_non_volumetric_hit = true;
 	}
 	if (!found_first_hit && (indirect_prd.model_kind != KIND_VOLUMETRIC || indirect_prd.volumetric_weight < 1.0)) {
 	    first_hit = indirect_prd;
@@ -195,24 +201,23 @@ void main() {
 	first_hit = create_miss(ray_pos, ray_dir);
     }
 
-    vec3 hit_position = first_hit.hit_position;
+    vec3 hit_position = first_hit.model_kind == KIND_VOLUMETRIC ? (found_first_non_volumetric_hit ? first_non_volumetric_hit_position : first_hit.volumetric_back_position) : first_hit.hit_position;
     vec4 new_device = perspective * camera * vec4(hit_position, 1.0);
     vec4 old_device = perspective * last_frame_camera * vec4(hit_position, 1.0);
     vec2 pixel_velocity = device_coord_to_pixel_coord(new_device.xy / new_device.w) - device_coord_to_pixel_coord(old_device.xy / old_device.w);
 
     outward_radiance /= 2.0;
     float lum = luminance(outward_radiance);
-    vec3 position = first_hit.model_kind == KIND_VOLUMETRIC ? first_hit.volumetric_front_position : first_hit.hit_position;
     if (current_frame % 2 == 0) {
 	imageStore(ray_trace1_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.albedo, float(first_hit.model_id % 256) / 255.0));
 	imageStore(ray_trace1_lighting1_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
-	imageStore(ray_trace1_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(position, 1.0));
+	imageStore(ray_trace1_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(hit_position, 1.0));
 	imageStore(ray_trace1_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.normal * 0.5 + 0.5, 1.0));
 	imageStore(ray_trace1_history1_image, ivec2(gl_LaunchIDEXT.xy), vec4(lum, lum * lum, 0.0, 1.0));
     } else {
 	imageStore(ray_trace2_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.albedo, float(first_hit.model_id % 256) / 255.0));
 	imageStore(ray_trace2_lighting1_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
-	imageStore(ray_trace2_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(position, 1.0));
+	imageStore(ray_trace2_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(hit_position, 1.0));
 	imageStore(ray_trace2_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.normal * 0.5 + 0.5, 1.0));
 	imageStore(ray_trace2_history1_image, ivec2(gl_LaunchIDEXT.xy), vec4(lum, lum * lum, 0.0, 1.0));
     }
