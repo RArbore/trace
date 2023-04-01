@@ -117,7 +117,7 @@ vec3 BRDF(vec3 omega_in, vec3 omega_out, hit_payload hit) {
 
 ray_sample sample_light_sources(vec2 random, vec3 origin, vec3 normal) {
     vec4 light = lights[1]; // "random"
-    if (dot(normal, light.xyz - origin) < 0.0) {
+    if (dot(normal, light.xyz - origin) < 0.0 && normal != vec3(0.0)) {
 	ray_sample samp;
 	samp.drawn_sample = vec3(0.0);
 	samp.drawn_weight = 0.0;
@@ -193,6 +193,17 @@ void main() {
 	    ray_dir = normalize(indirect_prd.normal + indirect_sample.drawn_sample);
 	    weight *= BRDF(omega_in, ray_dir, indirect_prd) / indirect_sample.drawn_weight;
 	} else {
+	    vec3 dls_weight = weight * indirect_prd.volumetric_dls_weight;
+	    vec3 direct_ray_pos = indirect_prd.volumetric_dls_back_position;
+
+	    ray_sample direct_sample = sample_light_sources(slice_2_from_4(random, hit_num), direct_ray_pos, vec3(0.0));
+	    traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, direct_ray_pos, 0.001, direct_sample.drawn_sample, FAR_AWAY, 0);
+	    while (prd.model_kind == KIND_VOLUMETRIC && any(greaterThan(dls_weight, vec3(WEIGHT_CUTOFF)))) {
+		dls_weight *= prd.volumetric_weight;
+		traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, prd.volumetric_back_position, 0.001, direct_sample.drawn_sample, FAR_AWAY, 0);
+	    }
+	    outward_radiance += prd.direct_emittance * dls_weight * direct_sample.drawn_weight;
+	    
 	    ray_pos = indirect_prd.volumetric_back_position;
 	    weight *= indirect_prd.volumetric_weight;
 	}

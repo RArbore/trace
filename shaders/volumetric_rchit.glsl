@@ -41,7 +41,10 @@ void main() {
     prd.model_kind = KIND_VOLUMETRIC;
     prd.model_id = gl_InstanceCustomIndexEXT;
 
-    prd.volumetric_weight = 0.2;
+    prd.volumetric_weight = 0.4;
     prd.volumetric_front_position = world_ray_pos;
     prd.volumetric_back_position = world_ray_back_pos;
+
+    prd.volumetric_dls_weight = 0.4;
+    prd.volumetric_dls_back_position = world_ray_back_pos;
 }
