@@ -172,7 +172,7 @@ void main() {
 		traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, direct_sample.drawn_sample, FAR_AWAY, 0);
 		while (prd.model_kind == KIND_VOLUMETRIC && any(greaterThan(dls_weight, vec3(WEIGHT_CUTOFF)))) {
 		    dls_weight *= prd.volumetric_weight;
-		    traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, prd.hit_position, 0.001, direct_sample.drawn_sample, FAR_AWAY, 0);
+		    traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, prd.volumetric_back_position, 0.001, direct_sample.drawn_sample, FAR_AWAY, 0);
 		}
 		if (any(greaterThan(dls_weight, vec3(WEIGHT_CUTOFF)))) {
 		    hit_payload direct_prd = prd;
@@ -187,7 +187,7 @@ void main() {
 	    ray_dir = normalize(indirect_prd.normal + indirect_sample.drawn_sample);
 	    weight *= BRDF(omega_in, ray_dir, indirect_prd) / indirect_sample.drawn_weight;
 	} else {
-	    ray_pos = indirect_prd.hit_position;
+	    ray_pos = indirect_prd.volumetric_back_position;
 	    weight *= indirect_prd.volumetric_weight;
 	}
     }
@@ -202,16 +202,17 @@ void main() {
 
     outward_radiance /= 2.0;
     float lum = luminance(outward_radiance);
+    vec3 position = first_hit.model_kind == KIND_VOLUMETRIC ? first_hit.volumetric_front_position : first_hit.hit_position;
     if (current_frame % 2 == 0) {
 	imageStore(ray_trace1_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.albedo, float(first_hit.model_id % 256) / 255.0));
 	imageStore(ray_trace1_lighting1_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
-	imageStore(ray_trace1_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.hit_position, 1.0));
+	imageStore(ray_trace1_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(position, 1.0));
 	imageStore(ray_trace1_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.normal * 0.5 + 0.5, 1.0));
 	imageStore(ray_trace1_history1_image, ivec2(gl_LaunchIDEXT.xy), vec4(lum, lum * lum, 0.0, 1.0));
     } else {
 	imageStore(ray_trace2_albedo_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.albedo, float(first_hit.model_id % 256) / 255.0));
 	imageStore(ray_trace2_lighting1_image, ivec2(gl_LaunchIDEXT.xy), vec4(outward_radiance, 1.0));
-	imageStore(ray_trace2_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.hit_position, 1.0));
+	imageStore(ray_trace2_position_image, ivec2(gl_LaunchIDEXT.xy), vec4(position, 1.0));
 	imageStore(ray_trace2_normal_image, ivec2(gl_LaunchIDEXT.xy), vec4(first_hit.normal * 0.5 + 0.5, 1.0));
 	imageStore(ray_trace2_history1_image, ivec2(gl_LaunchIDEXT.xy), vec4(lum, lum * lum, 0.0, 1.0));
     }

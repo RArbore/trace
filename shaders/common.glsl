@@ -50,13 +50,21 @@ struct hit_payload {
     vec3 albedo;
     vec3 normal;
     vec3 flat_normal;
+
     float roughness;
     float metallicity;
-    vec3 hit_position;
     float direct_emittance;
+
+    vec3 hit_position;
+
     uint model_kind;
     uint model_id;
+
     float volumetric_weight;
+    vec3 volumetric_front_position;
+    vec3 volumetric_back_position;
+    float volumetric_dls_weight;
+    vec3 volumetric_dls_back_position;
 };
 
 struct obj_desc {

@@ -36,9 +36,12 @@ void main() {
     prd.flat_normal = normal;
     prd.roughness = 1.0;
     prd.metallicity = 0.0;
-    prd.hit_position = world_ray_back_pos;
+    prd.hit_position = vec3(0.0);
     prd.direct_emittance = 0.0;
     prd.model_kind = KIND_VOLUMETRIC;
     prd.model_id = gl_InstanceCustomIndexEXT;
+
     prd.volumetric_weight = 0.2;
+    prd.volumetric_front_position = world_ray_pos;
+    prd.volumetric_back_position = world_ray_back_pos;
 }
