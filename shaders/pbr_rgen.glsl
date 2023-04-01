@@ -154,7 +154,7 @@ void main() {
 	if (indirect_prd.model_kind != KIND_LIGHT || hit_num == 0) {
 	    outward_radiance += indirect_prd.direct_emittance * weight;
 	}
-	if (!found_first_hit) {
+	if (!found_first_hit && (indirect_prd.model_kind != KIND_VOLUMETRIC || indirect_prd.volumetric_weight < 1.0)) {
 	    first_hit = indirect_prd;
 	    indirect_prd.albedo = vec3(1.0);
 	    outward_radiance *= 2.0;
@@ -168,12 +168,18 @@ void main() {
 	    ray_pos = indirect_prd.hit_position + indirect_prd.flat_normal * SURFACE_OFFSET;
 	    ray_sample direct_sample = sample_light_sources(slice_2_from_4(random, hit_num), ray_pos, indirect_prd.normal);
 	    if (direct_sample.drawn_weight > 0.0) {
+		vec3 dls_weight = weight;
 		traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, ray_pos, 0.001, direct_sample.drawn_sample, FAR_AWAY, 0);
-		hit_payload direct_prd = prd;
-		
-		vec3 direct_brdf = BRDF(-ray_dir, direct_sample.drawn_sample, indirect_prd);
-		float direct_lambert = dot(direct_sample.drawn_sample, indirect_prd.normal);
-		outward_radiance += direct_prd.direct_emittance * weight * direct_lambert * direct_brdf * direct_sample.drawn_weight;
+		while (prd.model_kind == KIND_VOLUMETRIC && any(greaterThan(dls_weight, vec3(WEIGHT_CUTOFF)))) {
+		    dls_weight *= prd.volumetric_weight;
+		    traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0, prd.hit_position, 0.001, direct_sample.drawn_sample, FAR_AWAY, 0);
+		}
+		if (any(greaterThan(dls_weight, vec3(WEIGHT_CUTOFF)))) {
+		    hit_payload direct_prd = prd;
+		    vec3 direct_brdf = BRDF(-ray_dir, direct_sample.drawn_sample, indirect_prd);
+		    float direct_lambert = dot(direct_sample.drawn_sample, indirect_prd.normal);
+		    outward_radiance += direct_prd.direct_emittance * dls_weight * direct_lambert * direct_brdf * direct_sample.drawn_weight;
+		}
 	    }
 	    
 	    vec3 omega_in = -ray_dir;
