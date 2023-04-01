@@ -63,6 +63,5 @@ void main() {
 	out_color = new_sample.history_length > 10.0 ? taa_color : new_color;
     } else {
 	out_color = sample_to_color(new_sample);
-	out_color = vec4(new_sample.albedo, 1.0);
     }
 }

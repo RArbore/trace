@@ -80,6 +80,15 @@ ray_sample uniform_weighted_hemisphere(vec2 random, vec3 direction) {
     return ret;
 }
 
+ray_sample uniform_weighted_sphere(vec2 random) {
+    ray_sample ret;
+    float theta = acos(2.0 * random.x - 1.0);
+    float phi = 2.0 * PI * random.y;
+    ret.drawn_sample = vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+    ret.drawn_weight = 1.0 / PI;
+    return ret;
+}
+
 vec3 uniform_weighted_hemisphere_simple(vec2 random, vec3 direction) {
     float theta = acos(random.x);
     float phi = 2.0 * PI * random.y;
@@ -167,11 +176,10 @@ void main() {
 		outward_radiance += direct_prd.direct_emittance * weight * direct_lambert * direct_brdf * direct_sample.drawn_weight;
 	    }
 	    
-	    float indirect_lambert = dot(indirect_prd.normal, -ray_dir);
 	    vec3 omega_in = -ray_dir;
-	    ray_sample indirect_sample = uniform_weighted_hemisphere(slice_2_from_4(random, hit_num + 2), indirect_prd.normal);
-	    ray_dir = indirect_sample.drawn_sample;
-	    weight *= indirect_lambert * BRDF(omega_in, ray_dir, indirect_prd) / indirect_sample.drawn_weight;
+	    ray_sample indirect_sample = uniform_weighted_sphere(slice_2_from_4(random, hit_num + 2));
+	    ray_dir = normalize(indirect_prd.normal + indirect_sample.drawn_sample);
+	    weight *= BRDF(omega_in, ray_dir, indirect_prd) / indirect_sample.drawn_weight;
 	} else {
 	    ray_pos = indirect_prd.hit_position;
 	    weight *= indirect_prd.volumetric_weight;

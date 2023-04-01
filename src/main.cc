@@ -36,7 +36,7 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
 
     Scene scene {};
 
-    scene.add_light({10.0, 2.0, 7.0, 2000.0});
+    scene.add_light({10.0, 2.0, 7.0, 1000.0});
 
     const uint16_t model_id_dragon = context.load_model("dragon", scene);
     scene.add_object(glm::scale(glm::translate(glm::mat4(1), glm::vec3(-2.5f, 0.0f, 0.0f)), glm::vec3(0.05f, 0.05f, 0.05f)), model_id_dragon);
