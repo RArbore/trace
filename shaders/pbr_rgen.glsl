@@ -32,6 +32,11 @@ vec2 slice_2_from_4(vec4 random, uint num) {
     return random.xy * float(slice == 0) + random.yz * float(slice == 1) + random.zw * float(slice == 2) + random.wx * float(slice == 3);
 }
 
+float slice_1_from_4(vec4 random, uint num) {
+    uint slice = (num + current_frame) % 4;
+    return random.x * float(slice == 0) + random.y * float(slice == 1) + random.z * float(slice == 2) + random.w * float(slice == 3);
+}
+
 float normal_distribution(float cos_theta, float alpha) {
     float alpha_2 = alpha * alpha;
     float cos_theta_2 = cos_theta * cos_theta;
@@ -116,7 +121,7 @@ vec3 BRDF(vec3 omega_in, vec3 omega_out, hit_payload hit) {
 }
 
 ray_sample sample_light_sources(vec2 random, vec3 origin, vec3 normal) {
-    vec4 light = lights[1]; // "random"
+    vec4 light = lights[uint(min(random.x, 0.99) * float(num_lights))];
     if (dot(normal, light.xyz - origin) < 0.0 && normal != vec3(0.0)) {
 	ray_sample samp;
 	samp.drawn_sample = vec3(0.0);

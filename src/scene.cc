@@ -860,7 +860,7 @@ auto RenderContext::build_bottom_level_acceleration_structure_for_lights(Scene &
     blas_build_geometry_info.geometryCount = 1;
     blas_build_geometry_info.pGeometries = &blas_geometry;
     
-    const uint32_t max_primitive_counts[] = {1};
+    const uint32_t max_primitive_counts[] = {scene.num_lights};
     
     VkAccelerationStructureBuildSizesInfoKHR blas_build_sizes_info {};
     blas_build_sizes_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;

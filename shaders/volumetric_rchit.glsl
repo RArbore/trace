@@ -45,6 +45,6 @@ void main() {
     prd.volumetric_front_position = world_ray_pos;
     prd.volumetric_back_position = world_ray_back_pos;
 
-    prd.volumetric_dls_weight = 0.4;
+    prd.volumetric_dls_weight = 0.3;
     prd.volumetric_dls_back_position = world_ray_back_pos;
 }

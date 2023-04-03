@@ -117,6 +117,7 @@ layout (push_constant) uniform PushConstants {
 };
 
 layout(set = 0, binding = 0) uniform lights_uniform {
+    uint num_lights;
     vec4 lights[MAX_LIGHTS];
 };
 

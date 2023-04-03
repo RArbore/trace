@@ -23,7 +23,7 @@
 layout(location = 0) rayPayloadInEXT hit_payload prd;
 
 void main() {
-    vec4 light = lights[gl_GeometryIndexEXT + 1];
+    vec4 light = lights[gl_PrimitiveID];
     vec3 hit_pos = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
     vec3 normal = normalize(hit_pos - light.xyz);
 
