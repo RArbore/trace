@@ -26,7 +26,7 @@ ifeq ($(TRACY), 1)
 	TRACY_OBJS := build/tracyclient.o
 endif
 
-CXXFLAGS := $(CXXFLAGS) -fno-rtti -pipe -Iimgui -Iimgui/backends -Itracy/public/tracy -std=c++20
+CXXFLAGS := $(CXXFLAGS) -fno-rtti -pipe -Iimgui -Iimgui/backends -Itracy/public/tracy -Isrc -std=c++20
 GLSLFLAGS := $(GLSLFLAGS) --target-spv=spv1.5 --target-env=vulkan1.2
 LDFLAGS := $(LDFLAGS) -fuse-ld=mold
 WFLAGS := $(WFLAGS) -Wall -Wextra -Wshadow -Wconversion -Wpedantic
@@ -79,6 +79,8 @@ build/tracyclient.o: tracy/public/TracyClient.cpp
 
 blue_noise_gen: tools/blue_noise_gen.cc $(TRACY_OBJS)
 	$(CXX) $(CXXFLAGS) -pthread $(WFLAGS) $(TRACY_OBJS) $< -o $@ -lpthread
+voxelize: tools/voxelize.cc $(TRACY_OBJS) build/tinyobj_impl.o
+	$(CXX) $(CXXFLAGS) -pthread $(WFLAGS) $(TRACY_OBJS) build/tinyobj_impl.o $< -o $@ -lpthread
 $(PNG_BLUE_NOISE): %.png: %.bin
 	convert -depth 8 -size `echo $< | cut -d_ -f4`+0 gray:$< $@
 
