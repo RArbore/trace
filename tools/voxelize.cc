@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <vector>
+#include <math.h>
 
 #include <tiny_obj_loader.h>
 
@@ -47,6 +48,8 @@ namespace std {
 struct Model {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+    Vertex negative_corner;
+    Vertex positive_corner;
 };
 
 auto usage() noexcept -> void {
@@ -57,6 +60,12 @@ auto usage() noexcept -> void {
 auto load_obj_model(std::string_view obj_filepath) noexcept -> Model {
     ZoneScoped;
     Model model {};
+    model.negative_corner.x = 100000.0f;
+    model.negative_corner.y = 100000.0f;
+    model.negative_corner.z = 100000.0f;
+    model.positive_corner.x = -100000.0f;
+    model.positive_corner.y = -100000.0f;
+    model.positive_corner.z = -100000.0f;
 
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -74,14 +83,34 @@ auto load_obj_model(std::string_view obj_filepath) noexcept -> Model {
 	    vertex.y = attrib.vertices[3 * index.vertex_index + 1];
 	    vertex.z = attrib.vertices[3 * index.vertex_index + 2];
 	    
-	    model.vertices.push_back(vertex);
 	    if (unique_vertices.count(vertex) == 0) {
 		unique_vertices[vertex] = (uint32_t) model.vertices.size();
+		model.negative_corner.x = fmax(model.negative_corner.x, vertex.x);
+		model.negative_corner.y = fmax(model.negative_corner.y, vertex.y);
+		model.negative_corner.z = fmax(model.negative_corner.z, vertex.z);
+		model.positive_corner.x = fmax(model.positive_corner.x, vertex.x);
+		model.positive_corner.y = fmax(model.positive_corner.y, vertex.y);
+		model.positive_corner.z = fmax(model.positive_corner.z, vertex.z);
 		model.vertices.push_back(vertex);
 	    }
 	    model.indices.push_back(unique_vertices[vertex]);
 	    ++count;
 	}
+    }
+
+    float x_span = model.positive_corner.x - model.negative_corner.x;
+    float y_span = model.positive_corner.y - model.negative_corner.y;
+    float z_span = model.positive_corner.z - model.negative_corner.z;
+    float max_span = fmax(fmax(x_span, y_span), z_span);
+    Vertex center;
+    center.x = model.negative_corner.x + x_span / 2.0f;
+    center.y = model.negative_corner.y + y_span / 2.0f;
+    center.z = model.negative_corner.z + z_span / 2.0f;
+
+    for (auto &v : model.vertices) {
+	v.x = ((v.x - center.x) / max_span + 0.5f) * (float) resolution;
+	v.y = ((v.y - center.y) / max_span + 0.5f) * (float) resolution;
+	v.z = ((v.z - center.z) / max_span + 0.5f) * (float) resolution;
     }
     
     return model;
