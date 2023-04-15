@@ -182,6 +182,7 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
     std::cout << "Voxelizing " << argv[1] << " at resolution of " << resolution << "^3 voxels.\n";
 
     std::vector<bool> voxel_grid(resolution * resolution * resolution);
+    uint32_t num_filled;
     for (uint32_t i = 0; i < model.indices.size() - 2; i += 3) {
 	glm::vec3 *tri = &model.vertices[i];
 	glm::vec3 negative_bound;
@@ -200,9 +201,54 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
 		for (uint32_t z = negative_bound_fixed[2]; z <= positive_bound_fixed[2]; ++z) {
 		    uint32_t voxel_grid_idx = x * resolution * resolution + y * resolution + z;
 		    bool prev = voxel_grid[voxel_grid_idx];
-		    voxel_grid[voxel_grid_idx] = prev || tri_aabb(triangle, glm::vec3((float) x + 0.5f, (float) y + 0.5f, (float) z + 0.5f), glm::vec3(1.0f));
+		    if (!prev) {
+			bool intersects = tri_aabb(triangle, glm::vec3((float) x + 0.5f, (float) y + 0.5f, (float) z + 0.5f), glm::vec3(1.0f));
+			num_filled += (uint32_t) intersects;
+			voxel_grid[voxel_grid_idx] = intersects;
+		    }
 		}
 	    }
 	}
     }
+
+    std::string output_file = std::string(argv[1]) + ".vox";
+    FILE *f = fopen(output_file.c_str(), "w");
+    ASSERT(f, "Couldn't open .vox file.");
+    fwrite("VOX ", 1, 4, f);
+    uint32_t version = 150;
+    fwrite(&version, 1, 4, f);
+    fwrite("MAIN", 1, 4, f);
+    uint32_t main_size = 0;
+    fwrite(&main_size, 1, 4, f);
+    fwrite(&main_size, 1, 4, f); // TODO: Write proper main child chunks size
+    fwrite("SIZE", 1, 4, f);
+    fwrite(&main_size, 1, 4, f); // TODO: Write proper size chunk size
+    fwrite(&main_size, 1, 4, f);
+    fwrite(&resolution, 1, 4, f);
+    fwrite(&resolution, 1, 4, f);
+    fwrite(&resolution, 1, 4, f);
+    fwrite("XYZI", 1, 4, f);
+    uint32_t xyzi_size = num_filled * 4 + 4;
+    fwrite(&xyzi_size, 1, 4, f);
+    fwrite(&main_size, 1, 4, f); // TODO: Write proper xyzi child chunks size
+    for (int32_t x = 0; x < resolution; ++x) {
+	for (int32_t y = 0; y < resolution; ++y) {
+	    for (int32_t z = 0; z < resolution; ++z) {
+		uint32_t voxel_grid_idx = x * resolution * resolution + y * resolution + z;
+		if (voxel_grid[voxel_grid_idx]) {
+		    uint8_t voxel[4] = {(uint8_t) x, (uint8_t) y, (uint8_t) z, 1};
+		    fwrite(voxel, 1, 4, f);
+		}
+	    }
+	}
+    }
+    fwrite("RGBA", 1, 4, f);
+    fwrite(&main_size, 1, 4, f); // TODO: Write proper rgba chunk size
+    fwrite(&main_size, 1, 4, f); // TODO: Write proper rgba child chunks size
+    for (uint32_t i = 0; i < 256; ++i) {
+	uint32_t color = i == 1 ? 0xFFFFFFFF : 0x00000000;
+	fwrite(&color, 1, 4, f);
+    }
+    
+    fclose(f);
 }
