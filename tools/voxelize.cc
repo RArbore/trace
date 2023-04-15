@@ -24,6 +24,8 @@
 
 #define NUM_THREADS 16
 
+static int32_t resolution;
+
 struct Vertex {
     float x;
     float y;
@@ -49,7 +51,7 @@ struct Model {
 
 auto usage() noexcept -> void {
     ZoneScoped;
-    std::cout << "Usage: blue_noise_gen <obj model>\n";
+    std::cout << "Usage: blue_noise_gen <obj model> <resolution>\n";
 }
 
 auto load_obj_model(std::string_view obj_filepath) noexcept -> Model {
@@ -88,8 +90,18 @@ auto load_obj_model(std::string_view obj_filepath) noexcept -> Model {
 auto main(int32_t argc, char **argv) noexcept -> int32_t {
     ZoneScoped;
     FrameMark;
-    if (argc != 2) {
+    if (argc != 3) {
 	usage();
 	exit(1);
     }
+
+    int32_t num_chars;
+    if (sscanf(argv[2], "%d%n", &resolution, &num_chars) != 1 || argv[2][num_chars] != '\0') {
+	usage();
+	exit(1);
+    }
+    ASSERT(resolution > 0 && (resolution & (resolution - 1)) == 0, "ERROR: Resolution must be a positive power of two.");
+
+    Model obj_model = load_obj_model(argv[1]);
+    std::cout << "Voxelizing " << argv[1] << " at resolution of " << resolution << "^3 voxels.\n";
 }
