@@ -628,8 +628,8 @@ auto RenderContext::load_dot_bin_model(std::string_view bin_filepath) noexcept -
 		int dx = x - 5;
 		int dy = y - 5;
 		int dz = z - 5;
-		float d = sqrt(dx * dx + dy * dy + dz * dz);
-		float v = 1.0f - fmin(d / 5.0f, 1.0f);
+		float d = (float) sqrt(dx * dx + dy * dy + dz * dz);
+		float v = 1.0f - (float) fmin(d / 5.0f, 1.0f);
 		model.voxels[x * 11 * 11 + y * 11 + z] = (uint8_t) (v * 255.0f);
 	    }
 	}

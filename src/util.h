@@ -23,6 +23,7 @@
 inline auto assert_impl(VkResult result, const char *msg, const char* file, uint32_t line) noexcept -> void {
     if (result != VK_SUCCESS) {
 	fprintf(stderr, "PANIC: %s\nFound Vulkan error code: %s\nOccurred in %s at line %u.\n", msg, string_VkResult(result), file, line);
+	__builtin_trap();
 	exit(-1);
     }
 }
@@ -30,6 +31,7 @@ inline auto assert_impl(VkResult result, const char *msg, const char* file, uint
 inline auto assert_impl(bool result, const char *msg, const char* file, uint32_t line) noexcept -> void {
     if (!result) {
 	fprintf(stderr, "PANIC: %s\nOccurred in %s at line %u.\n", msg, file, line);
+	__builtin_trap();
 	exit(-1);
     }
 }
@@ -37,6 +39,7 @@ inline auto assert_impl(bool result, const char *msg, const char* file, uint32_t
 inline auto assert_impl(int32_t result, const char *msg, const char* file, uint32_t line) noexcept -> void {
     if (result == -1) {
 	fprintf(stderr, "PANIC: %s\nOccurred in %s at line %u.\n", msg, file, line);
+	__builtin_trap();
 	exit(-1);
     }
 }
@@ -44,6 +47,7 @@ inline auto assert_impl(int32_t result, const char *msg, const char* file, uint3
 inline auto assert_impl(uint32_t result, const char *msg, const char* file, uint32_t line) noexcept -> void {
     if (result == 0xFFFFFFFF) {
 	fprintf(stderr, "PANIC: %s\nOccurred in %s at line %u.\n", msg, file, line);
+	__builtin_trap();
 	exit(-1);
     }
 }

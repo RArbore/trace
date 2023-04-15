@@ -93,7 +93,7 @@ auto main([[maybe_unused]] int32_t argc, [[maybe_unused]] char **argv) noexcept 
 							      );
     scene.add_object(glm::scale(glm::mat4(1), glm::vec3(10.0f, 10.0f, 10.0f)), model_id_wall);
 
-    const uint16_t test_voxel_model = context.load_voxel_model("test", scene);
+    const uint16_t test_voxel_model = context.load_voxel_model("dragon.obj", scene);
     scene.add_voxel_object(glm::rotate(glm::scale(glm::translate(glm::mat4(1), glm::vec3(0.0f, 0.0f, 5.0f)), glm::vec3(2.0f, 2.0f, 2.0f)), 1.0f, glm::vec3(0.0f, 0.2f, 0.8f)), test_voxel_model);
 
     const uint16_t cloud_volumetric_model = context.load_volumetric_model("cloud", scene);

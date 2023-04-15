@@ -88,7 +88,7 @@ exe: trace
 	./trace
 
 clean:
-	$(RM) build/*.o build/*.spv trace blue_noise_gen assets/*.bin
+	$(RM) build/*.o build/*.spv trace blue_noise_gen voxelize assets/*.bin
 
 convert: $(PNG_BLUE_NOISE)
 

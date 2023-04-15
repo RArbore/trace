@@ -182,9 +182,12 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
     std::cout << "Voxelizing " << argv[1] << " at resolution of " << resolution << "^3 voxels.\n";
 
     std::vector<bool> voxel_grid(resolution * resolution * resolution);
-    uint32_t num_filled;
+    uint32_t num_filled = 0;
     for (uint32_t i = 0; i < model.indices.size() - 2; i += 3) {
-	glm::vec3 *tri = &model.vertices[i];
+	glm::vec3 tri[3];
+	tri[0] = model.vertices[model.indices[i]];
+	tri[1] = model.vertices[model.indices[i + 1]];
+	tri[2] = model.vertices[model.indices[i + 2]];
 	glm::vec3 negative_bound;
 	negative_bound.x = fmin(fmin(tri[0].x, tri[1].x), tri[2].x);
 	negative_bound.y = fmin(fmin(tri[0].y, tri[1].y), tri[2].y);
@@ -193,18 +196,22 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
 	positive_bound.x = fmax(fmax(tri[0].x, tri[1].x), tri[2].x);
 	positive_bound.y = fmax(fmax(tri[0].y, tri[1].y), tri[2].y);
 	positive_bound.z = fmax(fmax(tri[0].z, tri[1].z), tri[2].z);
-	uint32_t negative_bound_fixed[3] = { (uint32_t) negative_bound.x, (uint32_t) negative_bound.y, (uint32_t) negative_bound.z };
-	uint32_t positive_bound_fixed[3] = { (uint32_t) positive_bound.x, (uint32_t) positive_bound.y, (uint32_t) positive_bound.z };
-	Triangle &triangle = *((Triangle *) tri);
+	auto min = [](uint32_t x, uint32_t y) {
+	    return x < y ? x : y;
+	};
+	auto max = [](uint32_t x, uint32_t y) {
+	    return x > y ? x : y;
+	};
+	uint32_t negative_bound_fixed[3] = { min(max((uint32_t) negative_bound.x, 0), (uint32_t) resolution - 1), min(max((uint32_t) negative_bound.y, 0), (uint32_t) resolution - 1), min(max((uint32_t) negative_bound.z, 0), (uint32_t) resolution - 1)};
+	uint32_t positive_bound_fixed[3] = { min(max((uint32_t) positive_bound.x, 0), (uint32_t) resolution - 1), min(max((uint32_t) positive_bound.y, 0), (uint32_t) resolution - 1), min(max((uint32_t) positive_bound.z, 0), (uint32_t) resolution - 1)};
+	Triangle &triangle = *((Triangle *) &tri);
 	for (uint32_t x = negative_bound_fixed[0]; x <= positive_bound_fixed[0]; ++x) {
 	    for (uint32_t y = negative_bound_fixed[1]; y <= positive_bound_fixed[1]; ++y) {
 		for (uint32_t z = negative_bound_fixed[2]; z <= positive_bound_fixed[2]; ++z) {
 		    uint32_t voxel_grid_idx = x * resolution * resolution + y * resolution + z;
-		    bool prev = voxel_grid[voxel_grid_idx];
-		    if (!prev) {
-			bool intersects = tri_aabb(triangle, glm::vec3((float) x + 0.5f, (float) y + 0.5f, (float) z + 0.5f), glm::vec3(1.0f));
-			num_filled += (uint32_t) intersects;
-			voxel_grid[voxel_grid_idx] = intersects;
+		    if (!voxel_grid[voxel_grid_idx] && tri_aabb(triangle, glm::vec3((float) x + 0.5f, (float) y + 0.5f, (float) z + 0.5f), glm::vec3(1.0f))) {
+			++num_filled;
+			voxel_grid[voxel_grid_idx] = true;
 		    }
 		}
 	    }
@@ -231,12 +238,14 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
     uint32_t xyzi_size = num_filled * 4 + 4;
     fwrite(&xyzi_size, 1, 4, f);
     fwrite(&main_size, 1, 4, f); // TODO: Write proper xyzi child chunks size
+    uint32_t num_voxels = num_filled;
+    fwrite(&num_voxels, 1, 4, f);
     for (int32_t x = 0; x < resolution; ++x) {
 	for (int32_t y = 0; y < resolution; ++y) {
 	    for (int32_t z = 0; z < resolution; ++z) {
 		uint32_t voxel_grid_idx = x * resolution * resolution + y * resolution + z;
 		if (voxel_grid[voxel_grid_idx]) {
-		    uint8_t voxel[4] = {(uint8_t) x, (uint8_t) y, (uint8_t) z, 1};
+		    uint8_t voxel[4] = {(uint8_t) z, (uint8_t) y, (uint8_t) x, 1};
 		    fwrite(voxel, 1, 4, f);
 		}
 	    }
@@ -246,7 +255,7 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
     fwrite(&main_size, 1, 4, f); // TODO: Write proper rgba chunk size
     fwrite(&main_size, 1, 4, f); // TODO: Write proper rgba child chunks size
     for (uint32_t i = 0; i < 256; ++i) {
-	uint32_t color = i == 1 ? 0xFFFFFFFF : 0x00000000;
+	uint32_t color = 0xFFFFFFFF;
 	fwrite(&color, 1, 4, f);
     }
     
