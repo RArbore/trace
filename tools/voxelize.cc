@@ -67,8 +67,7 @@ struct WideSVONode {
 static const WideSVONode EMPTY_WIDE_SVO_NODE = WideSVONode();
 
 struct SVONodeParent {
-    uint32_t far_bit: 1;
-    uint32_t child_pointer: 15;
+    uint32_t child_pointer: 16;
     uint32_t valid_mask: 8;
     uint32_t leaf_mask: 8;
 };
@@ -225,6 +224,13 @@ uint64_t morton_encode(uint32_t x, uint32_t y, uint32_t z) {
     return answer;
 }
 
+uint8_t reverse(uint8_t b) {
+   b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+   b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+   b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+   return b;
+}
+
 void dump_wide_svo_child(const std::vector<WideSVONode> &svo, uint64_t node, int32_t depth) {
     std::cout << "CHILD (node " << node << ", depth " << depth << "): " << std::hex << svo[node].leaf_data << std::dec << "\n";
 }
@@ -248,6 +254,31 @@ void dump_wide_svo_parent(const std::vector<WideSVONode> &svo, uint64_t node, in
 
 void dump_wide_svo(const std::vector<WideSVONode> &svo) {
     dump_wide_svo_parent(svo, svo.size() - 1, 0);
+}
+
+void dump_svo_child(const std::vector<SVONode> &svo, uint64_t node, int32_t depth) {
+    std::cout << "CHILD (node " << node << ", depth " << depth << "): " << std::hex << svo[node].leaf_data << std::dec << "\n";
+}
+
+void dump_svo_parent(const std::vector<SVONode> &svo, uint64_t node, int32_t depth) {
+    std::cout << "PARENT (node " << node << ", depth " << depth <<  "): " << svo[node].parent.child_pointer << " " << std::bitset<8>(svo[node].parent.valid_mask) << " " << std::bitset<8>(svo[node].parent.leaf_mask) << "\n";
+    for (uint8_t i = 0, j = 0; i < 8; ++i) {
+	uint64_t child_pointer = node + svo[node].parent.child_pointer + j;
+	uint8_t valid = svo[node].parent.valid_mask;
+	uint8_t leaf = svo[node].parent.leaf_mask;
+	if (valid & (1 << i)) {
+	    if (leaf & (1 << i)) {
+		dump_svo_child(svo, child_pointer, depth + 1);
+	    } else {
+		dump_svo_parent(svo, child_pointer, depth + 1);
+	    }
+	    ++j;
+	}
+    }
+}
+
+void dump_svo(const std::vector<SVONode> &svo) {
+    dump_svo_parent(svo, 0, 0);
 }
 
 auto main(int32_t argc, char **argv) noexcept -> int32_t {
@@ -407,8 +438,26 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
 
     dump_wide_svo(wide_svo);
 
+    std::cout << "\n<<<<<<<<<<<<<<<<<<<<<<,\n\n";
+
     std::vector<SVONode> svo;
     for (int64_t i = wide_svo.size() - 1; i >= 0; --i) {
 	WideSVONode wide_node = wide_svo[i];
+	if (wide_node.leaf) {
+	    SVONode leaf_node;
+	    leaf_node.leaf_data = wide_node.leaf_data;
+	    svo.push_back(leaf_node);
+	} else {
+	    WideSVONodeParent wide_parent_node = wide_node.parent;
+	    SVONode parent_node;
+	    parent_node.parent.valid_mask = reverse(wide_parent_node.valid_mask);
+	    parent_node.parent.leaf_mask = reverse(wide_parent_node.leaf_mask);
+	    uint8_t num_valid = (uint8_t) std::bitset<8>(wide_parent_node.valid_mask).count();
+	    uint64_t child_diff = i - wide_parent_node.child_pointer - num_valid + 1;
+	    parent_node.parent.child_pointer = child_diff & 0xFFFF; // TODO: add far pointer mechanism
+	    svo.push_back(parent_node);
+	}
     }
+
+    dump_svo(svo);
 }
