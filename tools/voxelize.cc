@@ -199,21 +199,21 @@ uint64_t morton_encode(uint32_t x, uint32_t y, uint32_t z) {
     return answer;
 }
 
-void dump_svo_child(const std::vector<SVONode> &svo, uint64_t node) {
-    std::cout << "CHILD: " << std::hex << svo[node].leaf_data << std::dec << "\n";
+void dump_svo_child(const std::vector<SVONode> &svo, uint64_t node, int32_t depth) {
+    std::cout << "CHILD (depth " << depth << "): " << std::hex << svo[node].leaf_data << std::dec << "\n";
 }
 
-void dump_svo_parent(const std::vector<SVONode> &svo, uint64_t node) {
-    std::cout << "PARENT: " << svo[node].parent.child_pointer << " " << std::bitset<8>(svo[node].parent.valid_mask) << " " << std::bitset<8>(svo[node].parent.leaf_mask) << "\n";
+void dump_svo_parent(const std::vector<SVONode> &svo, uint64_t node, int32_t depth) {
+    std::cout << "PARENT (depth " << depth <<  "): " << svo[node].parent.child_pointer << " " << std::bitset<8>(svo[node].parent.valid_mask) << " " << std::bitset<8>(svo[node].parent.leaf_mask) << "\n";
     for (uint8_t i = 0, j = 0; i < 8; ++i) {
 	uint64_t child_pointer = svo[node].parent.child_pointer + j;
 	uint8_t valid = svo[node].parent.valid_mask;
 	uint8_t leaf = svo[node].parent.leaf_mask;
 	if (valid & (1 << i)) {
 	    if (leaf & (1 << i)) {
-		dump_svo_child(svo, child_pointer);
+		dump_svo_child(svo, child_pointer, depth + 1);
 	    } else {
-		dump_svo_parent(svo, child_pointer);
+		dump_svo_parent(svo, child_pointer, depth + 1);
 	    }
 	    ++j;
 	}
@@ -221,7 +221,7 @@ void dump_svo_parent(const std::vector<SVONode> &svo, uint64_t node) {
 }
 
 void dump_svo(const std::vector<SVONode> &svo) {
-    dump_svo_parent(svo, svo.size() - 1);
+    dump_svo_parent(svo, svo.size() - 1, 0);
 }
 
 auto main(int32_t argc, char **argv) noexcept -> int32_t {
