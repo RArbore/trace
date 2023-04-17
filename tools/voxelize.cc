@@ -323,25 +323,33 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
     fclose(f);
 
     int32_t d_max_depth = (int32_t) log2(resolution);
-    std::vector<std::vector<SVONode>> queues(d_max_depth + 1);
+    std::vector<std::vector<std::pair<SVONode, bool>>> queues(d_max_depth + 1);
     std::vector<SVONode> svo;
     auto flush = [&](int32_t d) {
 	while (d > 0 && queues[d].size() >= 8) {
 	    uint8_t valid = 0;
+	    uint8_t leaf = 0;
+	    bool identical = true;
 	    for (uint8_t i = 0; i < 8; ++i) {
-		valid |= (uint8_t) ((queues[d][i] != EMPTY_SVO_NODE) << i);
+		valid |= (uint8_t) ((queues[d][i].first != EMPTY_SVO_NODE) << i);
+		leaf |= (uint8_t) (queues[d][i].second << i);
+		identical = identical && queues[d][i] == queues[d][0];
 	    }
 	    SVONode internal_node {};
-	    internal_node.parent.child_pointer = svo.size() & 0xFFFF;
-	    internal_node.parent.valid_mask = valid;
-	    internal_node.parent.leaf_mask = d == d_max_depth ? valid : 0;
-	    for (int32_t i = 0; i < 8; ++i) {
-		if (valid & (1 << i)) {
-		    svo.push_back(queues[d][i]);
+	    if (identical) {
+		internal_node = queues[d][0].first;
+	    } else {
+		internal_node.parent.child_pointer = svo.size() & 0xFFFF;
+		internal_node.parent.valid_mask = valid;
+		internal_node.parent.leaf_mask = valid & leaf;
+		for (int32_t i = 0; i < 8; ++i) {
+		    if (valid & (1 << i)) {
+			svo.push_back(queues[d][i].first);
+		    }
 		}
 	    }
 	    queues[d].clear();
-	    queues[d - 1].push_back(internal_node);
+	    queues[d - 1].emplace_back(internal_node, identical);
 	    --d;
 	}
     };
@@ -354,21 +362,21 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
 	uint32_t leaf_voxel = 0xFFFFFFFF;
 	uint64_t num_empty_nodes = morton - current_morton;
 	for (uint64_t i = 1; i < num_empty_nodes; ++i) {
-	    queues[d_max_depth].push_back(EMPTY_SVO_NODE);
+	    queues[d_max_depth].emplace_back(EMPTY_SVO_NODE, true);
 	    flush(d_max_depth);
 	}
 	SVONode leaf_node {};
 	leaf_node.leaf_data = leaf_voxel;
-	queues[d_max_depth].push_back(leaf_node);
+	queues[d_max_depth].emplace_back(leaf_node, true);
 	flush(d_max_depth);
 	current_morton = morton;
     }
     uint64_t num_empty_nodes = morton_limit - current_morton;
     for (uint64_t i = 0; i < num_empty_nodes; ++i) {
-	queues[d_max_depth].push_back(EMPTY_SVO_NODE);
+	queues[d_max_depth].emplace_back(EMPTY_SVO_NODE, true);
 	flush(d_max_depth);
     }
-    svo.push_back(queues[0][0]);
+    svo.push_back(queues[0][0].first);
 
     dump_svo(svo);
 }
