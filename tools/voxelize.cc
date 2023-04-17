@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <vector>
+#include <bitset>
 #include <math.h>
 
 #include <glm/glm.hpp>
@@ -39,6 +40,25 @@ struct Model {
     std::vector<glm::vec3> vertices;
     std::vector<uint32_t> indices;
 };
+
+struct SVONodeParent {
+    uint32_t child_pointer: 16;
+    uint32_t valid_mask: 8;
+    uint32_t leaf_mask: 8;
+};
+
+struct SVONode {
+    union {
+	SVONodeParent parent;
+	uint32_t leaf_data;
+    };
+
+    bool operator==(const SVONode& other) const {
+	return leaf_data == other.leaf_data;
+    }
+};
+
+static const SVONode EMPTY_SVO_NODE = SVONode { };
 
 auto usage() noexcept -> void {
     ZoneScoped;
@@ -163,6 +183,47 @@ bool tri_aabb(Triangle &triangle, glm::vec3 aabb_center, glm::vec3 aabb_extents)
     return true;
 }
 
+uint64_t split_by_3(uint32_t a) {
+    uint64_t x = a & 0x1fffff;
+    x = (x | x << 32) & 0x1f00000000ffff;
+    x = (x | x << 16) & 0x1f0000ff0000ff;
+    x = (x | x << 8) & 0x100f00f00f00f00f;
+    x = (x | x << 4) & 0x10c30c30c30c30c3;
+    x = (x | x << 2) & 0x1249249249249249;
+    return x;
+}
+
+uint64_t morton_encode(uint32_t x, uint32_t y, uint32_t z) {
+    uint64_t answer = 0;
+    answer |= split_by_3(x) | split_by_3(y) << 1 | split_by_3(z) << 2;
+    return answer;
+}
+
+void dump_svo_child(const std::vector<SVONode> &svo, uint64_t node) {
+    std::cout << "CHILD: " << std::hex << svo[node].leaf_data << std::dec << "\n";
+}
+
+void dump_svo_parent(const std::vector<SVONode> &svo, uint64_t node) {
+    std::cout << "PARENT: " << svo[node].parent.child_pointer << " " << std::bitset<8>(svo[node].parent.valid_mask) << " " << std::bitset<8>(svo[node].parent.leaf_mask) << "\n";
+    for (uint8_t i = 0, j = 0; i < 8; ++i) {
+	uint64_t child_pointer = svo[node].parent.child_pointer + j;
+	uint8_t valid = svo[node].parent.valid_mask;
+	uint8_t leaf = svo[node].parent.leaf_mask;
+	if (valid & (1 << i)) {
+	    if (leaf & (1 << i)) {
+		dump_svo_child(svo, child_pointer);
+	    } else {
+		dump_svo_parent(svo, child_pointer);
+	    }
+	    ++j;
+	}
+    }
+}
+
+void dump_svo(const std::vector<SVONode> &svo) {
+    dump_svo_parent(svo, svo.size() - 1);
+}
+
 auto main(int32_t argc, char **argv) noexcept -> int32_t {
     ZoneScoped;
     FrameMark;
@@ -181,7 +242,7 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
     Model model = load_obj_model(argv[1]);
     std::cout << "Voxelizing " << argv[1] << " at resolution of " << resolution << "^3 voxels.\n";
 
-    std::vector<bool> voxel_grid(resolution * resolution * resolution);
+    std::vector<bool> voxel_grid(resolution * resolution * resolution, false);
     uint32_t num_filled = 0;
     for (uint32_t i = 0; i < model.indices.size() - 2; i += 3) {
 	glm::vec3 tri[3];
@@ -208,7 +269,7 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
 	for (uint32_t x = negative_bound_fixed[0]; x <= positive_bound_fixed[0]; ++x) {
 	    for (uint32_t y = negative_bound_fixed[1]; y <= positive_bound_fixed[1]; ++y) {
 		for (uint32_t z = negative_bound_fixed[2]; z <= positive_bound_fixed[2]; ++z) {
-		    uint32_t voxel_grid_idx = x * resolution * resolution + y * resolution + z;
+		    uint64_t voxel_grid_idx = morton_encode(x, y, z);
 		    if (!voxel_grid[voxel_grid_idx] && tri_aabb(triangle, glm::vec3((float) x + 0.5f, (float) y + 0.5f, (float) z + 0.5f), glm::vec3(1.0f))) {
 			++num_filled;
 			voxel_grid[voxel_grid_idx] = true;
@@ -243,7 +304,7 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
     for (int32_t x = 0; x < resolution; ++x) {
 	for (int32_t y = 0; y < resolution; ++y) {
 	    for (int32_t z = 0; z < resolution; ++z) {
-		uint32_t voxel_grid_idx = x * resolution * resolution + y * resolution + z;
+		uint64_t voxel_grid_idx = morton_encode(x, y, z);
 		if (voxel_grid[voxel_grid_idx]) {
 		    uint8_t voxel[4] = {(uint8_t) z, (uint8_t) y, (uint8_t) x, 1};
 		    fwrite(voxel, 1, 4, f);
@@ -260,4 +321,54 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
     }
     
     fclose(f);
+
+    int32_t d_max_depth = (int32_t) log2(resolution);
+    std::vector<std::vector<SVONode>> queues(d_max_depth + 1);
+    std::vector<SVONode> svo;
+    auto flush = [&](int32_t d) {
+	while (d > 0 && queues[d].size() >= 8) {
+	    uint8_t valid = 0;
+	    for (uint8_t i = 0; i < 8; ++i) {
+		valid |= (uint8_t) ((queues[d][i] != EMPTY_SVO_NODE) << i);
+	    }
+	    SVONode internal_node {};
+	    internal_node.parent.child_pointer = svo.size() & 0xFFFF;
+	    internal_node.parent.valid_mask = valid;
+	    internal_node.parent.leaf_mask = d == d_max_depth ? valid : 0;
+	    for (int32_t i = 0; i < 8; ++i) {
+		if (valid & (1 << i)) {
+		    svo.push_back(queues[d][i]);
+		}
+	    }
+	    queues[d].clear();
+	    queues[d - 1].push_back(internal_node);
+	    --d;
+	}
+    };
+    uint64_t current_morton = 0;
+    uint64_t morton_limit = (uint64_t) resolution * (uint64_t) resolution * (uint64_t) resolution;
+    for (uint64_t morton = 0; morton < morton_limit; ++morton) {
+	if (!voxel_grid[morton]) {
+	    continue;
+	}
+	uint32_t leaf_voxel = 0xFFFFFFFF;
+	uint64_t num_empty_nodes = morton - current_morton;
+	for (uint64_t i = 1; i < num_empty_nodes; ++i) {
+	    queues[d_max_depth].push_back(EMPTY_SVO_NODE);
+	    flush(d_max_depth);
+	}
+	SVONode leaf_node {};
+	leaf_node.leaf_data = leaf_voxel;
+	queues[d_max_depth].push_back(leaf_node);
+	flush(d_max_depth);
+	current_morton = morton;
+    }
+    uint64_t num_empty_nodes = morton_limit - current_morton;
+    for (uint64_t i = 0; i < num_empty_nodes; ++i) {
+	queues[d_max_depth].push_back(EMPTY_SVO_NODE);
+	flush(d_max_depth);
+    }
+    svo.push_back(queues[0][0]);
+
+    dump_svo(svo);
 }
