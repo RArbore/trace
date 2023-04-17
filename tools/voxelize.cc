@@ -438,7 +438,7 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
 
     dump_wide_svo(wide_svo);
 
-    std::cout << "\n<<<<<<<<<<<<<<<<<<<<<<,\n\n";
+    std::cout << "\n<<<<<<<<<<<<<<<<<<<<<<\n\n";
 
     std::vector<SVONode> svo;
     for (int64_t i = wide_svo.size() - 1; i >= 0; --i) {
@@ -460,4 +460,10 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
     }
 
     dump_svo(svo);
+
+    output_file = std::string(argv[1]) + ".svo";
+    f = fopen(output_file.c_str(), "w");
+    ASSERT(f, "Couldn't open .svo file.");
+    fwrite(svo.data(), sizeof(SVONode), svo.size(), f);
+    fclose(f);
 }
