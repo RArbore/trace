@@ -41,8 +41,34 @@ struct Model {
     std::vector<uint32_t> indices;
 };
 
+struct WideSVONodeParent {
+    uint64_t child_pointer;
+    uint32_t valid_mask: 8;
+    uint32_t leaf_mask: 8;
+};
+
+struct WideSVONode {
+    bool leaf;
+    union {
+	WideSVONodeParent parent;
+	uint32_t leaf_data;
+    };
+
+    WideSVONode() {
+	leaf = true;
+	leaf_data = 0;
+    }
+
+    bool operator==(const WideSVONode& other) const {
+	return leaf_data == other.leaf_data;
+    }
+};
+
+static const WideSVONode EMPTY_WIDE_SVO_NODE = WideSVONode();
+
 struct SVONodeParent {
-    uint32_t child_pointer: 16;
+    uint32_t far_bit: 1;
+    uint32_t child_pointer: 15;
     uint32_t valid_mask: 8;
     uint32_t leaf_mask: 8;
 };
@@ -199,29 +225,29 @@ uint64_t morton_encode(uint32_t x, uint32_t y, uint32_t z) {
     return answer;
 }
 
-void dump_svo_child(const std::vector<SVONode> &svo, uint64_t node, int32_t depth) {
-    std::cout << "CHILD (depth " << depth << "): " << std::hex << svo[node].leaf_data << std::dec << "\n";
+void dump_wide_svo_child(const std::vector<WideSVONode> &svo, uint64_t node, int32_t depth) {
+    std::cout << "CHILD (node " << node << ", depth " << depth << "): " << std::hex << svo[node].leaf_data << std::dec << "\n";
 }
 
-void dump_svo_parent(const std::vector<SVONode> &svo, uint64_t node, int32_t depth) {
-    std::cout << "PARENT (depth " << depth <<  "): " << svo[node].parent.child_pointer << " " << std::bitset<8>(svo[node].parent.valid_mask) << " " << std::bitset<8>(svo[node].parent.leaf_mask) << "\n";
+void dump_wide_svo_parent(const std::vector<WideSVONode> &svo, uint64_t node, int32_t depth) {
+    std::cout << "PARENT (node " << node << ", depth " << depth <<  "): " << svo[node].parent.child_pointer << " " << std::bitset<8>(svo[node].parent.valid_mask) << " " << std::bitset<8>(svo[node].parent.leaf_mask) << "\n";
     for (uint8_t i = 0, j = 0; i < 8; ++i) {
 	uint64_t child_pointer = svo[node].parent.child_pointer + j;
 	uint8_t valid = svo[node].parent.valid_mask;
 	uint8_t leaf = svo[node].parent.leaf_mask;
 	if (valid & (1 << i)) {
 	    if (leaf & (1 << i)) {
-		dump_svo_child(svo, child_pointer, depth + 1);
+		dump_wide_svo_child(svo, child_pointer, depth + 1);
 	    } else {
-		dump_svo_parent(svo, child_pointer, depth + 1);
+		dump_wide_svo_parent(svo, child_pointer, depth + 1);
 	    }
 	    ++j;
 	}
     }
 }
 
-void dump_svo(const std::vector<SVONode> &svo) {
-    dump_svo_parent(svo, svo.size() - 1, 0);
+void dump_wide_svo(const std::vector<WideSVONode> &svo) {
+    dump_wide_svo_parent(svo, svo.size() - 1, 0);
 }
 
 auto main(int32_t argc, char **argv) noexcept -> int32_t {
@@ -323,33 +349,34 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
     fclose(f);
 
     int32_t d_max_depth = (int32_t) log2(resolution);
-    std::vector<std::vector<std::pair<SVONode, bool>>> queues(d_max_depth + 1);
-    std::vector<SVONode> svo;
+    std::vector<std::vector<WideSVONode>> queues(d_max_depth + 1);
+    std::vector<WideSVONode> wide_svo;
     auto flush = [&](int32_t d) {
 	while (d > 0 && queues[d].size() >= 8) {
 	    uint8_t valid = 0;
 	    uint8_t leaf = 0;
 	    bool identical = true;
 	    for (uint8_t i = 0; i < 8; ++i) {
-		valid |= (uint8_t) ((queues[d][i].first != EMPTY_SVO_NODE) << i);
-		leaf |= (uint8_t) (queues[d][i].second << i);
+		valid |= (uint8_t) ((queues[d][i] != EMPTY_WIDE_SVO_NODE) << i);
+		leaf |= (uint8_t) (queues[d][i].leaf << i);
 		identical = identical && queues[d][i] == queues[d][0];
 	    }
-	    SVONode internal_node {};
+	    WideSVONode internal_node {};
 	    if (identical) {
-		internal_node = queues[d][0].first;
+		internal_node = queues[d][0];
 	    } else {
-		internal_node.parent.child_pointer = svo.size() & 0xFFFF;
+		internal_node.leaf = false;
+		internal_node.parent.child_pointer = wide_svo.size();
 		internal_node.parent.valid_mask = valid;
 		internal_node.parent.leaf_mask = valid & leaf;
 		for (int32_t i = 0; i < 8; ++i) {
 		    if (valid & (1 << i)) {
-			svo.push_back(queues[d][i].first);
+			wide_svo.push_back(queues[d][i]);
 		    }
 		}
 	    }
 	    queues[d].clear();
-	    queues[d - 1].emplace_back(internal_node, identical);
+	    queues[d - 1].push_back(internal_node);
 	    --d;
 	}
     };
@@ -362,21 +389,26 @@ auto main(int32_t argc, char **argv) noexcept -> int32_t {
 	uint32_t leaf_voxel = 0xFFFFFFFF;
 	uint64_t num_empty_nodes = morton - current_morton;
 	for (uint64_t i = 1; i < num_empty_nodes; ++i) {
-	    queues[d_max_depth].emplace_back(EMPTY_SVO_NODE, true);
+	    queues[d_max_depth].push_back(EMPTY_WIDE_SVO_NODE);
 	    flush(d_max_depth);
 	}
-	SVONode leaf_node {};
+	WideSVONode leaf_node {};
 	leaf_node.leaf_data = leaf_voxel;
-	queues[d_max_depth].emplace_back(leaf_node, true);
+	queues[d_max_depth].push_back(leaf_node);
 	flush(d_max_depth);
 	current_morton = morton;
     }
     uint64_t num_empty_nodes = morton_limit - current_morton;
     for (uint64_t i = 0; i < num_empty_nodes; ++i) {
-	queues[d_max_depth].emplace_back(EMPTY_SVO_NODE, true);
+	queues[d_max_depth].push_back(EMPTY_WIDE_SVO_NODE);
 	flush(d_max_depth);
     }
-    svo.push_back(queues[0][0].first);
+    wide_svo.push_back(queues[0][0]);
 
-    dump_svo(svo);
+    dump_wide_svo(wide_svo);
+
+    std::vector<SVONode> svo;
+    for (int64_t i = wide_svo.size() - 1; i >= 0; --i) {
+	WideSVONode wide_node = wide_svo[i];
+    }
 }
